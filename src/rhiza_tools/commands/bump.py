@@ -1,5 +1,6 @@
+"""Command to bump version in pyproject.toml using semver and tomlkit."""
+
 from pathlib import Path
-from typing import Optional
 
 import questionary
 import semver
@@ -11,32 +12,32 @@ from loguru import logger
 def get_current_version() -> str:
     """Read current version from pyproject.toml."""
     try:
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             data = tomlkit.parse(f.read())
             return data["project"]["version"]
     except Exception as e:
         logger.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1)
 
+
 def update_version(new_version: str) -> None:
     """Update version in pyproject.toml."""
     try:
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             data = tomlkit.parse(f.read())
-        
+
         data["project"]["version"] = new_version
-        
+
         with open("pyproject.toml", "w") as f:
             f.write(tomlkit.dumps(data))
-            
+
     except Exception as e:
         logger.error(f"Failed to update pyproject.toml: {e}")
         raise typer.Exit(code=1)
 
-def bump_command(version: Optional[str] = None, dry_run: bool = False):
-    """
-    Bump version in pyproject.toml using semver and tomlkit.
-    """
+
+def bump_command(version: str | None = None, dry_run: bool = False):
+    """Bump version in pyproject.toml using semver and tomlkit."""
     # Check if pyproject.toml exists
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
@@ -77,7 +78,7 @@ def bump_command(version: Optional[str] = None, dry_run: bool = False):
                 f"Patch ({current_version_str} -> {next_patch})",
                 f"Minor ({current_version_str} -> {next_minor})",
                 f"Major ({current_version_str} -> {next_major})",
-            ]
+            ],
         ).ask()
 
         if not choice:
@@ -117,7 +118,7 @@ def bump_command(version: Optional[str] = None, dry_run: bool = False):
     # Update version in pyproject.toml
     logger.info("Updating pyproject.toml...")
     update_version(new_version_str)
-    
+
     # Verify the update
     updated_version = get_current_version()
     if updated_version != new_version_str:
@@ -126,4 +127,3 @@ def bump_command(version: Optional[str] = None, dry_run: bool = False):
 
     logger.success(f"Version bumped: {current_version_str} -> {new_version_str} in pyproject.toml")
     logger.info("Don't forget to run 'uv lock' to update the lockfile if needed.")
-
