@@ -17,10 +17,10 @@ dependencies = [
 ]
 
 [project.scripts]
-rhiza-tools = "rhiza_tools.cli:app"
+rhiza-tools = "rhiza_tools.__main__:app"
 
 [project.entry-points."rhiza.plugins"]
-tools = "rhiza_tools.cli:app"
+tools = "rhiza_tools.__main__:app"
 
 [project.optional-dependencies]
 dev = [

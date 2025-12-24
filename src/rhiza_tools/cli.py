@@ -39,6 +39,3 @@ def update_readme_help(
         typer.echo("Updating README.md with make help output")
         # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
 
-
-if __name__ == "__main__":
-    app()
