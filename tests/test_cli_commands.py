@@ -1,3 +1,5 @@
+"""Tests for CLI commands in rhiza_tools.cli.py."""
+
 from typer.testing import CliRunner
 
 from rhiza_tools.cli import app

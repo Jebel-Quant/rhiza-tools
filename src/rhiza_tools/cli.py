@@ -1,4 +1,5 @@
 """CLI commands for Rhiza Tools."""
+
 import typer
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")

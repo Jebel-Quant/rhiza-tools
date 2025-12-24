@@ -35,6 +35,7 @@ rhiza tools release
 
 For more details, see the [README.md](https://github.com/Jebel-Quant/rhiza-tools/blob/main/README.md).
 """
+
 from importlib.metadata import PackageNotFoundError, version
 
 try:
