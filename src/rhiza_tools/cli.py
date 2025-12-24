@@ -1,21 +1,21 @@
 """CLI commands for Rhiza Tools."""
 
+from typing import Optional
+
 import typer
+
+from .commands.bump import bump_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
 
 @app.command()
 def bump(
-    version: str = typer.Argument(..., help="The version to bump to (e.g., 1.0.1, major, minor, patch)."),
+    version: Optional[str] = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ):
     """Bump the version of the project."""
-    if dry_run:
-        typer.echo(f"Would bump version to: {version}")
-    else:
-        typer.echo(f"Bumping version to: {version}")
-        # TODO: Implement actual bump logic here (port from bump.sh)
+    bump_command(version, dry_run)
 
 
 @app.command()
@@ -40,3 +40,6 @@ def update_readme_help(
     else:
         typer.echo("Updating README.md with make help output")
         # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
+
+if __name__ == "__main__":
+    app()
