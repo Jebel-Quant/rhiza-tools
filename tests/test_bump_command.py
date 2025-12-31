@@ -278,7 +278,9 @@ def test_bump_version_verification_failure(temp_project, monkeypatch):
     """Test error handling when version verification after update fails."""
     
     # Mock get_current_version to return different values on subsequent calls
-    versions = iter(["0.1.0", "0.9.9"])  # First call returns 0.1.0, second returns wrong version
+    # First call returns initial version, second returns incorrect version to simulate verification failure
+    # (Expected new version after patch bump would be 0.1.1, but we return 0.9.9 to test error handling)
+    versions = iter(["0.1.0", "0.9.9"])
     
     def mock_get_current_version():
         return next(versions)
