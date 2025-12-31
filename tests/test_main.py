@@ -15,7 +15,7 @@ def test_main_entry_point():
         capture_output=True,
         text=True,
     )
-    
+
     # Should exit successfully
     assert result.returncode == 0
     # Should show help text
@@ -27,14 +27,14 @@ def test_main_direct_execution():
     # Find the __main__.py file
     spec = importlib.util.find_spec("rhiza_tools.__main__")
     main_file = spec.origin
-    
+
     # Run the file directly with --help
     result = subprocess.run(
         [sys.executable, main_file, "--help"],
         capture_output=True,
         text=True,
     )
-    
+
     # Should exit successfully
     assert result.returncode == 0
     # Should show help text
@@ -45,7 +45,7 @@ def test_main_if_name_main_block():
     """Test the if __name__ == '__main__' block in __main__.py is covered."""
     # Use runpy to execute the module as __main__
     # This properly triggers the if __name__ == "__main__" block
-    
+
     # Mock sys.argv and the app to prevent actual execution
     with patch("sys.argv", ["rhiza_tools", "--help"]):
         with patch("rhiza_tools.cli.app") as mock_app:
@@ -55,6 +55,6 @@ def test_main_if_name_main_block():
             except SystemExit:
                 # Expected when app() runs and exits
                 pass
-            
+
             # The app should have been called
             assert mock_app.called

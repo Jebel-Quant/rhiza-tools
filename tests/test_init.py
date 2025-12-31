@@ -8,7 +8,7 @@ from unittest.mock import patch
 def test_version_available():
     """Test that __version__ is set when package is installed."""
     import rhiza_tools
-    
+
     # Should have a version attribute
     assert hasattr(rhiza_tools, "__version__")
     assert isinstance(rhiza_tools.__version__, str)
@@ -25,13 +25,13 @@ def test_version_package_not_found():
         # Remove the module from sys.modules to force a fresh import
         if "rhiza_tools" in sys.modules:
             del sys.modules["rhiza_tools"]
-        
+
         # Import the module - this will trigger the exception handling
         import rhiza_tools
-        
+
         # Should fall back to "unknown"
         assert rhiza_tools.__version__ == "unknown"
-        
+
         # Clean up - reload with proper version for other tests
         del sys.modules["rhiza_tools"]
         import rhiza_tools
