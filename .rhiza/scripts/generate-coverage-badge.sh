@@ -20,19 +20,23 @@ fi
 printf "%b[INFO] Generating coverage badge from ${COVERAGE_JSON}...%b\n" "$BLUE" "$RESET"
 
 # Extract coverage percentage and round it
-COVERAGE=$(python3 -c "
+COVERAGE=$(python3 << 'PYTHON_SCRIPT'
 import json
 import sys
+import os
+
+coverage_json = os.environ.get('COVERAGE_JSON', '_tests/coverage.json')
 
 try:
-    with open('${COVERAGE_JSON}', 'r') as f:
+    with open(coverage_json, 'r') as f:
         data = json.load(f)
     percent = data['totals']['percent_covered']
     print(f'{percent:.0f}')
 except Exception as e:
     print(f'Error extracting coverage: {e}', file=sys.stderr)
     sys.exit(1)
-")
+PYTHON_SCRIPT
+)
 
 if [ $? -ne 0 ] || [ -z "${COVERAGE}" ]; then
   printf "%b[ERROR] Failed to extract coverage percentage%b\n" "$YELLOW" "$RESET"

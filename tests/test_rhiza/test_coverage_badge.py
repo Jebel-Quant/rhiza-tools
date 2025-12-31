@@ -14,10 +14,10 @@ def test_coverage_badge_generation(tmp_path, root):
     tests_dir.mkdir(parents=True)
     book_dir.mkdir(parents=True)
 
-    # Create a mock coverage.json
+    # Create a mock coverage.json with realistic data
     coverage_data = {
         "totals": {
-            "percent_covered": 85.71428571428571,
+            "percent_covered": 85.7,
             "percent_covered_display": "86",
         }
     }
