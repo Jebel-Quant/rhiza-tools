@@ -1,9 +1,17 @@
-# rhiza-tools
+<div align="center">
+
+# <img src="https://raw.githubusercontent.com/Jebel-Quant/rhiza/main/assets/rhiza-logo.svg" alt="Rhiza Logo" width="30" style="vertical-align: middle;"> rhiza-tools
+![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9?color=2FA4A9)
 
 [![PyPI version](https://img.shields.io/pypi/v/rhiza-tools.svg)](https://pypi.org/project/rhiza-tools/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Coverage](https://img.shields.io/badge/coverage-report-brightgreen.svg)](https://jebel-quant.github.io/rhiza-tools/tests/html-coverage/index.html)
+[![Downloads](https://static.pepy.tech/personalized-badge/rhiza?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/rhiza-tools)
 
 Extra utilities and tools serving the mothership [rhiza](https://github.com/Jebel-Quant/rhiza).
+
+**📖 New to Rhiza? Check out the [Getting Started Guide](https://github.com/Jebel-Quant/rhiza-cli/blob/ad816ff3e91a8d6f07fcba979bc64576de3d0116/GETTING_STARTED.md) for a beginner-friendly introduction!**
+</div>
 
 This package provides additional commands for the Rhiza ecosystem, such as version bumping, release management, and documentation helpers. It can be used as a plugin for `rhiza-cli` or as a standalone tool.
 
