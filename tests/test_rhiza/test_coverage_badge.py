@@ -89,6 +89,6 @@ def test_coverage_badge_colors(root):
             # Verify the color
             badge_json = book_dir / "coverage-badge.json"
             badge_data = json.loads(badge_json.read_text())
-            assert (
-                badge_data["color"] == expected_color
-            ), f"Expected {expected_color} for {percent}%, got {badge_data['color']}"
+            assert badge_data["color"] == expected_color, (
+                f"Expected {expected_color} for {percent}%, got {badge_data['color']}"
+            )

@@ -20,7 +20,7 @@ fi
 printf "%b[INFO] Generating coverage badge from ${COVERAGE_JSON}...%b\n" "$BLUE" "$RESET"
 
 # Extract coverage percentage and round it
-COVERAGE=$(python3 << 'PYTHON_SCRIPT'
+if ! COVERAGE=$(python3 << 'PYTHON_SCRIPT'
 import json
 import sys
 import os
@@ -36,10 +36,13 @@ except Exception as e:
     print(f'Error extracting coverage: {e}', file=sys.stderr)
     sys.exit(1)
 PYTHON_SCRIPT
-)
-
-if [ $? -ne 0 ] || [ -z "${COVERAGE}" ]; then
+); then
   printf "%b[ERROR] Failed to extract coverage percentage%b\n" "$YELLOW" "$RESET"
+  exit 1
+fi
+
+if [ -z "${COVERAGE}" ]; then
+  printf "%b[ERROR] Coverage percentage is empty%b\n" "$YELLOW" "$RESET"
   exit 1
 fi
 
