@@ -1,168 +1,212 @@
-"""Tests for the bump command using a sandboxed git environment."""
+"""Tests for the bump command."""
 
 import pytest
-from unittest.mock import patch, MagicMock
-from typer.testing import CliRunner
-from rhiza_tools.cli import app
-import tomlkit
-from loguru import logger
+import typer
 
-runner = CliRunner()
+from rhiza_tools.commands.bump import bump_command, get_current_version
 
-@pytest.fixture
-def capture_logs():
-    logs = []
-    # Add a sink that appends the message to the logs list
-    handler_id = logger.add(lambda msg: logs.append(msg), format="{message}")
-    yield logs
-    logger.remove(handler_id)
 
-@pytest.fixture
-def mock_questionary():
-    with patch("rhiza_tools.commands.bump.questionary") as mock:
-        yield mock
+def test_bump_patch(temp_project):
+    """Test bumping the patch version."""
+    bump_command(version="patch")
+    assert get_current_version() == "0.1.1"
 
-def test_bump_patch_interactive(git_repo, mock_questionary, capture_logs):
-    """Test interactive patch bump."""
-    # Setup mock return value for questionary
-    mock_questionary.select.return_value.ask.return_value = "Patch (0.1.0 -> 0.1.1)"
 
-    # Run command in the git repo directory
-    with patch("rhiza_tools.commands.bump.Path.cwd", return_value=git_repo):
-        # We need to change the current working directory for the test
-        # because the command looks for pyproject.toml in cwd
-        import os
-        cwd = os.getcwd()
-        os.chdir(git_repo)
-        try:
-            result = runner.invoke(app, ["bump"])
-        finally:
-            os.chdir(cwd)
+def test_bump_minor(temp_project):
+    """Test bumping the minor version."""
+    bump_command(version="minor")
+    assert get_current_version() == "0.2.0"
 
-    assert result.exit_code == 0
-    
-    # Check logs
-    output = "".join(capture_logs)
-    assert "Current version: 0.1.0" in output
-    assert "Bumping version using: patch" in output
-    assert "New version will be: 0.1.1" in output
-    assert "Version bumped: 0.1.0 -> 0.1.1" in output
 
-    # Verify pyproject.toml updated
-    with open(git_repo / "pyproject.toml") as f:
-        content = f.read()
-        assert 'version = "0.1.1"' in content
+def test_bump_major(temp_project):
+    """Test bumping the major version."""
+    bump_command(version="major")
+    assert get_current_version() == "1.0.0"
 
-def test_bump_minor_interactive(git_repo, mock_questionary, capture_logs):
-    """Test interactive minor bump."""
-    mock_questionary.select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
 
-    import os
-    cwd = os.getcwd()
-    os.chdir(git_repo)
-    try:
-        result = runner.invoke(app, ["bump"])
-    finally:
-        os.chdir(cwd)
-
-    assert result.exit_code == 0
-    output = "".join(capture_logs)
-    assert "New version will be: 0.2.0" in output
-    
-    with open(git_repo / "pyproject.toml") as f:
-        content = f.read()
-        assert 'version = "0.2.0"' in content
-
-def test_bump_major_interactive(git_repo, mock_questionary, capture_logs):
-    """Test interactive major bump."""
-    mock_questionary.select.return_value.ask.return_value = "Major (0.1.0 -> 1.0.0)"
-
-    import os
-    cwd = os.getcwd()
-    os.chdir(git_repo)
-    try:
-        result = runner.invoke(app, ["bump"])
-    finally:
-        os.chdir(cwd)
-
-    assert result.exit_code == 0
-    output = "".join(capture_logs)
-    assert "New version will be: 1.0.0" in output
-    
-    with open(git_repo / "pyproject.toml") as f:
-        content = f.read()
-        assert 'version = "1.0.0"' in content
-
-def test_bump_dry_run(git_repo, mock_questionary, capture_logs):
-    """Test dry run does not update file."""
-    mock_questionary.select.return_value.ask.return_value = "Patch (0.1.0 -> 0.1.1)"
-
-    import os
-    cwd = os.getcwd()
-    os.chdir(git_repo)
-    try:
-        result = runner.invoke(app, ["bump", "--dry-run"])
-    finally:
-        os.chdir(cwd)
-
-    assert result.exit_code == 0
-    output = "".join(capture_logs)
-    assert "Dry run enabled" in output
-    
-    # Verify pyproject.toml NOT updated
-    with open(git_repo / "pyproject.toml") as f:
-        content = f.read()
-        assert 'version = "0.1.0"' in content
-
-def test_bump_explicit_version(git_repo, capture_logs):
+def test_bump_explicit_version(temp_project):
     """Test bumping to an explicit version."""
+    bump_command(version="1.2.3")
+    assert get_current_version() == "1.2.3"
+
+
+def test_bump_explicit_version_with_v_prefix(temp_project):
+    """Test bumping to an explicit version with 'v' prefix."""
+    bump_command(version="v1.2.3")
+    assert get_current_version() == "1.2.3"
+
+
+def test_dry_run(temp_project):
+    """Test dry run does not change the version."""
+    bump_command(version="patch", dry_run=True)
+    assert get_current_version() == "0.1.0"
+
+
+def test_invalid_version(temp_project):
+    """Test that invalid versions raise an error."""
+    with pytest.raises(typer.Exit):
+        bump_command(version="invalid")
+
+
+def test_missing_pyproject_toml(temp_project):
+    """Test that missing pyproject.toml raises an error."""
     import os
-    cwd = os.getcwd()
-    os.chdir(git_repo)
-    try:
-        result = runner.invoke(app, ["bump", "1.2.3"])
-    finally:
-        os.chdir(cwd)
 
-    assert result.exit_code == 0
-    output = "".join(capture_logs)
-    assert "New version will be: 1.2.3" in output
-    
-    with open(git_repo / "pyproject.toml") as f:
-        content = f.read()
-        assert 'version = "1.2.3"' in content
+    os.remove("pyproject.toml")
+    with pytest.raises(typer.Exit):
+        bump_command(version="patch")
 
-def test_bump_invalid_version_file(git_repo, capture_logs):
-    """Test error when pyproject.toml has invalid version."""
-    # Corrupt the version in pyproject.toml
-    with open(git_repo / "pyproject.toml", "r") as f:
-        data = tomlkit.parse(f.read())
-    data["project"]["version"] = "invalid"
-    with open(git_repo / "pyproject.toml", "w") as f:
-        f.write(tomlkit.dumps(data))
 
-    import os
-    cwd = os.getcwd()
-    os.chdir(git_repo)
-    try:
-        result = runner.invoke(app, ["bump"])
-    finally:
-        os.chdir(cwd)
+def test_bump_prerelease(temp_project):
+    """Test bumping prerelease."""
+    # First bump to a prerelease version
+    bump_command(version="0.1.0-alpha.1")
+    assert get_current_version() == "0.1.0-alpha.1"
 
-    assert result.exit_code == 1
-    output = "".join(capture_logs)
-    assert "Invalid semantic version" in output
+    # Bump prerelease
+    bump_command(version="prerelease")
+    assert get_current_version() == "0.1.0-alpha.2"
 
-def test_bump_no_pyproject(tmp_path, capture_logs):
-    """Test error when pyproject.toml is missing."""
-    import os
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    try:
-        result = runner.invoke(app, ["bump"])
-    finally:
-        os.chdir(cwd)
 
-    assert result.exit_code == 1
-    output = "".join(capture_logs)
-    assert "pyproject.toml not found" in output
+def test_bump_build(temp_project):
+    """Test bumping build."""
+    # First bump to a build version
+    bump_command(version="0.1.0+build.1")
+    assert get_current_version() == "0.1.0+build.1"
+
+    # Bump build
+    bump_command(version="build")
+    assert get_current_version() == "0.1.0+build.2"
+
+
+def test_bump_interactive_patch(temp_project, monkeypatch):
+    """Test interactive bump selection (Patch)."""
+
+    # Mock the return value of qs.select(...).ask()
+    class MockQuestion:
+        def ask(self):
+            return "Patch (0.1.0 -> 0.1.1)"
+
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+
+    bump_command(version=None)
+    assert get_current_version() == "0.1.1"
+
+
+def test_bump_interactive_minor(temp_project, monkeypatch):
+    """Test interactive bump selection (Minor)."""
+
+    class MockQuestion:
+        def ask(self):
+            return "Minor (0.1.0 -> 0.2.0)"
+
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+
+    bump_command(version=None)
+    assert get_current_version() == "0.2.0"
+
+
+def test_bump_interactive_cancel(temp_project, monkeypatch):
+    """Test interactive bump cancellation."""
+
+    class MockQuestion:
+        def ask(self):
+            return None
+
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+
+    # Should exit with code 0 if cancelled
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version=None)
+
+    assert excinfo.value.exit_code == 0
+    assert get_current_version() == "0.1.0"
+
+
+def test_bump_alpha_argument(temp_project):
+    """Test bumping alpha version via argument."""
+    bump_command(version="alpha")
+    assert get_current_version() == "0.1.1-alpha.1"
+
+    bump_command(version="alpha")
+    assert get_current_version() == "0.1.1-alpha.2"
+
+
+def test_bump_beta_argument(temp_project):
+    """Test bumping beta version via argument."""
+    bump_command(version="beta")
+    assert get_current_version() == "0.1.1-beta.1"
+
+
+def test_bump_dev_argument(temp_project):
+    """Test bumping dev version via argument."""
+    bump_command(version="dev")
+    assert get_current_version() == "0.1.1-dev.1"
+
+
+def test_bump_prerelease_transition(temp_project):
+    """Test transitioning between prerelease types."""
+    # Start with alpha
+    bump_command(version="alpha")
+    assert get_current_version() == "0.1.1-alpha.1"
+
+    # Switch to beta
+    bump_command(version="beta")
+    assert get_current_version() == "0.1.1-beta.1"
+
+    # Switch to rc (via interactive since rc arg is not supported yet)
+    # But wait, rc is not in the allowed args list in bump.py
+    # So we can't test it via argument.
+
+    # Switch back to alpha (should bump patch and start new alpha)
+    # Wait, get_next_prerelease logic:
+    # if current_version.prerelease:
+    #     if current_version.prerelease.startswith(token):
+    #         return current_version.bump_prerelease()
+    #     else:
+    #         return current_version.replace(prerelease=f"{token}.1")
+
+    # So 0.1.1-beta.1 -> alpha -> 0.1.1-alpha.1
+    bump_command(version="alpha")
+    assert get_current_version() == "0.1.1-alpha.1"
+
+
+def test_bump_interactive_rc(temp_project, monkeypatch):
+    """Test interactive bump selection (RC)."""
+
+    class MockQuestion:
+        def ask(self):
+            return "RC (0.1.0 -> 0.1.1-rc.1)"
+
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+
+    bump_command(version=None)
+    assert get_current_version() == "0.1.1-rc.1"
+
+
+def test_bump_interactive_build(temp_project, monkeypatch):
+    """Test interactive bump selection (Build)."""
+
+    class MockQuestion:
+        def ask(self):
+            return "Build (0.1.0 -> 0.1.0+build.1)"
+
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+
+    bump_command(version=None)
+    assert get_current_version() == "0.1.0+build.1"
