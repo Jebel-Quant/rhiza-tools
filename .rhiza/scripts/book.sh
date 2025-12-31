@@ -8,6 +8,11 @@
 
 set -e
 
+# Determine SCRIPTS_FOLDER if not set
+if [ -z "${SCRIPTS_FOLDER}" ]; then
+  SCRIPTS_FOLDER="$(cd "$(dirname "$0")" && pwd)"
+fi
+
 BLUE="\033[36m"
 YELLOW="\033[33m"
 RESET="\033[0m"
