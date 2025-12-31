@@ -2,11 +2,26 @@
 
 from pathlib import Path
 
-import questionary
+import questionary as qs
 import semver
 import tomlkit
 import typer
 from loguru import logger
+
+_COOL_STYLE = qs.Style(
+    [
+        ("separator", "fg:#cc5454"),
+        ("qmark", "fg:#2FA4A9 bold"),
+        ("question", ""),
+        ("selected", "fg:#2FA4A9 bold"),
+        ("pointer", "fg:#2FA4A9 bold"),
+        ("highlighted", "fg:#2FA4A9 bold"),
+        ("answer", "fg:#2FA4A9 bold"),
+        ("text", "fg:#ffffff"),
+        ("disabled", "fg:#858585 italic"),
+    ]
+)
+
 
 
 def get_current_version() -> str:
@@ -51,7 +66,7 @@ def bump_command(version: str | None = None, dry_run: bool = False):
         logger.error(f"Invalid semantic version in pyproject.toml: {current_version_str}")
         raise typer.Exit(code=1)
 
-    logger.info(f"Current version: {current_version_str}")
+    logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
     bump_type = ""
     new_version_str = ""
@@ -72,13 +87,14 @@ def bump_command(version: str | None = None, dry_run: bool = False):
         next_minor = current_version.bump_minor()
         next_major = current_version.bump_major()
 
-        choice = questionary.select(
+        choice = qs.select(
             f"Select bump type (Current: {current_version_str})",
             choices=[
                 f"Patch ({current_version_str} -> {next_patch})",
                 f"Minor ({current_version_str} -> {next_minor})",
                 f"Major ({current_version_str} -> {next_major})",
             ],
+            style=_COOL_STYLE
         ).ask()
 
         if not choice:
