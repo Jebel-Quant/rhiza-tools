@@ -1,9 +1,16 @@
 """Tests for the bump command."""
 
+import os
+from unittest.mock import mock_open, patch
+
 import pytest
 import typer
 
-from rhiza_tools.commands.bump import bump_command, get_current_version
+from rhiza_tools.commands.bump import (
+    bump_command,
+    get_current_version,
+    update_version,
+)
 
 
 def test_bump_patch(temp_project):
@@ -216,3 +223,200 @@ def test_bump_interactive_build(temp_project, monkeypatch):
 
     bump_command(version=None)
     assert get_current_version() == "0.1.0+build.1"
+
+
+def test_get_current_version_error_handling(temp_project, monkeypatch):
+    """Test error handling when reading version from pyproject.toml fails."""
+    
+    def mock_open_error(*args, **kwargs):
+        raise IOError("File read error")
+    
+    monkeypatch.setattr("builtins.open", mock_open_error)
+    
+    with pytest.raises(typer.Exit) as excinfo:
+        get_current_version()
+    assert excinfo.value.exit_code == 1
+
+
+def test_update_version_error_handling(temp_project, monkeypatch):
+    """Test error handling when updating version in pyproject.toml fails."""
+    
+    # Create a mock that succeeds on read but fails on write
+    original_open = open
+    call_count = [0]
+    
+    def mock_open_conditional(*args, **kwargs):
+        call_count[0] += 1
+        if call_count[0] == 2 and "w" in str(kwargs.get("mode", args[1] if len(args) > 1 else "")):
+            raise IOError("File write error")
+        return original_open(*args, **kwargs)
+    
+    monkeypatch.setattr("builtins.open", mock_open_conditional)
+    
+    with pytest.raises(typer.Exit) as excinfo:
+        update_version("1.0.0")
+    assert excinfo.value.exit_code == 1
+
+
+def test_bump_invalid_semantic_version_in_pyproject(temp_project):
+    """Test error handling when pyproject.toml has invalid semantic version."""
+    # Update pyproject.toml with invalid version
+    import tomlkit
+    
+    with open("pyproject.toml") as f:
+        data = tomlkit.parse(f.read())
+    
+    data["project"]["version"] = "not-a-valid-semver"
+    
+    with open("pyproject.toml", "w") as f:
+        f.write(tomlkit.dumps(data))
+    
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version="patch")
+    assert excinfo.value.exit_code == 1
+
+
+def test_bump_version_verification_failure(temp_project, monkeypatch):
+    """Test error handling when version verification after update fails."""
+    
+    # Mock get_current_version to return different values
+    call_count = [0]
+    original_get_current_version = get_current_version
+    
+    def mock_get_current_version():
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return "0.1.0"
+        else:
+            # Return wrong version on verification
+            return "0.9.9"
+    
+    monkeypatch.setattr("rhiza_tools.commands.bump.get_current_version", mock_get_current_version)
+    
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version="patch")
+    assert excinfo.value.exit_code == 1
+
+
+def test_bump_interactive_alpha(temp_project, monkeypatch):
+    """Test interactive bump selection (Alpha)."""
+    
+    class MockQuestion:
+        def ask(self):
+            return "Alpha (0.1.0 -> 0.1.1-alpha.1)"
+    
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+    
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    
+    bump_command(version=None)
+    assert get_current_version() == "0.1.1-alpha.1"
+
+
+def test_bump_interactive_beta(temp_project, monkeypatch):
+    """Test interactive bump selection (Beta)."""
+    
+    class MockQuestion:
+        def ask(self):
+            return "Beta (0.1.0 -> 0.1.1-beta.1)"
+    
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+    
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    
+    bump_command(version=None)
+    assert get_current_version() == "0.1.1-beta.1"
+
+
+def test_bump_interactive_dev(temp_project, monkeypatch):
+    """Test interactive bump selection (Dev)."""
+    
+    class MockQuestion:
+        def ask(self):
+            return "Dev (0.1.0 -> 0.1.1-dev.1)"
+    
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+    
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    
+    bump_command(version=None)
+    assert get_current_version() == "0.1.1-dev.1"
+
+
+def test_bump_interactive_prerelease(temp_project, monkeypatch):
+    """Test interactive bump selection (Prerelease)."""
+    # First set up a prerelease version
+    bump_command(version="0.1.0-alpha.1")
+    
+    class MockQuestion:
+        def ask(self):
+            return "Prerelease (0.1.0-alpha.1 -> 0.1.0-alpha.2)"
+    
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+    
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    
+    bump_command(version=None)
+    assert get_current_version() == "0.1.0-alpha.2"
+
+
+def test_bump_interactive_major(temp_project, monkeypatch):
+    """Test interactive bump selection (Major)."""
+    
+    class MockQuestion:
+        def ask(self):
+            return "Major (0.1.0 -> 1.0.0)"
+    
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+    
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    
+    bump_command(version=None)
+    assert get_current_version() == "1.0.0"
+
+
+def test_parse_version_argument_none():
+    """Test _parse_version_argument with None."""
+    from rhiza_tools.commands.bump import _parse_version_argument
+    
+    bump_type, explicit_version = _parse_version_argument(None)
+    assert bump_type == ""
+    assert explicit_version == ""
+
+
+def test_determine_bump_type_from_choice_no_match():
+    """Test _determine_bump_type_from_choice when no prefix matches."""
+    from rhiza_tools.commands.bump import _determine_bump_type_from_choice
+    
+    # Test with a string that doesn't match any prefix
+    result = _determine_bump_type_from_choice("Unknown choice string")
+    assert result == ""
+
+
+def test_calculate_new_version_unknown_bump_type(temp_project):
+    """Test _calculate_new_version with unknown bump type."""
+    import semver
+    from rhiza_tools.commands.bump import _calculate_new_version
+    
+    current_version = semver.Version.parse("0.1.0")
+    
+    with pytest.raises(typer.Exit) as excinfo:
+        _calculate_new_version(current_version, "unknown_type", "")
+    assert excinfo.value.exit_code == 1
+
+
+def test_calculate_new_version_no_bump_or_version(temp_project):
+    """Test _calculate_new_version with no bump type or explicit version."""
+    import semver
+    from rhiza_tools.commands.bump import _calculate_new_version
+    
+    current_version = semver.Version.parse("0.1.0")
+    
+    with pytest.raises(typer.Exit) as excinfo:
+        _calculate_new_version(current_version, "", "")
+    assert excinfo.value.exit_code == 1
