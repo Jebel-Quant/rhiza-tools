@@ -20,12 +20,12 @@ fi
 printf "%b[INFO] Generating coverage badge from ${COVERAGE_JSON}...%b\n" "$BLUE" "$RESET"
 
 # Extract coverage percentage and round it
-if ! COVERAGE=$(python3 << 'PYTHON_SCRIPT'
+if ! COVERAGE=$(COVERAGE_JSON="${COVERAGE_JSON}" python3 << 'PYTHON_SCRIPT'
 import json
 import sys
 import os
 
-coverage_json = os.environ.get('COVERAGE_JSON', '_tests/coverage.json')
+coverage_json = os.environ['COVERAGE_JSON']
 
 try:
     with open(coverage_json, 'r') as f:
