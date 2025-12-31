@@ -25,6 +25,19 @@ _COOL_STYLE = qs.Style(
 # Valid bump type keywords
 _VALID_BUMP_TYPES = ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "rc", "dev"]
 
+# Mapping of choice prefix to bump type for interactive selection
+_CHOICE_PREFIX_TO_BUMP_TYPE = {
+    "Patch": "patch",
+    "Minor": "minor",
+    "Major": "major",
+    "Alpha": "alpha",
+    "Beta": "beta",
+    "RC": "rc",
+    "Dev": "dev",
+    "Prerelease": "prerelease",
+    "Build": "build",
+}
+
 
 def get_current_version() -> str:
     """Read current version from pyproject.toml."""
@@ -66,24 +79,9 @@ def get_next_prerelease(current_version: semver.Version, token: str) -> semver.V
 
 def _determine_bump_type_from_choice(choice: str) -> str:
     """Extract bump type from interactive choice string."""
-    if choice.startswith("Patch"):
-        return "patch"
-    elif choice.startswith("Minor"):
-        return "minor"
-    elif choice.startswith("Major"):
-        return "major"
-    elif choice.startswith("Alpha"):
-        return "alpha"
-    elif choice.startswith("Beta"):
-        return "beta"
-    elif choice.startswith("RC"):
-        return "rc"
-    elif choice.startswith("Dev"):
-        return "dev"
-    elif choice.startswith("Prerelease"):
-        return "prerelease"
-    elif choice.startswith("Build"):
-        return "build"
+    for prefix, bump_type in _CHOICE_PREFIX_TO_BUMP_TYPE.items():
+        if choice.startswith(prefix):
+            return bump_type
     return ""
 
 
