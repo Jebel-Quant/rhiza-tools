@@ -22,6 +22,22 @@ _COOL_STYLE = qs.Style(
     ]
 )
 
+# Valid bump type keywords
+_VALID_BUMP_TYPES = ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "rc", "dev"]
+
+# Mapping of choice prefix to bump type for interactive selection
+_CHOICE_PREFIX_TO_BUMP_TYPE = {
+    "Patch": "patch",
+    "Minor": "minor",
+    "Major": "major",
+    "Alpha": "alpha",
+    "Beta": "beta",
+    "RC": "rc",
+    "Dev": "dev",
+    "Prerelease": "prerelease",
+    "Build": "build",
+}
+
 
 def get_current_version() -> str:
     """Read current version from pyproject.toml."""
@@ -61,6 +77,106 @@ def get_next_prerelease(current_version: semver.Version, token: str) -> semver.V
         return current_version.bump_patch().bump_prerelease(token=token)
 
 
+def _determine_bump_type_from_choice(choice: str) -> str:
+    """Extract bump type from interactive choice string."""
+    for prefix, bump_type in _CHOICE_PREFIX_TO_BUMP_TYPE.items():
+        if choice.startswith(prefix):
+            return bump_type
+    return ""
+
+
+def _get_interactive_bump_type(current_version: semver.Version) -> str:
+    """Get bump type from user through interactive prompt."""
+    next_patch = current_version.bump_patch()
+    next_minor = current_version.bump_minor()
+    next_major = current_version.bump_major()
+    next_prerelease = current_version.bump_prerelease()
+    next_build = current_version.bump_build()
+
+    next_alpha = get_next_prerelease(current_version, "alpha")
+    next_beta = get_next_prerelease(current_version, "beta")
+    next_rc = get_next_prerelease(current_version, "rc")
+    next_dev = get_next_prerelease(current_version, "dev")
+
+    current_version_str = str(current_version)
+    choice = qs.select(
+        f"Select bump type (Current: {current_version_str})",
+        choices=[
+            f"Patch ({current_version_str} -> {next_patch})",
+            f"Minor ({current_version_str} -> {next_minor})",
+            f"Major ({current_version_str} -> {next_major})",
+            qs.Separator("-" * 30),
+            f"Prerelease ({current_version_str} -> {next_prerelease})",
+            f"Alpha ({current_version_str} -> {next_alpha})",
+            f"Beta ({current_version_str} -> {next_beta})",
+            f"RC ({current_version_str} -> {next_rc})",
+            f"Dev ({current_version_str} -> {next_dev})",
+            f"Build ({current_version_str} -> {next_build})",
+        ],
+        style=_COOL_STYLE,
+    ).ask()
+
+    if not choice:
+        raise typer.Exit(code=0)
+
+    return _determine_bump_type_from_choice(choice)
+
+
+def _parse_version_argument(version: str | None) -> tuple[str, str]:
+    """Parse version argument and return (bump_type, explicit_version).
+
+    Returns:
+        A tuple of (bump_type, explicit_version) where one will be empty string.
+    """
+    if not version:
+        return ("", "")
+
+    # Check if it's a bump type keyword
+    if version in _VALID_BUMP_TYPES:
+        return (version, "")
+
+    # Otherwise, it's an explicit version
+    # Strip 'v' prefix
+    if version.startswith("v"):
+        version = version[1:]
+    return ("", version)
+
+
+def _calculate_new_version(current_version: semver.Version, bump_type: str, explicit_version: str) -> str:
+    """Calculate the new version based on bump type or explicit version."""
+    if bump_type:
+        logger.info(f"Bumping version using: {bump_type}")
+        if bump_type == "patch":
+            return str(current_version.bump_patch())
+        elif bump_type == "minor":
+            return str(current_version.bump_minor())
+        elif bump_type == "major":
+            return str(current_version.bump_major())
+        elif bump_type == "prerelease":
+            return str(current_version.bump_prerelease())
+        elif bump_type == "build":
+            return str(current_version.bump_build())
+        elif bump_type in ["alpha", "beta", "rc", "dev"]:
+            return str(get_next_prerelease(current_version, bump_type))
+        else:
+            # This should never happen if _parse_version_argument is working correctly
+            logger.error(f"Unknown bump type: {bump_type}")
+            raise typer.Exit(code=1)
+    elif explicit_version:
+        # Validate explicit version
+        try:
+            semver.Version.parse(explicit_version)
+        except ValueError:
+            logger.error(f"Invalid version format: {explicit_version}")
+            logger.error("Please use a valid semantic version.")
+            raise typer.Exit(code=1)
+        return explicit_version
+    else:
+        # This should never happen if the calling code is correct
+        logger.error("No bump type or explicit version provided")
+        raise typer.Exit(code=1)
+
+
 def bump_command(version: str | None = None, dry_run: bool = False):
     """Bump version in pyproject.toml using semver and tomlkit."""
     # Check if pyproject.toml exists
@@ -78,92 +194,15 @@ def bump_command(version: str | None = None, dry_run: bool = False):
 
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
-    bump_type = ""
-    new_version_str = ""
-
+    # Determine bump type and explicit version
     if version:
-        # If version argument is provided
-        if version in ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "dev"]:
-            bump_type = version
-        else:
-            # Explicit version
-            # Strip 'v' prefix
-            if version.startswith("v"):
-                version = version[1:]
-            new_version_str = version
+        bump_type, explicit_version = _parse_version_argument(version)
     else:
-        # Interactive mode
-        next_patch = current_version.bump_patch()
-        next_minor = current_version.bump_minor()
-        next_major = current_version.bump_major()
-        next_prerelease = current_version.bump_prerelease()
-        next_build = current_version.bump_build()
+        bump_type = _get_interactive_bump_type(current_version)
+        explicit_version = ""
 
-        next_alpha = get_next_prerelease(current_version, "alpha")
-        next_beta = get_next_prerelease(current_version, "beta")
-        next_dev = get_next_prerelease(current_version, "dev")
-
-        choice = qs.select(
-            f"Select bump type (Current: {current_version_str})",
-            choices=[
-                f"Patch ({current_version_str} -> {next_patch})",
-                f"Minor ({current_version_str} -> {next_minor})",
-                f"Major ({current_version_str} -> {next_major})",
-                qs.Separator("-" * 30),
-                f"Prerelease ({current_version_str} -> {next_prerelease})",
-                f"Alpha ({current_version_str} -> {next_alpha})",
-                f"Beta ({current_version_str} -> {next_beta})",
-                f"Dev ({current_version_str} -> {next_dev})",
-                f"Build ({current_version_str} -> {next_build})",
-            ],
-            style=_COOL_STYLE,
-        ).ask()
-
-        if not choice:
-            raise typer.Exit(code=0)
-
-        if choice.startswith("Patch"):
-            bump_type = "patch"
-        elif choice.startswith("Minor"):
-            bump_type = "minor"
-        elif choice.startswith("Major"):
-            bump_type = "major"
-        elif choice.startswith("Alpha"):
-            bump_type = "alpha"
-        elif choice.startswith("Beta"):
-            bump_type = "beta"
-        elif choice.startswith("RC"):
-            bump_type = "rc"
-        elif choice.startswith("Dev"):
-            bump_type = "dev"
-        elif choice.startswith("Prerelease"):
-            bump_type = "prerelease"
-        elif choice.startswith("Build"):
-            bump_type = "build"
-
-    # Calculate/Validate new version
-    if bump_type:
-        logger.info(f"Bumping version using: {bump_type}")
-        if bump_type == "patch":
-            new_version_str = str(current_version.bump_patch())
-        elif bump_type == "minor":
-            new_version_str = str(current_version.bump_minor())
-        elif bump_type == "major":
-            new_version_str = str(current_version.bump_major())
-        elif bump_type == "prerelease":
-            new_version_str = str(current_version.bump_prerelease())
-        elif bump_type == "build":
-            new_version_str = str(current_version.bump_build())
-        elif bump_type in ["alpha", "beta", "rc", "dev"]:
-            new_version_str = str(get_next_prerelease(current_version, bump_type))
-    else:
-        # Validate explicit version
-        try:
-            semver.Version.parse(new_version_str)
-        except ValueError:
-            logger.error(f"Invalid version format: {new_version_str}")
-            logger.error("Please use a valid semantic version.")
-            raise typer.Exit(code=1)
+    # Calculate new version
+    new_version_str = _calculate_new_version(current_version, bump_type, explicit_version)
 
     logger.info(f"New version will be: {new_version_str}")
 
