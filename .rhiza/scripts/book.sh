@@ -43,6 +43,12 @@ if [ -f _tests/html-coverage/index.html ]; then
   else
     LINKS_ENTRIES='"Coverage": "./tests/html-coverage/index.html"'
   fi
+  
+  # Generate coverage badge JSON if coverage.json exists
+  if [ -f _tests/coverage.json ]; then
+    printf "%b[INFO] Generating coverage badge...%b\n" "$BLUE" "$RESET"
+    /bin/sh "${SCRIPTS_FOLDER}/generate-coverage-badge.sh"
+  fi
 else
   printf "%b[WARN] No coverage report found or directory is empty%b\n" "$YELLOW" "$RESET"
 fi
