@@ -22,6 +22,9 @@ _COOL_STYLE = qs.Style(
     ]
 )
 
+# Valid bump type keywords
+_VALID_BUMP_TYPES = ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "rc", "dev"]
+
 
 def get_current_version() -> str:
     """Read current version from pyproject.toml."""
@@ -129,7 +132,7 @@ def _parse_version_argument(version: str | None) -> tuple[str, str]:
         return ("", "")
 
     # Check if it's a bump type keyword
-    if version in ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "dev"]:
+    if version in _VALID_BUMP_TYPES:
         return (version, "")
 
     # Otherwise, it's an explicit version
@@ -155,7 +158,11 @@ def _calculate_new_version(current_version: semver.Version, bump_type: str, expl
             return str(current_version.bump_build())
         elif bump_type in ["alpha", "beta", "rc", "dev"]:
             return str(get_next_prerelease(current_version, bump_type))
-    else:
+        else:
+            # This should never happen if _parse_version_argument is working correctly
+            logger.error(f"Unknown bump type: {bump_type}")
+            raise typer.Exit(code=1)
+    elif explicit_version:
         # Validate explicit version
         try:
             semver.Version.parse(explicit_version)
@@ -164,7 +171,10 @@ def _calculate_new_version(current_version: semver.Version, bump_type: str, expl
             logger.error("Please use a valid semantic version.")
             raise typer.Exit(code=1)
         return explicit_version
-    return ""
+    else:
+        # This should never happen if the calling code is correct
+        logger.error("No bump type or explicit version provided")
+        raise typer.Exit(code=1)
 
 
 def bump_command(version: str | None = None, dry_run: bool = False):

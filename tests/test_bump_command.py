@@ -153,6 +153,12 @@ def test_bump_dev_argument(temp_project):
     assert get_current_version() == "0.1.1-dev.1"
 
 
+def test_bump_rc_argument(temp_project):
+    """Test bumping rc version via argument."""
+    bump_command(version="rc")
+    assert get_current_version() == "0.1.1-rc.1"
+
+
 def test_bump_prerelease_transition(temp_project):
     """Test transitioning between prerelease types."""
     # Start with alpha
