@@ -97,6 +97,7 @@ def _get_interactive_bump_type(current_version: semver.Version) -> str:
 
     next_alpha = get_next_prerelease(current_version, "alpha")
     next_beta = get_next_prerelease(current_version, "beta")
+    next_rc = get_next_prerelease(current_version, "rc")
     next_dev = get_next_prerelease(current_version, "dev")
 
     current_version_str = str(current_version)
@@ -110,6 +111,7 @@ def _get_interactive_bump_type(current_version: semver.Version) -> str:
             f"Prerelease ({current_version_str} -> {next_prerelease})",
             f"Alpha ({current_version_str} -> {next_alpha})",
             f"Beta ({current_version_str} -> {next_beta})",
+            f"RC ({current_version_str} -> {next_rc})",
             f"Dev ({current_version_str} -> {next_dev})",
             f"Build ({current_version_str} -> {next_build})",
         ],
