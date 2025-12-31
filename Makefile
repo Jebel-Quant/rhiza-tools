@@ -38,8 +38,8 @@ UV_BIN := ${UV_INSTALL_DIR}/uv
 UVX_BIN := ${UV_INSTALL_DIR}/uvx
 MARIMO_FOLDER := book/marimo
 SOURCE_FOLDER := src
-SCRIPTS_FOLDER := .github/rhiza/scripts
-CUSTOM_SCRIPTS_FOLDER := .github/rhiza/scripts/customisations
+SCRIPTS_FOLDER := .rhiza/scripts
+CUSTOM_SCRIPTS_FOLDER := .rhiza/scripts/customisations
 
 export UV_NO_MODIFY_PATH := 1
 export UV_VENV_CLEAR := 1
@@ -102,23 +102,33 @@ install: install-uv install-extras ## install
 	  printf "${YELLOW}[WARN] No pyproject.toml found, skipping install${RESET}\n"; \
 	fi
 
-sync: install-uv ## sync with template repository as defined in .github/rhiza/template.yml
+sync: install-uv ## sync with template repository as defined in .github/template.yml
 	@${UVX_BIN} "rhiza>=0.7.1" materialize --force .
 
-validate: install-uv ## validate project structure against template repository as defined in .github/rhiza/template.yml
+validate: install-uv ## validate project structure against template repository as defined in .github/template.yml
 	@${UVX_BIN} "rhiza>=0.7.1" validate .
 
-clean: ## clean
-	@printf "${BLUE}Cleaning project...${RESET}\n"
-	# do not clean .env files
-	@git clean -d -X -f -e .env -e '.env.*'
-	@rm -rf dist build *.egg-info .coverage .pytest_cache
-	@printf "${BLUE}Removing local branches with no remote counterpart...${RESET}\n"
+clean: ## Clean project artifacts and stale local branches
+	@printf "%bCleaning project...%b\n" "$(BLUE)" "$(RESET)"
+
+	# Remove ignored files/directories, but keep .env files
+	@git clean -d -X -f \
+		-e .env \
+		-e '.env.*'
+
+	# Remove build & test artifacts
+	@rm -rf \
+		dist \
+		build \
+		*.egg-info \
+		.coverage \
+		.pytest_cache
+
+	@printf "%bRemoving local branches with no remote counterpart...%b\n" "$(BLUE)" "$(RESET)"
+
 	@git fetch --prune
-	@git branch -vv \
-	  | grep ': gone]' \
-	  | awk '{print $1}' \
-	  | xargs -r git branch -D 2>/dev/null || true
+
+	@git branch -vv | awk '/: gone]/{print $$1}' | xargs -r git branch -D
 
 ##@ Tools
 marimo: install ## fire up Marimo server
@@ -129,11 +139,11 @@ marimo: install ## fire up Marimo server
 	fi
 
 ##@ Quality and Formatting
-deptry: install-uv ## run deptry if pyproject.toml exists
-	@if [ -f "pyproject.toml" ]; then \
-	  ${UVX_BIN} deptry "${SOURCE_FOLDER}"; \
+deptry: install-uv ## Run deptry
+	@if [ -d src ]; then \
+		$(UVX_BIN) deptry src; \
 	else \
-	  printf "${YELLOW} No pyproject.toml found, skipping deptry${RESET}\n"; \
+		$(UVX_BIN) deptry .; \
 	fi
 
 fmt: install-uv ## check the pre-commit hooks and the linting
