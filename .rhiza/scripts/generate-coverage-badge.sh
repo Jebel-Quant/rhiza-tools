@@ -30,12 +30,12 @@ try:
     percent = data['totals']['percent_covered']
     print(f'{percent:.0f}')
 except Exception as e:
-    print('0', file=sys.stderr)
+    print(f'Error extracting coverage: {e}', file=sys.stderr)
     sys.exit(1)
 ")
 
 if [ $? -ne 0 ] || [ -z "${COVERAGE}" ]; then
-  printf "%b[WARN] Failed to extract coverage percentage%b\n" "$YELLOW" "$RESET"
+  printf "%b[ERROR] Failed to extract coverage percentage%b\n" "$YELLOW" "$RESET"
   exit 1
 fi
 
