@@ -229,7 +229,7 @@ def test_get_current_version_error_handling(temp_project, monkeypatch):
     """Test error handling when reading version from pyproject.toml fails."""
     
     def mock_open_error(*args, **kwargs):
-        raise IOError("File read error")
+        raise OSError("File read error")
     
     monkeypatch.setattr("builtins.open", mock_open_error)
     
@@ -241,17 +241,15 @@ def test_get_current_version_error_handling(temp_project, monkeypatch):
 def test_update_version_error_handling(temp_project, monkeypatch):
     """Test error handling when updating version in pyproject.toml fails."""
     
-    # Create a mock that succeeds on read but fails on write
+    # Mock open to fail on write operations
     original_open = open
-    call_count = [0]
     
-    def mock_open_conditional(*args, **kwargs):
-        call_count[0] += 1
-        if call_count[0] == 2 and "w" in str(kwargs.get("mode", args[1] if len(args) > 1 else "")):
-            raise IOError("File write error")
-        return original_open(*args, **kwargs)
+    def mock_open_fail_on_write(file, mode='r', *args, **kwargs):
+        if 'w' in mode:
+            raise OSError("File write error")
+        return original_open(file, mode, *args, **kwargs)
     
-    monkeypatch.setattr("builtins.open", mock_open_conditional)
+    monkeypatch.setattr("builtins.open", mock_open_fail_on_write)
     
     with pytest.raises(typer.Exit) as excinfo:
         update_version("1.0.0")
@@ -279,17 +277,11 @@ def test_bump_invalid_semantic_version_in_pyproject(temp_project):
 def test_bump_version_verification_failure(temp_project, monkeypatch):
     """Test error handling when version verification after update fails."""
     
-    # Mock get_current_version to return different values
-    call_count = [0]
-    original_get_current_version = get_current_version
+    # Mock get_current_version to return different values on subsequent calls
+    versions = iter(["0.1.0", "0.9.9"])  # First call returns 0.1.0, second returns wrong version
     
     def mock_get_current_version():
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return "0.1.0"
-        else:
-            # Return wrong version on verification
-            return "0.9.9"
+        return next(versions)
     
     monkeypatch.setattr("rhiza_tools.commands.bump.get_current_version", mock_get_current_version)
     

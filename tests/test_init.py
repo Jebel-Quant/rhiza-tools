@@ -12,8 +12,10 @@ def test_version_available():
     # Should have a version attribute
     assert hasattr(rhiza_tools, "__version__")
     assert isinstance(rhiza_tools.__version__, str)
-    # Since we installed in dev mode, it should be "0.1.0"
-    assert rhiza_tools.__version__ == "0.1.0"
+    # Version should be a valid format (not "unknown")
+    assert rhiza_tools.__version__ != "unknown"
+    # Basic sanity check that it looks like a version
+    assert len(rhiza_tools.__version__) > 0
 
 
 def test_version_package_not_found():

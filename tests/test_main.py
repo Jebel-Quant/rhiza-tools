@@ -48,7 +48,7 @@ def test_main_if_name_main_block():
     import runpy
     
     # Mock sys.argv and the app to prevent actual execution
-    with patch("sys.argv", ["rhiza-tools", "--help"]):
+    with patch("sys.argv", ["rhiza_tools", "--help"]):
         with patch("rhiza_tools.cli.app") as mock_app:
             try:
                 # Run the module as if it were __main__
