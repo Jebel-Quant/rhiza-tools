@@ -1,8 +1,10 @@
 """Tests for rhiza_tools.__main__.py module."""
 
+import importlib.util
+import runpy
 import subprocess
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 def test_main_entry_point():
@@ -23,8 +25,6 @@ def test_main_entry_point():
 def test_main_direct_execution():
     """Test that __main__.py can be executed directly as a script."""
     # Find the __main__.py file
-    import importlib.util
-    
     spec = importlib.util.find_spec("rhiza_tools.__main__")
     main_file = spec.origin
     
@@ -45,7 +45,6 @@ def test_main_if_name_main_block():
     """Test the if __name__ == '__main__' block in __main__.py is covered."""
     # Use runpy to execute the module as __main__
     # This properly triggers the if __name__ == "__main__" block
-    import runpy
     
     # Mock sys.argv and the app to prevent actual execution
     with patch("sys.argv", ["rhiza_tools", "--help"]):
