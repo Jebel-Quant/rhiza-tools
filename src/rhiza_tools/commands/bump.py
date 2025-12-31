@@ -23,7 +23,6 @@ _COOL_STYLE = qs.Style(
 )
 
 
-
 def get_current_version() -> str:
     """Read current version from pyproject.toml."""
     try:
@@ -99,7 +98,7 @@ def bump_command(version: str | None = None, dry_run: bool = False):
         next_major = current_version.bump_major()
         next_prerelease = current_version.bump_prerelease()
         next_build = current_version.bump_build()
-        
+
         next_alpha = get_next_prerelease(current_version, "alpha")
         next_beta = get_next_prerelease(current_version, "beta")
         next_dev = get_next_prerelease(current_version, "dev")
@@ -117,7 +116,7 @@ def bump_command(version: str | None = None, dry_run: bool = False):
                 f"Dev ({current_version_str} -> {next_dev})",
                 f"Build ({current_version_str} -> {next_build})",
             ],
-            style=_COOL_STYLE
+            style=_COOL_STYLE,
         ).ask()
 
         if not choice:
