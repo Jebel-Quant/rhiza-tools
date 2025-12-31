@@ -2,20 +2,18 @@
 
 import typer
 
+from .commands.bump import bump_command
+
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
 
 @app.command()
 def bump(
-    version: str = typer.Argument(..., help="The version to bump to (e.g., 1.0.1, major, minor, patch)."),
+    version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ):
     """Bump the version of the project."""
-    if dry_run:
-        typer.echo(f"Would bump version to: {version}")
-    else:
-        typer.echo(f"Bumping version to: {version}")
-        # TODO: Implement actual bump logic here (port from bump.sh)
+    bump_command(version, dry_run)
 
 
 @app.command()

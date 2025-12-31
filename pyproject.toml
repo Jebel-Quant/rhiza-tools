@@ -9,14 +9,18 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "loguru>=0.7.3",
+    "questionary>=2.1.1",
+    "semver>=3.0.4",
+    "tomlkit>=0.13.3",
     "typer>=0.9.0",
 ]
 
 [project.scripts]
-rhiza-tools = "rhiza_tools.cli:app"
+rhiza-tools = "rhiza_tools.__main__:app"
 
 [project.entry-points."rhiza.plugins"]
-tools = "rhiza_tools.cli:app"
+tools = "rhiza_tools.__main__:app"
 
 [project.optional-dependencies]
 dev = [
