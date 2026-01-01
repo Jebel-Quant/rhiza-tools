@@ -142,14 +142,13 @@ class TestMakefile:
         assert f"{expected_uvx} deptry ." in out
 
     def test_test_target_dry_run(self, logger, expected_uv_install_dir):
-        """Test target should invoke pytest via uv with coverage and HTML outputs in dry-run output."""
+        """Test target should invoke pytest via .venv/bin/python with coverage and HTML outputs in dry-run output."""
         proc = run_make(logger, ["test"])
         out = proc.stdout
         # Expect key steps
         assert "mkdir -p _tests/html-coverage _tests/html-report" in out
-        # Check for uv command with the configured path
-        expected_uv = f"{expected_uv_install_dir}/uv"
-        assert f"{expected_uv} run --all-extras pytest" in out
+        # Check for .venv/bin/python -m pytest
+        assert ".venv/bin/python -m pytest" in out
 
     def test_book_target_dry_run(self, logger, expected_uv_install_dir):
         """Book target should run inline commands to assemble the book without go-task."""
