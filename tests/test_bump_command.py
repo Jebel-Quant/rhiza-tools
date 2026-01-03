@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 import pytest
-import typer
 import tomlkit
+import typer
 
 from rhiza_tools.commands.bump import (
     bump_command,
