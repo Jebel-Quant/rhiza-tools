@@ -25,3 +25,7 @@ tools = "rhiza_tools.__main__:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rhiza_tools"]
+
+[tool.deptry.package_module_name_map]
+"bump-my-version" = "bumpversion"
+
