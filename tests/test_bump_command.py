@@ -1,7 +1,6 @@
 """Tests for the bump command."""
 
 import os
-from pathlib import Path
 
 import pytest
 import tomlkit
@@ -18,7 +17,7 @@ def bump_project(temp_project):
     """Create a project with bumpversion config."""
     rhiza_dir = temp_project / ".rhiza"
     rhiza_dir.mkdir(exist_ok=True)
-    
+
     config_content = """
 [tool.bumpversion]
 parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
@@ -49,10 +48,10 @@ values = [
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
-"""
+"""  # noqa: E501
     with open(rhiza_dir / ".cfg.toml", "w") as f:
         f.write(config_content)
-    
+
     return temp_project
 
 

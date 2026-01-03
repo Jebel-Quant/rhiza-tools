@@ -12,7 +12,9 @@ def bump(
     version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     commit: bool = typer.Option(False, "--commit", help="Commit the changes to git."),
-    allow_dirty: bool = typer.Option(False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."),
+    allow_dirty: bool = typer.Option(
+        False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output from bump-my-version."),
 ):
     """Bump the version of the project."""

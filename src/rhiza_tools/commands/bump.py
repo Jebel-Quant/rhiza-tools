@@ -158,7 +158,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     # Strip 'v' prefix
     if version.startswith("v"):
         version = version[1:]
-    
+
     # Validate explicit version
     try:
         semver.Version.parse(version)
@@ -166,7 +166,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
         logger.error(f"Invalid version format: {version}")
         logger.error("Please use a valid semantic version.")
         raise typer.Exit(code=1)
-        
+
     return version
 
 
