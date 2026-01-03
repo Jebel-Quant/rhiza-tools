@@ -1,4 +1,4 @@
-"""Command to bump version in pyproject.toml using semver and tomlkit."""
+"""Command to bump version in pyproject.toml using semver and bump-my-version."""
 
 from pathlib import Path
 
@@ -6,6 +6,9 @@ import questionary as qs
 import semver
 import tomlkit
 import typer
+from bumpversion.bump import do_bump
+from bumpversion.config import get_configuration
+from bumpversion.ui import setup_logging
 from loguru import logger
 
 _COOL_STYLE = qs.Style(
@@ -50,22 +53,6 @@ def get_current_version() -> str:
         raise typer.Exit(code=1)
 
 
-def update_version(new_version: str) -> None:
-    """Update version in pyproject.toml."""
-    try:
-        with open("pyproject.toml") as f:
-            data = tomlkit.parse(f.read())
-
-        data["project"]["version"] = new_version
-
-        with open("pyproject.toml", "w") as f:
-            f.write(tomlkit.dumps(data))
-
-    except Exception as e:
-        logger.error(f"Failed to update pyproject.toml: {e}")
-        raise typer.Exit(code=1)
-
-
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
     """Calculate next prerelease version for a given token."""
     if current_version.prerelease:
@@ -85,8 +72,15 @@ def _determine_bump_type_from_choice(choice: str) -> str:
     return ""
 
 
-def _get_interactive_bump_type(current_version: semver.Version) -> str:
+def _get_interactive_bump_type(config) -> str:
     """Get bump type from user through interactive prompt."""
+    current_version_str = config.current_version
+    try:
+        current_version = semver.Version.parse(current_version_str)
+    except ValueError:
+        logger.error(f"Invalid semantic version in configuration: {current_version_str}")
+        raise typer.Exit(code=1)
+
     next_patch = current_version.bump_patch()
     next_minor = current_version.bump_minor()
     next_major = current_version.bump_major()
@@ -98,7 +92,6 @@ def _get_interactive_bump_type(current_version: semver.Version) -> str:
     next_rc = get_next_prerelease(current_version, "rc")
     next_dev = get_next_prerelease(current_version, "dev")
 
-    current_version_str = str(current_version)
     choice = qs.select(
         f"Select bump type (Current: {current_version_str})",
         choices=[
@@ -119,106 +112,121 @@ def _get_interactive_bump_type(current_version: semver.Version) -> str:
     if not choice:
         raise typer.Exit(code=0)
 
-    return _determine_bump_type_from_choice(choice)
+    # Extract the new version string from the choice
+    # Format is "Label (Current -> New)"
+    # We want "New"
+    new_version = choice.split("-> ")[1].rstrip(")")
+    return new_version
 
 
-def _parse_version_argument(version: str | None) -> tuple[str, str]:
-    """Parse version argument and return (bump_type, explicit_version).
+def _parse_version_argument(version: str | None, current_version_str: str) -> str:
+    """Parse version argument and return explicit version string.
+
+    Args:
+        version: The version argument provided by the user.
+        current_version_str: The current version string.
 
     Returns:
-        A tuple of (bump_type, explicit_version) where one will be empty string.
+        The explicit version string to bump to.
     """
     if not version:
-        return ("", "")
+        return ""
+
+    try:
+        current_version = semver.Version.parse(current_version_str)
+    except ValueError:
+        logger.error(f"Invalid semantic version: {current_version_str}")
+        raise typer.Exit(code=1)
 
     # Check if it's a bump type keyword
-    if version in _VALID_BUMP_TYPES:
-        return (version, "")
+    if version == "patch":
+        return str(current_version.bump_patch())
+    elif version == "minor":
+        return str(current_version.bump_minor())
+    elif version == "major":
+        return str(current_version.bump_major())
+    elif version == "prerelease":
+        return str(current_version.bump_prerelease())
+    elif version == "build":
+        return str(current_version.bump_build())
+    elif version in ["alpha", "beta", "rc", "dev"]:
+        return str(get_next_prerelease(current_version, version))
 
     # Otherwise, it's an explicit version
     # Strip 'v' prefix
     if version.startswith("v"):
         version = version[1:]
-    return ("", version)
-
-
-def _calculate_new_version(current_version: semver.Version, bump_type: str, explicit_version: str) -> str:
-    """Calculate the new version based on bump type or explicit version."""
-    if bump_type:
-        logger.info(f"Bumping version using: {bump_type}")
-        if bump_type == "patch":
-            return str(current_version.bump_patch())
-        elif bump_type == "minor":
-            return str(current_version.bump_minor())
-        elif bump_type == "major":
-            return str(current_version.bump_major())
-        elif bump_type == "prerelease":
-            return str(current_version.bump_prerelease())
-        elif bump_type == "build":
-            return str(current_version.bump_build())
-        elif bump_type in ["alpha", "beta", "rc", "dev"]:
-            return str(get_next_prerelease(current_version, bump_type))
-        else:
-            # This should never happen if _parse_version_argument is working correctly
-            logger.error(f"Unknown bump type: {bump_type}")
-            raise typer.Exit(code=1)
-    elif explicit_version:
-        # Validate explicit version
-        try:
-            semver.Version.parse(explicit_version)
-        except ValueError:
-            logger.error(f"Invalid version format: {explicit_version}")
-            logger.error("Please use a valid semantic version.")
-            raise typer.Exit(code=1)
-        return explicit_version
-    else:
-        # This should never happen if the calling code is correct
-        logger.error("No bump type or explicit version provided")
+    
+    # Validate explicit version
+    try:
+        semver.Version.parse(version)
+    except ValueError:
+        logger.error(f"Invalid version format: {version}")
+        logger.error("Please use a valid semantic version.")
         raise typer.Exit(code=1)
+        
+    return version
 
 
-def bump_command(version: str | None = None, dry_run: bool = False):
-    """Bump version in pyproject.toml using semver and tomlkit."""
+def bump_command(
+    version: str | None = None,
+    dry_run: bool = False,
+    commit: bool = False,
+    allow_dirty: bool = False,
+    verbose: bool = False,
+):
+    """Bump version in pyproject.toml using bump-my-version."""
     # Check if pyproject.toml exists
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
 
-    # Get current version
+    # Get current version from pyproject.toml
     current_version_str = get_current_version()
+
+    # Construct configuration
+    config_path = Path(".rhiza/.bumpversion.toml")
+    overrides = {"current_version": current_version_str}
+    if allow_dirty:
+        overrides["allow_dirty"] = True
+    if commit:
+        overrides["commit"] = True
+
     try:
-        current_version = semver.Version.parse(current_version_str)
-    except ValueError:
-        logger.error(f"Invalid semantic version in pyproject.toml: {current_version_str}")
+        config = get_configuration(config_file=config_path, **overrides)
+    except Exception as e:
+        logger.error(f"Failed to load bumpversion configuration: {e}")
         raise typer.Exit(code=1)
 
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
-    # Determine bump type and explicit version
+    # Determine new version string
     if version:
-        bump_type, explicit_version = _parse_version_argument(version)
+        new_version_str = _parse_version_argument(version, current_version_str)
     else:
-        bump_type = _get_interactive_bump_type(current_version)
-        explicit_version = ""
-
-    # Calculate new version
-    new_version_str = _calculate_new_version(current_version, bump_type, explicit_version)
+        new_version_str = _get_interactive_bump_type(config)
 
     logger.info(f"New version will be: {new_version_str}")
 
-    if dry_run:
-        logger.info("Dry run enabled. Skipping actual changes.")
-        return
+    # Run bump-my-version
+    logger.info("Running bump-my-version...")
+    setup_logging(verbose=1 if verbose else 0)
 
-    # Update version in pyproject.toml
-    logger.info("Updating pyproject.toml...")
-    update_version(new_version_str)
-
-    # Verify the update
-    updated_version = get_current_version()
-    if updated_version != new_version_str:
-        logger.error(f"Version update failed. Expected {new_version_str} but got {updated_version}")
+    try:
+        do_bump(
+            version_part=None,
+            new_version=new_version_str,
+            config=config,
+            config_file=config_path,
+            dry_run=dry_run,
+        )
+    except Exception as e:
+        logger.error(f"bump-my-version failed: {e}")
         raise typer.Exit(code=1)
 
-    logger.success(f"Version bumped: {current_version_str} -> {new_version_str} in pyproject.toml")
-    logger.info("Don't forget to run 'uv lock' to update the lockfile if needed.")
+    if not dry_run:
+        # Re-read config to get updated version
+        # Note: Since we removed current_version from config file, we should read from pyproject.toml again
+        updated_version = get_current_version()
+        logger.success(f"Version bumped: {current_version_str} -> {updated_version}")
+        logger.info("Don't forget to run 'uv lock' to update the lockfile if needed.")
