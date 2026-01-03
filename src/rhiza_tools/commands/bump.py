@@ -11,6 +11,8 @@ from bumpversion.config import get_configuration
 from bumpversion.ui import setup_logging
 from loguru import logger
 
+from rhiza_tools.config import CONFIG_FILENAME
+
 _COOL_STYLE = qs.Style(
     [
         ("separator", "fg:#cc5454"),
@@ -185,7 +187,7 @@ def bump_command(
     current_version_str = get_current_version()
 
     # Construct configuration
-    config_path = Path(".rhiza/.bumpversion.toml")
+    config_path = Path(CONFIG_FILENAME)
     overrides = {"current_version": current_version_str}
     if allow_dirty:
         overrides["allow_dirty"] = True

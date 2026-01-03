@@ -17,7 +17,7 @@ from rhiza_tools.commands.bump import (
 def bump_project(temp_project):
     """Create a project with bumpversion config."""
     rhiza_dir = temp_project / ".rhiza"
-    rhiza_dir.mkdir()
+    rhiza_dir.mkdir(exist_ok=True)
     
     config_content = """
 [tool.bumpversion]
@@ -50,7 +50,7 @@ filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 """
-    with open(rhiza_dir / ".bumpversion.toml", "w") as f:
+    with open(rhiza_dir / ".cfg.toml", "w") as f:
         f.write(config_content)
     
     return temp_project
