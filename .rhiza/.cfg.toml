@@ -29,3 +29,21 @@ values = [
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+[tool.coverage-badge]
+# Path to coverage.json file (relative to project root)
+coverage_json = "_tests/coverage.json"
+# Output directory for the badge JSON file
+output_dir = "_book/tests"
+# Badge filename
+badge_filename = "coverage-badge.json"
+
+# Color thresholds: percentage -> color
+# Badge color is determined by finding the highest threshold the coverage meets
+[tool.coverage-badge.thresholds]
+90 = "brightgreen"
+80 = "green"
+70 = "yellowgreen"
+60 = "yellow"
+50 = "orange"
+0 = "red"

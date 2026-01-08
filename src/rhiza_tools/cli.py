@@ -1,8 +1,11 @@
 """CLI commands for Rhiza Tools."""
 
+from pathlib import Path
+
 import typer
 
 from .commands.bump import bump_command
+from .commands.coverage_badge import coverage_badge_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
@@ -43,3 +46,29 @@ def update_readme_help(
     else:
         typer.echo("Updating README.md with make help output")
         # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
+
+
+@app.command(name="coverage-badge")
+def coverage_badge(
+    coverage_json: Path | None = typer.Option(
+        None,
+        "--coverage-json",
+        "-c",
+        help="Path to coverage.json file. Defaults to config or _tests/coverage.json.",
+    ),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Path to output directory. Defaults to config or _book/tests.",
+    ),
+    badge_filename: str | None = typer.Option(
+        None,
+        "--badge-filename",
+        "-b",
+        help="Badge filename. Defaults to config or coverage-badge.json.",
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
+):
+    """Generate a coverage badge endpoint JSON for shields.io."""
+    coverage_badge_command(coverage_json, output_dir, badge_filename, dry_run)
