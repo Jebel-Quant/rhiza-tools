@@ -45,6 +45,7 @@
 .rhiza/utils/version_matrix.py
 CODE_OF_CONDUCT.md
 CONTRIBUTING.md
+LICENSE
 Makefile
 book/Makefile.book
 book/README.md
