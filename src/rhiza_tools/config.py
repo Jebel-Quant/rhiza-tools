@@ -37,9 +37,9 @@ class RhizaConfig:
         return self._data.get("tool", {}).get("bumpversion", {})
 
     @property
-    def coverage_badge(self) -> dict[str, Any]:
-        """Get coverage-badge configuration."""
-        return self._data.get("tool", {}).get("coverage-badge", {})
+    def generate_badges(self) -> dict[str, Any]:
+        """Get generate-badges configuration."""
+        return self._data.get("tool", {}).get("generate-badges", {})
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""

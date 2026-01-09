@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 
 from .commands.bump import bump_command
-from .commands.coverage_badge import coverage_badge_command
+from .commands.generate_badges import generate_badges_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
@@ -48,27 +48,72 @@ def update_readme_help(
         # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
 
 
-@app.command(name="coverage-badge")
-def coverage_badge(
-    coverage_json: Path | None = typer.Option(
+@app.command(name="generate-badges")
+def generate_badges(
+    badges: list[str] | None = typer.Option(
         None,
-        "--coverage-json",
-        "-c",
-        help="Path to coverage.json file. Defaults to config or _tests/coverage.json.",
+        "--badges",
+        "-b",
+        help="Comma-separated list of badges to generate (e.g., 'coverage,license,pypi-version'). "
+        "If not specified, reads from .rhiza/.cfg.toml or generates only synced-with-rhiza.",
     ),
     output_dir: Path | None = typer.Option(
         None,
         "--output-dir",
         "-o",
-        help="Path to output directory. Defaults to config or _book/tests.",
+        help="Path to output directory. Defaults to config or _book/badges.",
     ),
-    badge_filename: str | None = typer.Option(
+    all_badges: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Generate all available badges.",
+    ),
+    update_readme: bool = typer.Option(
+        False,
+        "--update-readme",
+        "-u",
+        help="Add or update badge markdown in README.md.",
+    ),
+    readme_path: Path | None = typer.Option(
         None,
-        "--badge-filename",
-        "-b",
-        help="Badge filename. Defaults to config or coverage-badge.json.",
+        "--readme",
+        help="Path to README.md file. Defaults to README.md in current directory.",
+    ),
+    badge_url_base: str | None = typer.Option(
+        None,
+        "--badge-url-base",
+        help="Base URL for hosted badges (e.g., https://org.github.io/repo/badges).",
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ):
-    """Generate a coverage badge endpoint JSON for shields.io."""
-    coverage_badge_command(coverage_json, output_dir, badge_filename, dry_run)
+    """Generate badge endpoint JSON files for your project.
+
+    Creates JSON files compatible with shields.io's endpoint badge feature.
+    These can be hosted (e.g., on GitHub Pages) and referenced in your README.
+
+    Badge names: synced-with-rhiza, coverage, pypi-version, license,
+    python-versions, downloads, codefactor
+
+    Examples:
+        # Generate specific badges
+        rhiza-tools generate-badges --badges coverage,license,pypi-version
+
+        # Generate all badges and update README
+        rhiza-tools generate-badges --all --update-readme
+
+    Configuration in .rhiza/.cfg.toml:
+
+        [tool.generate-badges]
+        output_dir = "_book/badges"
+        badges = ["synced-with-rhiza", "coverage", "license"]
+    """
+    generate_badges_command(
+        output_dir=output_dir,
+        badges=badges,
+        all_badges=all_badges,
+        update_readme=update_readme,
+        readme_path=readme_path,
+        badge_url_base=badge_url_base,
+        dry_run=dry_run,
+    )
