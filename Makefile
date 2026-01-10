@@ -203,8 +203,8 @@ bump: ## bump version
 		printf "${YELLOW}[WARN] No pyproject.toml found, skipping bump${RESET}\n"; \
 	fi 
 
-release: install-uv ## create tag and push to remote with prompts
-	@UV_BIN="${UV_BIN}" /bin/sh "${SCRIPTS_FOLDER}/release.sh"
+release: install ## create tag and push to remote with prompts
+	@${UV_BIN} run rhiza-tools release
 
 post-release:: install-uv ## perform post-release tasks
 	@:

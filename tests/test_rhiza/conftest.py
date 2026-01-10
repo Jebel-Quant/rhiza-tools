@@ -78,7 +78,7 @@ def bump_version(current, bump_type):
 
 def main():
     args = sys.argv[1:]
-    # Expected invocations from release.sh start with 'version'
+    # Handle version commands
     if not args:
         sys.exit(1)
 
@@ -208,11 +208,9 @@ def git_repo(root, tmp_path, monkeypatch):
     script_dir = local_dir / ".rhiza" / "scripts"
     script_dir.mkdir(parents=True)
 
-    shutil.copy(root / ".rhiza" / "scripts" / "release.sh", script_dir / "release.sh")
     shutil.copy(root / ".rhiza" / "scripts" / "marimushka.sh", script_dir / "marimushka.sh")
     shutil.copy(root / ".rhiza" / "scripts" / "update-readme-help.sh", script_dir / "update-readme-help.sh")
 
-    (script_dir / "release.sh").chmod(0o755)
     (script_dir / "marimushka.sh").chmod(0o755)
     (script_dir / "update-readme-help.sh").chmod(0o755)
 
