@@ -110,6 +110,27 @@ rhiza-tools update-readme-help
 
 *   `--dry-run` - Print what would happen without actually changing files.
 
+### `marimushka`
+
+Export Marimo notebooks to HTML using the marimushka tool.
+
+**Usage:**
+
+```bash
+# As plugin
+rhiza tools marimushka
+
+# Standalone
+rhiza-tools marimushka
+```
+
+**Options:**
+
+*   `--marimo-folder TEXT` - Path to folder containing Marimo notebooks (default: `book/marimo`)
+*   `--output TEXT` - Output directory for HTML files (default: `_marimushka`)
+*   `--uv-bin TEXT` - Path to uv binary (optional)
+*   `--uvx-bin TEXT` - Path to uvx binary (optional)
+
 ## Development
 
 ### Prerequisites
