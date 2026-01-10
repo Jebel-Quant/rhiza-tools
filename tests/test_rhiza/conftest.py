@@ -210,9 +210,11 @@ def git_repo(root, tmp_path, monkeypatch):
 
     shutil.copy(root / ".rhiza" / "scripts" / "release.sh", script_dir / "release.sh")
     shutil.copy(root / ".rhiza" / "scripts" / "marimushka.sh", script_dir / "marimushka.sh")
+    shutil.copy(root / ".rhiza" / "scripts" / "update-readme-help.sh", script_dir / "update-readme-help.sh")
 
     (script_dir / "release.sh").chmod(0o755)
     (script_dir / "marimushka.sh").chmod(0o755)
+    (script_dir / "update-readme-help.sh").chmod(0o755)
 
     # Commit and push initial state
     subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True)
