@@ -3,6 +3,7 @@
 import typer
 
 from .commands.bump import bump_command
+from .commands.marimushka import marimushka_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
@@ -43,3 +44,16 @@ def update_readme_help(
     else:
         typer.echo("Updating README.md with make help output")
         # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
+
+
+@app.command()
+def marimushka(
+    marimo_folder: str = typer.Option(
+        "book/marimo", "--marimo-folder", help="Path to folder containing Marimo notebooks"
+    ),
+    output: str = typer.Option("_marimushka", "--output", help="Output directory for HTML files"),
+    uv_bin: str | None = typer.Option(None, "--uv-bin", help="Path to uv binary"),
+    uvx_bin: str | None = typer.Option(None, "--uvx-bin", help="Path to uvx binary"),
+):
+    """Export Marimo notebooks to HTML."""
+    marimushka_command(marimo_folder, output, uv_bin, uvx_bin)

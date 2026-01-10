@@ -45,3 +45,32 @@ def test_update_readme_help_command():
     result = runner.invoke(app, ["update-readme-help"])
     assert result.exit_code == 0
     assert "Updating README.md with make help output" in result.stdout
+
+
+def test_marimushka_command(monkeypatch):
+    """Test the marimushka command."""
+    mock_marimushka_command = MagicMock()
+    monkeypatch.setattr("rhiza_tools.cli.marimushka_command", mock_marimushka_command)
+
+    result = runner.invoke(app, ["marimushka"])
+    assert result.exit_code == 0
+    mock_marimushka_command.assert_called_once_with("book/marimo", "_marimushka", None, None)
+
+    mock_marimushka_command.reset_mock()
+
+    result = runner.invoke(
+        app,
+        [
+            "marimushka",
+            "--marimo-folder",
+            "notebooks",
+            "--output",
+            "output",
+            "--uv-bin",
+            "./bin/uv",
+            "--uvx-bin",
+            "./bin/uvx",
+        ],
+    )
+    assert result.exit_code == 0
+    mock_marimushka_command.assert_called_once_with("notebooks", "output", "./bin/uv", "./bin/uvx")
