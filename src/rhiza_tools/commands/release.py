@@ -1,15 +1,12 @@
 """Command to create a git tag and push to remote to trigger the release workflow."""
 
 import subprocess
-import sys
 from pathlib import Path
 
 import questionary as qs
 import tomlkit
 import typer
 from loguru import logger
-
-from rhiza_tools.config import CONFIG_FILENAME
 
 _COOL_STYLE = qs.Style(
     [
@@ -60,7 +57,7 @@ def prompt_continue(message: str = "") -> None:
         prompt_text = f"{message} Continue?"
     else:
         prompt_text = "Continue?"
-    
+
     if not qs.confirm(prompt_text, default=False, style=_COOL_STYLE).ask():
         logger.info("Aborted by user")
         raise typer.Exit(code=0)
@@ -101,7 +98,7 @@ def get_default_branch() -> str:
 def check_branch(current_branch: str) -> None:
     """Check if current branch matches default branch and prompt if not."""
     default_branch = get_default_branch()
-    
+
     if current_branch != default_branch:
         logger.warning(f"You are on branch '{current_branch}' but the default branch is '{default_branch}'")
         logger.warning("Releases are typically created from the default branch.")
@@ -112,24 +109,24 @@ def check_upstream_status(current_branch: str) -> None:
     """Check if branch is up-to-date with remote and handle push if needed."""
     logger.info("Checking remote status...")
     run_command(["git", "fetch", "origin"])
-    
+
     # Get upstream tracking branch
     result = run_command(
         ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
         check=False
     )
-    
+
     if result.returncode != 0:
         logger.error(f"No upstream branch configured for {current_branch}")
         raise typer.Exit(code=1)
-    
+
     upstream = result.stdout.strip()
-    
+
     # Get commit SHAs for comparison
     local = run_command(["git", "rev-parse", "@"]).stdout.strip()
     remote = run_command(["git", "rev-parse", upstream]).stdout.strip()
     base = run_command(["git", "merge-base", "@", upstream]).stdout.strip()
-    
+
     if local != remote:
         if local == base:
             # Local is behind remote
@@ -153,21 +150,21 @@ def check_upstream_status(current_branch: str) -> None:
 
 def check_tag_exists(tag: str) -> tuple[bool, bool]:
     """Check if tag exists locally and remotely.
-    
+
     Returns:
         Tuple of (exists_locally, exists_remotely)
     """
     # Check local
     result = run_command(["git", "rev-parse", tag], check=False)
     exists_locally = result.returncode == 0
-    
+
     # Check remote
     result = run_command(
         ["git", "ls-remote", "--exit-code", "--tags", "origin", f"refs/tags/{tag}"],
         check=False
     )
     exists_remotely = result.returncode == 0
-    
+
     return exists_locally, exists_remotely
 
 
@@ -176,11 +173,11 @@ def is_gpg_signing_enabled() -> bool:
     result = run_command(["git", "config", "--get", "user.signingkey"], check=False)
     if result.returncode == 0 and result.stdout.strip():
         return True
-    
+
     result = run_command(["git", "config", "--get", "commit.gpgsign"], check=False)
     if result.returncode == 0 and result.stdout.strip() == "true":
         return True
-    
+
     return False
 
 
@@ -188,14 +185,14 @@ def create_tag(tag: str, version: str) -> None:
     """Create a git tag."""
     logger.info(f"Creating tag '{tag}' for version {version}")
     prompt_continue()
-    
+
     if is_gpg_signing_enabled():
         logger.info("GPG signing is enabled. Creating signed tag.")
         run_command(["git", "tag", "-s", tag, "-m", f"Release {tag}"], capture_output=False)
     else:
         logger.info("GPG signing is not enabled. Creating unsigned tag.")
         run_command(["git", "tag", "-a", tag, "-m", f"Release {tag}"], capture_output=False)
-    
+
     logger.success(f"Tag '{tag}' created locally")
 
 
@@ -210,7 +207,7 @@ def get_last_tag() -> str:
 def push_tag(tag: str) -> None:
     """Push tag to remote."""
     logger.info(f"Pushing tag '{tag}' to origin will trigger the release workflow.")
-    
+
     # Show what commits are in this tag compared to the last tag
     last_tag = get_last_tag()
     if last_tag and last_tag != tag:
@@ -218,16 +215,16 @@ def push_tag(tag: str) -> None:
         if result.returncode == 0:
             commit_count = result.stdout.strip()
             logger.info(f"Commits since {last_tag}: {commit_count}")
-    
+
     prompt_continue()
-    
+
     # Push the tag
     run_command(["git", "push", "origin", f"refs/tags/{tag}"], capture_output=False)
-    
+
     # Get repository URL for GitHub Actions link
     result = run_command(["git", "remote", "get-url", "origin"])
     repo_url = result.stdout.strip()
-    
+
     # Extract user/repo from URL
     # Handles both git@github.com:user/repo.git and https://github.com/user/repo.git
     if "github.com" in repo_url:
@@ -239,7 +236,7 @@ def push_tag(tag: str) -> None:
             logger.info("The release workflow will now be triggered automatically.")
             logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
             return
-    
+
     logger.success(f"Release tag {tag} pushed to remote!")
 
 
@@ -251,56 +248,56 @@ def release_command(
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
-    
+
     # Get current version
     current_version = get_current_version()
     tag = f"v{current_version}"
-    
+
     logger.info(f"Current version: {typer.style(current_version, fg=typer.colors.CYAN, bold=True)}")
     logger.info(f"Tag to create: {typer.style(tag, fg=typer.colors.CYAN, bold=True)}")
-    
+
     if dry_run:
         logger.info("[DRY RUN] Would perform the following steps:")
-        logger.info(f"  1. Check git status (uncommitted changes)")
-        logger.info(f"  2. Check current branch and compare with default branch")
-        logger.info(f"  3. Check if branch is up-to-date with remote")
+        logger.info("  1. Check git status (uncommitted changes)")
+        logger.info("  2. Check current branch and compare with default branch")
+        logger.info("  3. Check if branch is up-to-date with remote")
         logger.info(f"  4. Check if tag '{tag}' already exists")
         logger.info(f"  5. Create tag '{tag}'")
         logger.info(f"  6. Push tag '{tag}' to remote")
         return
-    
+
     # Get current branch
     current_branch = get_current_branch()
-    
+
     # Check for uncommitted changes
     check_git_status()
-    
+
     # Check if on default branch (with option to proceed)
     check_branch(current_branch)
-    
+
     # Check if branch is up-to-date with remote
     check_upstream_status(current_branch)
-    
+
     # Check if tag already exists
     exists_locally, exists_remotely = check_tag_exists(tag)
-    
+
     if exists_remotely:
         logger.error(f"Tag '{tag}' already exists on remote")
         logger.error(f"The release for version {current_version} has already been published.")
         raise typer.Exit(code=1)
-    
+
     skip_tag_create = False
     if exists_locally:
         logger.warning(f"Tag '{tag}' already exists locally")
         prompt_continue("Tag exists. Skip tag creation and proceed to push?")
         skip_tag_create = True
-    
+
     # Step 1: Create the tag (if it doesn't exist)
     if not skip_tag_create:
         typer.echo("")
         typer.echo(typer.style("=== Step 1: Create Tag ===", fg=typer.colors.BLUE, bold=True))
         create_tag(tag, current_version)
-    
+
     # Step 2: Push the tag to remote
     typer.echo("")
     typer.echo(typer.style("=== Step 2: Push Tag to Remote ===", fg=typer.colors.BLUE, bold=True))
