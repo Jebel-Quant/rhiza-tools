@@ -35,8 +35,13 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
+      # Install pre-commit and the entire package set
+      - name: Create environment
+        run: |
+          make install
+
       # Run pre-commit
       - name: Run pre-commit
         run: |
-          uvx pre-commit run --all-files
+          uv run pre-commit run --all-files
 
