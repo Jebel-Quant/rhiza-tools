@@ -1,8 +1,6 @@
 """Tests for the book command in rhiza_tools.commands.book.py."""
 
 import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 

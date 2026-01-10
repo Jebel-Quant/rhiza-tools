@@ -5,7 +5,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import typer
 from loguru import logger
 
 
@@ -23,7 +22,7 @@ def _run_generate_coverage_badge() -> bool:
         return False
 
     try:
-        result = subprocess.run(
+        subprocess.run(
             ["/bin/sh", str(script_path)],
             check=True,
             capture_output=True,
