@@ -36,12 +36,18 @@ def test_release_command():
     assert "Creating and pushing release tag" in result.stdout
 
 
-def test_update_readme_help_command():
+def test_update_readme_help_command(monkeypatch):
     """Test the update-readme-help command."""
+    # Mock the command function to avoid actual file operations
+    mock_update_readme_help_command = MagicMock()
+    monkeypatch.setattr("rhiza_tools.cli.update_readme_help_command", mock_update_readme_help_command)
+
     result = runner.invoke(app, ["update-readme-help", "--dry-run"])
     assert result.exit_code == 0
-    assert "Would update README.md with make help output" in result.stdout
+    mock_update_readme_help_command.assert_called_once_with(True)
+
+    mock_update_readme_help_command.reset_mock()
 
     result = runner.invoke(app, ["update-readme-help"])
     assert result.exit_code == 0
-    assert "Updating README.md with make help output" in result.stdout
+    mock_update_readme_help_command.assert_called_once_with(False)
