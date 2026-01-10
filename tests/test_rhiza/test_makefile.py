@@ -138,7 +138,7 @@ class TestMakefile:
         proc = run_make(logger, ["fmt"])
         out = proc.stdout
         # Check for uvx command with the configured path
-        assert "uvx pre-commit run --all-files" in out
+        assert "uv run pre-commit run --all-files" in out
 
     def test_test_target_dry_run(self, logger):
         """Test target should invoke pytest via uv with coverage and HTML outputs in dry-run output."""
