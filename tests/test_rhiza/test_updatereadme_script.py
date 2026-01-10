@@ -19,8 +19,7 @@ SHELL = shutil.which("sh") or "/bin/sh"
 # Skip these tests if the shell script doesn't exist (e.g., in rhiza-tools)
 SCRIPT_PATH = Path(__file__).parent.parent.parent / ".rhiza" / "scripts" / "update-readme-help.sh"
 pytestmark = pytest.mark.skipif(
-    not SCRIPT_PATH.exists(),
-    reason="Shell script not present in this repository (converted to Python command)"
+    not SCRIPT_PATH.exists(), reason="Shell script not present in this repository (converted to Python command)"
 )
 
 
