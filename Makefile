@@ -228,7 +228,7 @@ customisations: ## list available customisation scripts
 	fi
 
 update-readme: ## update README.md with current Makefile help output
-	@/bin/sh "${SCRIPTS_FOLDER}/update-readme-help.sh"
+	@${UV_BIN} run python -m rhiza_tools update-readme-help
 
 version-matrix: install-uv ## Emit the list of supported Python versions from pyproject.toml
 	@${UV_BIN} run .rhiza/utils/version_matrix.py
