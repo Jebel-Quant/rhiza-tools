@@ -31,17 +31,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # Install uv and uvx
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-
-      # Install pre-commit and the entire package set
-      - name: Create environment
-        run: |
-          make install
-
       # Run pre-commit
       - name: Run pre-commit
         run: |
-          uv run pre-commit run --all-files
+          make fmt
+
+      # Install uv and uvx
+      #- name: Install uv
+      #  uses: astral-sh/setup-uv@v7
+
+      # Install pre-commit and the entire package set
+      #- name: Create environment
+      #  run: |
+      #    make install
+
+      # Run pre-commit
+      #- name: Run pre-commit
+      #  run: |
+      #    uv run pre-commit run --all-files
 
