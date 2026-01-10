@@ -48,12 +48,18 @@ def update_readme_help(
 
 @app.command()
 def marimushka(
-    marimo_folder: str = typer.Option(
-        "book/marimo", "--marimo-folder", help="Path to folder containing Marimo notebooks"
-    ),
-    output: str = typer.Option("_marimushka", "--output", help="Output directory for HTML files"),
+    marimo_folder: str = typer.Option(None, "--marimo-folder", help="Path to folder containing Marimo notebooks"),
+    output: str = typer.Option(None, "--output", help="Output directory for HTML files"),
     uv_bin: str | None = typer.Option(None, "--uv-bin", help="Path to uv binary"),
     uvx_bin: str | None = typer.Option(None, "--uvx-bin", help="Path to uvx binary"),
 ):
     """Export Marimo notebooks to HTML."""
+    # Use environment variables as defaults if CLI options not provided
+    import os
+
+    if marimo_folder is None:
+        marimo_folder = os.environ.get("MARIMO_FOLDER", "book/marimo")
+    if output is None:
+        output = os.environ.get("MARIMUSHKA_OUTPUT", "_marimushka")
+
     marimushka_command(marimo_folder, output, uv_bin, uvx_bin)
