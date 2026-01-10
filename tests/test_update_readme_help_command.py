@@ -1,6 +1,5 @@
 """Tests for the update-readme-help Python command."""
 
-
 import pytest
 from click.exceptions import Exit
 
@@ -107,4 +106,3 @@ def test_update_readme_help_command_no_readme(tmp_path, monkeypatch):
         update_readme_help_command(dry_run=False)
 
     assert exc_info.value.exit_code == 1
-
