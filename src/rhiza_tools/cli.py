@@ -2,6 +2,7 @@
 
 import typer
 
+from .commands.book import book_command
 from .commands.bump import bump_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
@@ -43,3 +44,11 @@ def update_readme_help(
     else:
         typer.echo("Updating README.md with make help output")
         # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
+
+
+@app.command()
+def book(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
+):
+    """Build the combined documentation book."""
+    book_command(dry_run)

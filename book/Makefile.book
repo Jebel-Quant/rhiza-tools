@@ -45,7 +45,7 @@ marimushka:: install-uv ## export Marimo notebooks to HTML
 
 book:: test docs marimushka ## compile the companion book
 	@${UV_BIN} pip install marimo
-	@/bin/sh "${SCRIPTS_FOLDER}/book.sh"
+	@${UVX_BIN} "rhiza[tools]>=0.8.6" tools book
 	@TEMPLATE_ARG=""; \
 	if [ -f "${BOOK_TEMPLATE}" ]; then \
 	  TEMPLATE_ARG="--template ${BOOK_TEMPLATE}"; \
