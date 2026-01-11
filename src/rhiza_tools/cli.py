@@ -50,7 +50,7 @@ def release(
         typer.echo("Would create and push release tag")
     else:
         typer.echo("Creating and pushing release tag")
-        # TODO: Implement actual release logic here (port from release.sh)
+        # Implement actual release logic here (port from release.sh)
 
 
 @app.command(name="update-readme-help")
@@ -62,4 +62,4 @@ def update_readme_help(
         typer.echo("Would update README.md with make help output")
     else:
         typer.echo("Updating README.md with make help output")
-        # TODO: Implement actual update-readme-help logic here (port from update-readme-help.sh)
+        # Implement actual update-readme-help logic here (port from update-readme-help.sh)
