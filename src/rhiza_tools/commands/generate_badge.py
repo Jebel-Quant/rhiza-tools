@@ -96,6 +96,8 @@ def generate_coverage_badge_command(
 
     with output_path.open("w") as f:
         json.dump(badge_data, f, indent=2)
-        f.write("\n")  # Add trailing newlineExpand commentComment on lines R100 to R102ResolvedCode has comments. Press enter to view.
+        f.write(
+            "\n"
+        )  # Add trailing newline
 
     print(f"[INFO] Coverage badge JSON generated at {output_path}")

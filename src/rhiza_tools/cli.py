@@ -1,4 +1,5 @@
 """CLI commands for Rhiza Tools."""
+
 from pathlib import Path
 
 import typer
@@ -22,6 +23,7 @@ def bump(
     """Bump the version of the project."""
     bump_command(version, dry_run, commit, allow_dirty, verbose)
 
+
 @app.command()
 def generate_coverage_badge(
     coverage_json: Path = typer.Option(
@@ -33,13 +35,11 @@ def generate_coverage_badge(
         Path("_book/tests/coverage-badge.json"),
         "--output",
         help="Path to output badge JSON",
-    )
+    ),
 ):
     """Generate a coverage badge for the project."""
-    generate_coverage_badge_command(
-        coverage_json_path=coverage_json,
-        output_path=output
-    )
+    generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
+
 
 @app.command()
 def release(
