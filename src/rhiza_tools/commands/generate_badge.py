@@ -102,29 +102,3 @@ def generate_coverage_badge_command(
         f.write("\n")  # Add trailing newlineExpand commentComment on lines R100 to R102ResolvedCode has comments. Press enter to view.
 
     print(f"[INFO] Coverage badge JSON generated at {output_path}")
-
-
-def cli_main(
-    coverage_json: Path = Option(
-        Path("_tests/coverage.json"),
-        "--coverage-json",
-        help="Path to coverage.json file",
-    ),
-    output: Path = Option(
-        Path("_book/tests/coverage-badge.json"),
-        "--output",
-        help="Path to output badge JSON",
-    ),
-) -> None:
-    """Generate coverage badge endpoint JSON for shields.io."""
-    try:
-        generate_coverage_badge(coverage_json, output)
-    except OSError as e:
-        print(f"[ERROR] Unexpected error: {e}", file=sys.stderr)
-        raise typer.Exit(1)
-
-
-if __name__ == "__main__":
-    app = typer.Typer()
-    app.command()(cli_main)
-    app()
