@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def get_badge_color(coverage: float) -> str:
+def get_badge_color(coverage: int) -> str:
     """Determine badge color based on coverage percentage.
 
     Args:
