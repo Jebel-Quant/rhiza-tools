@@ -91,9 +91,7 @@ def get_badge_config(
     cfg = config.generate_badges
 
     # Resolve output directory
-    resolved_output_dir = output_dir or Path(
-        cfg.get("output_dir", DEFAULT_OUTPUT_DIR)
-    )
+    resolved_output_dir = output_dir or Path(cfg.get("output_dir", DEFAULT_OUTPUT_DIR))
 
     # Resolve badge list
     if badges is not None:
@@ -417,19 +415,19 @@ def write_badge(
 # Only coverage uses endpoint badges since it requires custom JSON data.
 BADGE_MARKDOWN_TEMPLATES = {
     # Static badge - doesn't need endpoint
-    BadgeType.SYNCED_WITH_RHIZA: '![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9)',
+    BadgeType.SYNCED_WITH_RHIZA: "![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9)",
     # Endpoint badge - needs hosted JSON for dynamic coverage %
-    BadgeType.COVERAGE: '[![Coverage](https://img.shields.io/endpoint?url={badge_url})]({link_url})',
+    BadgeType.COVERAGE: "[![Coverage](https://img.shields.io/endpoint?url={badge_url})]({link_url})",
     # Direct shields.io PyPI badge
-    BadgeType.PYPI_VERSION: '[![PyPI version](https://img.shields.io/pypi/v/{package_name}.svg)](https://pypi.org/project/{package_name}/)',
+    BadgeType.PYPI_VERSION: "[![PyPI version](https://img.shields.io/pypi/v/{package_name}.svg)](https://pypi.org/project/{package_name}/)",
     # Static badge with license type
-    BadgeType.LICENSE: '[![License: {license_type}](https://img.shields.io/badge/License-{license_type}-yellow.svg)](https://opensource.org/licenses/{license_type})',
+    BadgeType.LICENSE: "[![License: {license_type}](https://img.shields.io/badge/License-{license_type}-yellow.svg)](https://opensource.org/licenses/{license_type})",
     # Direct shields.io Python version badge
-    BadgeType.PYTHON_VERSIONS: '![Python versions](https://img.shields.io/pypi/pyversions/{package_name}.svg)',
+    BadgeType.PYTHON_VERSIONS: "![Python versions](https://img.shields.io/pypi/pyversions/{package_name}.svg)",
     # pepy.tech direct badge
-    BadgeType.DOWNLOADS: '[![Downloads](https://static.pepy.tech/personalized-badge/{package_name}?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/{package_name})',
+    BadgeType.DOWNLOADS: "[![Downloads](https://static.pepy.tech/personalized-badge/{package_name}?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/{package_name})",
     # CodeFactor direct badge
-    BadgeType.CODEFACTOR: '[![CodeFactor](https://www.codefactor.io/repository/github/{github_owner}/{github_repo}/badge)](https://www.codefactor.io/repository/github/{github_owner}/{github_repo})',
+    BadgeType.CODEFACTOR: "[![CodeFactor](https://www.codefactor.io/repository/github/{github_owner}/{github_repo}/badge)](https://www.codefactor.io/repository/github/{github_owner}/{github_repo})",
 }
 
 # Patterns to detect if a badge already exists in README
@@ -437,19 +435,19 @@ BADGE_MARKDOWN_TEMPLATES = {
 # They avoid matching documentation text that merely mentions badge names
 BADGE_DETECTION_PATTERNS = {
     # Look for badge image markdown with shields.io endpoint containing synced/rhiza keywords
-    BadgeType.SYNCED_WITH_RHIZA: r'!\[.*\]\([^)]*(?:synced.*rhiza|synced%20with.*rhiza)[^)]*\)',
+    BadgeType.SYNCED_WITH_RHIZA: r"!\[.*\]\([^)]*(?:synced.*rhiza|synced%20with.*rhiza)[^)]*\)",
     # Look for coverage badge image markdown (shields.io endpoint or direct badge)
-    BadgeType.COVERAGE: r'!\[.*[Cc]overage.*\]\([^)]*(?:shields\.io|badge)[^)]*\)',
+    BadgeType.COVERAGE: r"!\[.*[Cc]overage.*\]\([^)]*(?:shields\.io|badge)[^)]*\)",
     # Look for PyPI badge image markdown
-    BadgeType.PYPI_VERSION: r'!\[.*[Pp]y[Pp][Ii].*\]\([^)]*(?:shields\.io|pypi)[^)]*\)',
+    BadgeType.PYPI_VERSION: r"!\[.*[Pp]y[Pp][Ii].*\]\([^)]*(?:shields\.io|pypi)[^)]*\)",
     # Look for license badge image markdown (linked to LICENSE file or shields.io)
-    BadgeType.LICENSE: r'!\[.*[Ll]icense.*\]\([^)]*(?:shields\.io|badge)[^)]*\)',
+    BadgeType.LICENSE: r"!\[.*[Ll]icense.*\]\([^)]*(?:shields\.io|badge)[^)]*\)",
     # Look for Python versions badge image markdown
-    BadgeType.PYTHON_VERSIONS: r'!\[.*[Pp]ython.*\]\([^)]*(?:shields\.io|badge)[^)]*\)',
+    BadgeType.PYTHON_VERSIONS: r"!\[.*[Pp]ython.*\]\([^)]*(?:shields\.io|badge)[^)]*\)",
     # Look for downloads badge (pepy.tech or shields.io)
-    BadgeType.DOWNLOADS: r'!\[.*[Dd]ownload.*\]\([^)]*(?:pepy\.tech|shields\.io)[^)]*\)',
+    BadgeType.DOWNLOADS: r"!\[.*[Dd]ownload.*\]\([^)]*(?:pepy\.tech|shields\.io)[^)]*\)",
     # Look for CodeFactor badge image markdown
-    BadgeType.CODEFACTOR: r'!\[.*[Cc]ode[Ff]actor.*\]\([^)]*(?:codefactor\.io|shields\.io)[^)]*\)',
+    BadgeType.CODEFACTOR: r"!\[.*[Cc]ode[Ff]actor.*\]\([^)]*(?:codefactor\.io|shields\.io)[^)]*\)",
 }
 
 
@@ -468,20 +466,20 @@ def get_badge_markdown(
     Returns:
         Markdown string for the badge.
     """
-    template = BADGE_MARKDOWN_TEMPLATES.get(badge_type, '')
+    template = BADGE_MARKDOWN_TEMPLATES.get(badge_type, "")
     if not template:
-        return ''
+        return ""
 
     # Build link URL for coverage (points to HTML report)
-    coverage_link = badge_url.replace('coverage-badge.json', 'html-coverage/index.html')
+    coverage_link = badge_url.replace("coverage-badge.json", "html-coverage/index.html")
 
     return template.format(
         badge_url=badge_url,
         link_url=coverage_link,
-        package_name=config.package_name or 'package',
-        license_type=config.license_type or 'MIT',
-        github_owner=config.github_owner or 'owner',
-        github_repo=config.github_repo or 'repo',
+        package_name=config.package_name or "package",
+        license_type=config.license_type or "MIT",
+        github_owner=config.github_owner or "owner",
+        github_repo=config.github_repo or "repo",
     )
 
 
@@ -497,9 +495,9 @@ def strip_code_blocks(content: str) -> str:
         Content with code blocks removed.
     """
     # Remove fenced code blocks (```...```)
-    content = re.sub(r'```[\s\S]*?```', '', content)
+    content = re.sub(r"```[\s\S]*?```", "", content)
     # Remove inline code (`...`)
-    content = re.sub(r'`[^`]+`', '', content)
+    content = re.sub(r"`[^`]+`", "", content)
     return content
 
 
@@ -532,10 +530,10 @@ def find_badge_insertion_point(readme_content: str) -> int:
     Returns:
         Index position where badges should be inserted.
     """
-    lines = readme_content.split('\n')
+    lines = readme_content.split("\n")
 
     # Look for existing badge line (contains shields.io or badge patterns)
-    badge_pattern = re.compile(r'!\[.*\]\(.*(?:shields\.io|badge|img\.shields).*\)', re.IGNORECASE)
+    badge_pattern = re.compile(r"!\[.*\]\(.*(?:shields\.io|badge|img\.shields).*\)", re.IGNORECASE)
 
     last_badge_line = -1
     first_heading_line = -1
@@ -543,7 +541,7 @@ def find_badge_insertion_point(readme_content: str) -> int:
     for i, line in enumerate(lines):
         if badge_pattern.search(line):
             last_badge_line = i
-        if first_heading_line == -1 and line.startswith('#'):
+        if first_heading_line == -1 and line.startswith("#"):
             first_heading_line = i
 
     # If we found existing badges, insert after the last one
@@ -583,7 +581,7 @@ def extract_existing_badge(badge_type: BadgeType, readme_content: str) -> str | 
 
     # For linked badges [![...](...)], we need to match the full pattern
     # Try to match [![alt](img)](link) first, then ![alt](img)
-    linked_pattern = rf'\[{pattern}\]\([^)]+\)'
+    linked_pattern = rf"\[{pattern}\]\([^)]+\)"
     match = re.search(linked_pattern, readme_content, re.IGNORECASE)
     if match:
         return match.group(0)
@@ -651,7 +649,7 @@ def update_badges_in_readme(
     # Add new badges if any
     if badges_added:
         insert_pos = find_badge_insertion_point(new_content)
-        badge_block = '\n'.join(badges_added) + '\n'
+        badge_block = "\n".join(badges_added) + "\n"
         new_content = new_content[:insert_pos] + badge_block + new_content[insert_pos:]
 
     # Report changes
@@ -716,9 +714,7 @@ def generate_badges_command(
                     badges_to_generate.append(badge_type)
             except ValueError:
                 typer.echo(f"⚠ Unknown badge type: {name}", err=True)
-                typer.echo(
-                    f"  Available: {', '.join(b.value for b in BadgeType)}", err=True
-                )
+                typer.echo(f"  Available: {', '.join(b.value for b in BadgeType)}", err=True)
     # If no badges specified, get_badge_config will read from config file
 
     config = get_badge_config(output_dir, badges_to_generate if badges_to_generate else None)
@@ -786,10 +782,7 @@ def generate_badges_command(
     if update_readme and generated_badges:
         resolved_readme = readme_path or Path("README.md")
         if not badge_url_base:
-            typer.echo(
-                "\n⚠ Warning: --badge-url-base not specified. "
-                "Badge URLs will use local paths."
-            )
+            typer.echo("\n⚠ Warning: --badge-url-base not specified. Badge URLs will use local paths.")
         added, updated = update_badges_in_readme(
             generated_badges,
             resolved_readme,

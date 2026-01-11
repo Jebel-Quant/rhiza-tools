@@ -12,11 +12,7 @@ from typer.testing import CliRunner
 from rhiza_tools.cli import app
 from rhiza_tools.commands.generate_badges import (
     DEFAULT_COVERAGE_THRESHOLDS,
-    BadgeConfig,
     BadgeType,
-    badge_exists_in_readme,
-    extract_existing_badge,
-    find_badge_insertion_point,
     generate_badges_command,
     generate_codefactor_badge,
     generate_coverage_badge,
@@ -26,8 +22,6 @@ from rhiza_tools.commands.generate_badges import (
     generate_python_versions_badge,
     generate_synced_with_rhiza_badge,
     get_badge_config,
-    get_badge_markdown,
-    update_badges_in_readme,
     write_badge,
 )
 
@@ -126,9 +120,7 @@ class TestGenerateCoverageBadge:
 
     def test_generates_correct_badge(self, coverage_json_file):
         """Test that coverage badge is generated correctly."""
-        badge = generate_coverage_badge(
-            coverage_json_file, DEFAULT_COVERAGE_THRESHOLDS
-        )
+        badge = generate_coverage_badge(coverage_json_file, DEFAULT_COVERAGE_THRESHOLDS)
         assert badge is not None
         assert badge["schemaVersion"] == 1
         assert badge["label"] == "coverage"
@@ -137,9 +129,7 @@ class TestGenerateCoverageBadge:
 
     def test_missing_file_returns_none(self, temp_dir):
         """Test that missing file returns None."""
-        badge = generate_coverage_badge(
-            temp_dir / "nonexistent.json", DEFAULT_COVERAGE_THRESHOLDS
-        )
+        badge = generate_coverage_badge(temp_dir / "nonexistent.json", DEFAULT_COVERAGE_THRESHOLDS)
         assert badge is None
 
     def test_invalid_json_returns_none(self, temp_dir):
@@ -164,9 +154,7 @@ class TestGenerateCoverageBadge:
             coverage_file = temp_dir / f"coverage_{percentage}.json"
             with open(coverage_file, "w") as f:
                 json.dump({"totals": {"percent_covered": percentage}}, f)
-            badge = generate_coverage_badge(
-                coverage_file, DEFAULT_COVERAGE_THRESHOLDS
-            )
+            badge = generate_coverage_badge(coverage_file, DEFAULT_COVERAGE_THRESHOLDS)
             assert badge is not None
             assert badge["color"] == expected_color, f"Failed for {percentage}%"
 
@@ -387,8 +375,10 @@ class TestGenerateBadgesCLI:
             app,
             [
                 "generate-badges",
-                "--output-dir", str(output_dir),
-                "--badges", "synced-with-rhiza,coverage",
+                "--output-dir",
+                str(output_dir),
+                "--badges",
+                "synced-with-rhiza,coverage",
             ],
         )
         assert result.exit_code == 0
@@ -429,10 +419,13 @@ class TestUpdateReadme:
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
+                "--output-dir",
+                str(temp_dir / "badges"),
                 "--update-readme",
-                "--readme", str(readme),
-                "--badge-url-base", "https://example.com/badges",
+                "--readme",
+                str(readme),
+                "--badge-url-base",
+                "https://example.com/badges",
             ],
         )
         assert result.exit_code == 0
@@ -455,10 +448,13 @@ Some description.
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
+                "--output-dir",
+                str(temp_dir / "badges"),
                 "--update-readme",
-                "--readme", str(readme),
-                "--badge-url-base", "https://example.com/badges",
+                "--readme",
+                str(readme),
+                "--badge-url-base",
+                "https://example.com/badges",
             ],
         )
         assert result.exit_code == 0
@@ -477,10 +473,13 @@ Some description.
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
+                "--output-dir",
+                str(temp_dir / "badges"),
                 "--update-readme",
-                "--readme", str(readme),
-                "--badge-url-base", "https://example.com/badges",
+                "--readme",
+                str(readme),
+                "--badge-url-base",
+                "https://example.com/badges",
                 "--dry-run",
             ],
         )
@@ -499,9 +498,11 @@ Some description.
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
+                "--output-dir",
+                str(temp_dir / "badges"),
                 "--update-readme",
-                "--readme", str(readme),
+                "--readme",
+                str(readme),
             ],
         )
         assert result.exit_code == 0
@@ -520,10 +521,13 @@ Some description.
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
+                "--output-dir",
+                str(temp_dir / "badges"),
                 "--update-readme",
-                "--readme", str(readme),
-                "--badge-url-base", "https://example.com/badges",
+                "--readme",
+                str(readme),
+                "--badge-url-base",
+                "https://example.com/badges",
             ],
         )
         assert result.exit_code == 0
@@ -553,10 +557,13 @@ This should not prevent adding the actual badge.
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
+                "--output-dir",
+                str(temp_dir / "badges"),
                 "--update-readme",
-                "--readme", str(readme),
-                "--badge-url-base", "https://example.com/badges",
+                "--readme",
+                str(readme),
+                "--badge-url-base",
+                "https://example.com/badges",
             ],
         )
         assert result.exit_code == 0
@@ -585,11 +592,15 @@ Some description.
             app,
             [
                 "generate-badges",
-                "--output-dir", str(temp_dir / "badges"),
-                "--badges", "coverage",
+                "--output-dir",
+                str(temp_dir / "badges"),
+                "--badges",
+                "coverage",
                 "--update-readme",
-                "--readme", str(readme),
-                "--badge-url-base", "https://new-url.com/badges",
+                "--readme",
+                str(readme),
+                "--badge-url-base",
+                "https://new-url.com/badges",
             ],
         )
         assert result.exit_code == 0
