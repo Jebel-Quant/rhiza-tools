@@ -1,4 +1,4 @@
-"""Tests for the update-readme-help Python command."""
+"""Tests for the update-readme Python command."""
 
 from unittest.mock import Mock, patch
 
