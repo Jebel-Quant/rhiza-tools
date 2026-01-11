@@ -2,7 +2,7 @@
 # This file is included by the main Makefile
 
 # Declare phony targets
-.PHONY: sync validate
+.PHONY: sync validate readme
 
 ##@ Rhiza Workflows
 
@@ -21,3 +21,7 @@ validate: ## validate project structure against template repository as defined i
 		$(MAKE) install-uv; \
 		${UVX_BIN} "rhiza>=0.7.1" validate .; \
 	fi
+
+readme: ## update README.md with current Makefile help output
+	@$(MAKE) install-uv
+	@${UVX_BIN} rhiza-tools update-readme-help
