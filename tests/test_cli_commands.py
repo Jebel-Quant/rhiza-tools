@@ -37,7 +37,7 @@ def test_release_command():
 
 
 def test_update_readme(monkeypatch):
-    """Test the update-readme-help command."""
+    """Test the update-readme command."""
     # Mock the command function to avoid actual file operations
     mock_update_readme = MagicMock()
     monkeypatch.setattr("rhiza_tools.cli.update_readme_command", mock_update_readme)
