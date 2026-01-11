@@ -22,6 +22,5 @@ validate: ## validate project structure against template repository as defined i
 		${UVX_BIN} "rhiza>=0.7.1" validate .; \
 	fi
 
-readme: ## update README.md with current Makefile help output
-	@$(MAKE) install-uv
+readme: install-uv ## update README.md with current Makefile help output
 	@${UVX_BIN} rhiza-tools update-readme-help
