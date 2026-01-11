@@ -96,8 +96,6 @@ def generate_coverage_badge_command(
 
     with output_path.open("w") as f:
         json.dump(badge_data, f, indent=2)
-        f.write(
-            "\n"
-        )  # Add trailing newline
+        f.write("\n")  # Add trailing newline
 
     print(f"[INFO] Coverage badge JSON generated at {output_path}")
