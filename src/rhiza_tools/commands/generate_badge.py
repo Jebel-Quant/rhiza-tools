@@ -9,9 +9,6 @@ import json
 import sys
 from pathlib import Path
 
-import typer
-from typer import Option
-
 
 def get_badge_color(coverage: float) -> str:
     """Determine badge color based on coverage percentage.
