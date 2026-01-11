@@ -27,8 +27,6 @@ You can install `rhiza-tools` alongside `rhiza-cli` using `uvx` or `pip`. This a
 ```bash
 uvx "rhiza[tools]" tools --help
 ```
-```makefile
-```
 
 #### Using pip
 
