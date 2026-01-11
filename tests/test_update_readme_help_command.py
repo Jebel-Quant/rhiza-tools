@@ -5,7 +5,7 @@ from click.exceptions import Exit
 
 from rhiza_tools.commands.update_readme import (
     _update_readme_with_help,
-    update_readme,
+    update_readme_command,
 )
 
 
@@ -103,6 +103,6 @@ def test_update_readme_help_command_no_readme(tmp_path, monkeypatch):
 
     # Run the command - should exit with error
     with pytest.raises(Exit) as exc_info:
-        update_readme(dry_run=False)
+        update_readme_command(dry_run=False)
 
     assert exc_info.value.exit_code == 1
