@@ -2,13 +2,26 @@
 
 This file and its associated tests flow down via a SYNC action from the jebel-quant/rhiza repository
 (https://github.com/jebel-quant/rhiza).
+
+NOTE: These tests are skipped in rhiza-tools as the shell script has been converted
+to a Python command. See tests/test_update_readme_help_command.py for the Python tests.
 """
 
 import shutil
 import subprocess
+from pathlib import Path
+
+import pytest
 
 # Get shell path once at module level
 SHELL = shutil.which("sh") or "/bin/sh"
+
+# Skip these tests if the shell script doesn't exist (e.g., in rhiza-tools)
+SCRIPT_PATH = Path(__file__).parent.parent.parent / ".rhiza" / "scripts" / "update-readme-help.sh"
+pytestmark = pytest.mark.skipif(
+    not SCRIPT_PATH.exists(),
+    reason="Shell script not present in this repository (converted to Python command)"
+)
 
 
 def test_update_readme_success(git_repo):
