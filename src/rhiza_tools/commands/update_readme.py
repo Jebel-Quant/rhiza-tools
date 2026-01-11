@@ -113,14 +113,16 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
                     new_lines.append(lines[i])
                     i += 1
             else:
-                # If no code fence found, just continue
+                # If no code fence found after marker, log warning and skip update
+                logger.warning("Help section marker found but no code fence follows - skipping update")
+                pattern_found = False
                 continue
         else:
             new_lines.append(line)
             i += 1
 
     if not pattern_found:
-        logger.info("No help section marker found in README.md - skipping update")
+        logger.info("Help section not properly formatted in README.md - skipping update")
         return False
 
     # Write the updated content
