@@ -40,7 +40,7 @@ def test_update_readme_help_command(monkeypatch):
     """Test the update-readme-help command."""
     # Mock the command function to avoid actual file operations
     mock_update_readme_help_command = MagicMock()
-    monkeypatch.setattr("rhiza_tools.cli.update_readme_help_command", mock_update_readme_help_command)
+    monkeypatch.setattr("rhiza_tools.cli.update_readme", mock_update_readme_help_command)
 
     result = runner.invoke(app, ["update-readme-help", "--dry-run"])
     assert result.exit_code == 0
