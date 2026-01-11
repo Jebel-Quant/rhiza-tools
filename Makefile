@@ -19,7 +19,7 @@ define RHIZA_LOGO
  | |_) | '_ \| |_  / _\`|
  |  _ <| | | | |/ / (_| |
  |_| \_\_| |_|_/___\__,_|
- 
+
 endef
 export RHIZA_LOGO
 
@@ -63,6 +63,7 @@ export UV_VENV_CLEAR := 1
 -include presentation/Makefile.presentation
 -include .rhiza/customisations/Makefile.customisations
 -include .rhiza/agentic/Makefile.agentic
+-include .rhiza/Makefile.rhiza
 -include .github/Makefile.gh
 
 ##@ Meta
@@ -129,22 +130,6 @@ install: install-uv install-extras ## install
 	  ${UV_BIN} pip install -r tests/requirements.txt || { printf "${RED}[ERROR] Failed to install test requirements${RESET}\n"; exit 1; }; \
 	fi
 
-sync: ## sync with template repository as defined in .github/template.yml
-	@if git remote get-url origin 2>/dev/null | grep -iqE 'jebel-quant/rhiza(\.git)?$$'; then \
-		printf "${BLUE}[INFO] Skipping sync in rhiza repository (no template.yml by design)${RESET}\n"; \
-	else \
-		$(MAKE) install-uv; \
-		${UVX_BIN} "rhiza>=0.7.1" materialize --force .; \
-	fi
-
-validate: ## validate project structure against template repository as defined in .github/template.yml
-	@if git remote get-url origin 2>/dev/null | grep -iqE 'jebel-quant/rhiza(\.git)?$$'; then \
-		printf "${BLUE}[INFO] Skipping validate in rhiza repository (no template.yml by design)${RESET}\n"; \
-	else \
-		$(MAKE) install-uv; \
-		${UVX_BIN} "rhiza>=0.7.1" validate .; \
-	fi
-
 clean: ## Clean project artifacts and stale local branches
 	@printf "%bCleaning project...%b\n" "$(BLUE)" "$(RESET)"
 
@@ -189,8 +174,8 @@ deptry: install-uv ## Run deptry
 		fi \
 	fi
 
-fmt: install-uv ## check the pre-commit hooks and the linting
-	@${UVX_BIN} pre-commit run --all-files
+fmt: install ## check the pre-commit hooks and the linting
+	@${UV_BIN} run pre-commit run --all-files
 
 ##@ Releasing and Versioning
 bump: ## bump version
@@ -201,7 +186,7 @@ bump: ## bump version
 		${UV_BIN} lock; \
 	else \
 		printf "${YELLOW}[WARN] No pyproject.toml found, skipping bump${RESET}\n"; \
-	fi 
+	fi
 
 release: install ## create tag and push to remote with prompts
 	@${UV_BIN} run rhiza-tools release
