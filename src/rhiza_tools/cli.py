@@ -34,8 +34,8 @@ def release(
         # TODO: Implement actual release logic here (port from release.sh)
 
 
-@app.command(name="update-readme-help")
-def update_readme_help(
+@app.command(name="update-readme")
+def update_readme(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ):
     """Update README.md with the current output from `make help`."""
