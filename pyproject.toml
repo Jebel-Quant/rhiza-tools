@@ -29,4 +29,9 @@ packages = ["src/rhiza_tools"]
 
 [tool.deptry.package_module_name_map]
 "bump-my-version" = "bumpversion"
+"loguru" = "loguru"
+"questionary" = "questionary"
+"semver" = "semver"
+"tomlkit" = "tomlkit"
+"typer" = "typer"
 
