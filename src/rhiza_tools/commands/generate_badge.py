@@ -34,8 +34,8 @@ def get_badge_color(coverage: float) -> str:
 
 
 def generate_coverage_badge_command(
-    coverage_json_path: Path = Path("_tests/coverage.json"),
-    output_path: Path = Path("_book/tests/coverage-badge.json"),
+    coverage_json_path: Path,
+    output_path: Path,
 ) -> None:
     """Generate coverage badge JSON from coverage report.
 
