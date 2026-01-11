@@ -33,7 +33,6 @@ def generate_coverage_badge(
     ),
     output: Path = typer.Option(
         Path("_book/tests/coverage-badge.json"),
-    ),
         help="Path to output badge JSON",
     ),
 ):
