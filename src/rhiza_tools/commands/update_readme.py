@@ -132,7 +132,7 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
         raise typer.Exit(code=1)
 
 
-def update_readme(dry_run: bool = False):
+def update_readme_command(dry_run: bool = False):
     """Update README.md with the current output from `make help`.
 
     Args:

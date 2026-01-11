@@ -3,7 +3,7 @@
 import typer
 
 from .commands.bump import bump_command
-from .commands.update_readme import update_readme
+from .commands.update_readme import update_readme_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
@@ -39,4 +39,4 @@ def update_readme(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ):
     """Update README.md with the current output from `make help`."""
-    update_readme(dry_run)
+    update_readme_command(dry_run)
