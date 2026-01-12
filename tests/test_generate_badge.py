@@ -1,9 +1,6 @@
 """Comprehensive unit tests for coverage badge generation command."""
 
 import json
-import sys
-from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -57,16 +54,16 @@ class TestGetBadgeColor:
         # Test boundaries between color ranges
         assert get_badge_color(89) == "green"
         assert get_badge_color(90) == "brightgreen"
-        
+
         assert get_badge_color(79) == "yellowgreen"
         assert get_badge_color(80) == "green"
-        
+
         assert get_badge_color(69) == "yellow"
         assert get_badge_color(70) == "yellowgreen"
-        
+
         assert get_badge_color(59) == "orange"
         assert get_badge_color(60) == "yellow"
-        
+
         assert get_badge_color(49) == "red"
         assert get_badge_color(50) == "orange"
 
@@ -79,27 +76,27 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "output" / "badge.json"
-        
+
         coverage_data = {
             "totals": {
                 "percent_covered": 85.7,
             }
         }
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify output file was created
         assert output_path.exists()
-        
+
         # Verify content
         badge_data = json.loads(output_path.read_text())
         assert badge_data["schemaVersion"] == 1
         assert badge_data["label"] == "coverage"
         assert badge_data["message"] == "86%"  # Rounded from 85.7
         assert badge_data["color"] == "green"
-        
+
         # Verify console output
         captured = capsys.readouterr()
         assert "[INFO] Generating coverage badge" in captured.out
@@ -111,15 +108,15 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "nonexistent.json"
         output_path = tmp_path / "badge.json"
-        
+
         # Execute - should not raise an exception
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify warning was printed
         captured = capsys.readouterr()
         assert "[WARN] Coverage JSON file not found" in captured.err
         assert "skipping badge generation" in captured.err
-        
+
         # Verify no output file was created
         assert not output_path.exists()
 
@@ -128,16 +125,16 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         # Write invalid JSON
         coverage_json_path.write_text("{ invalid json }")
-        
+
         # Execute and verify it exits with error
         with pytest.raises(SystemExit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         assert excinfo.value.code == 1
-        
+
         # Verify error message
         captured = capsys.readouterr()
         assert "[ERROR] Failed to parse coverage JSON" in captured.err
@@ -147,16 +144,16 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"some_other_key": "value"}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute and verify it exits with error
         with pytest.raises(SystemExit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         assert excinfo.value.code == 1
-        
+
         # Verify error message
         captured = capsys.readouterr()
         assert "[ERROR] Missing expected key in coverage JSON" in captured.err
@@ -167,16 +164,16 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"totals": {"some_other_key": "value"}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute and verify it exits with error
         with pytest.raises(SystemExit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         assert excinfo.value.code == 1
-        
+
         # Verify error message
         captured = capsys.readouterr()
         assert "[ERROR] Missing expected key in coverage JSON" in captured.err
@@ -187,16 +184,16 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"totals": {"percent_covered": -5.0}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute and verify it exits with error
         with pytest.raises(SystemExit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         assert excinfo.value.code == 1
-        
+
         # Verify error message
         captured = capsys.readouterr()
         assert "[ERROR] Coverage percentage -5 is out of valid range 0-100" in captured.err
@@ -206,16 +203,16 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"totals": {"percent_covered": 150.0}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute and verify it exits with error
         with pytest.raises(SystemExit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         assert excinfo.value.code == 1
-        
+
         # Verify error message
         captured = capsys.readouterr()
         assert "[ERROR] Coverage percentage 150 is out of valid range 0-100" in captured.err
@@ -225,16 +222,16 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "nested" / "dir" / "badge.json"
-        
+
         coverage_data = {"totals": {"percent_covered": 75.0}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Verify directory doesn't exist yet
         assert not output_path.parent.exists()
-        
+
         # Execute
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify directory was created
         assert output_path.parent.exists()
         assert output_path.exists()
@@ -246,21 +243,21 @@ class TestGenerateCoverageBadgeCommand:
             (85.5, "86%"),  # Rounds up
             (85.6, "86%"),  # Rounds up
             (90.0, "90%"),  # Exact value
-            (99.9, "100%"), # Rounds up to 100
-            (0.1, "0%"),    # Rounds down to 0
+            (99.9, "100%"),  # Rounds up to 100
+            (0.1, "0%"),  # Rounds down to 0
         ]
-        
+
         for percent, expected_message in test_cases:
             # Setup
             coverage_json_path = tmp_path / "coverage.json"
             output_path = tmp_path / f"badge_{percent}.json"
-            
+
             coverage_data = {"totals": {"percent_covered": percent}}
             coverage_json_path.write_text(json.dumps(coverage_data))
-            
+
             # Execute
             generate_coverage_badge_command(coverage_json_path, output_path)
-            
+
             # Verify
             badge_data = json.loads(output_path.read_text())
             assert badge_data["message"] == expected_message, (
@@ -272,33 +269,33 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"totals": {"percent_covered": 92.5}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify JSON structure
         badge_data = json.loads(output_path.read_text())
-        
+
         # Check all required fields exist
         assert "schemaVersion" in badge_data
         assert "label" in badge_data
         assert "message" in badge_data
         assert "color" in badge_data
-        
+
         # Check field types
         assert isinstance(badge_data["schemaVersion"], int)
         assert isinstance(badge_data["label"], str)
         assert isinstance(badge_data["message"], str)
         assert isinstance(badge_data["color"], str)
-        
+
         # Check values
         assert badge_data["schemaVersion"] == 1
         assert badge_data["label"] == "coverage"
         assert badge_data["message"].endswith("%")
-        
+
         # Verify file has trailing newline
         content = output_path.read_text()
         assert content.endswith("\n")
@@ -319,18 +316,18 @@ class TestGenerateCoverageBadgeCommand:
             (45.0, "red"),
             (0.0, "red"),
         ]
-        
+
         for percent, expected_color in test_cases:
             # Setup
             coverage_json_path = tmp_path / "coverage.json"
             output_path = tmp_path / f"badge_{percent}.json"
-            
+
             coverage_data = {"totals": {"percent_covered": percent}}
             coverage_json_path.write_text(json.dumps(coverage_data))
-            
+
             # Execute
             generate_coverage_badge_command(coverage_json_path, output_path)
-            
+
             # Verify
             badge_data = json.loads(output_path.read_text())
             assert badge_data["color"] == expected_color, (
@@ -342,7 +339,7 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         # Create existing badge with different data
         existing_badge = {
             "schemaVersion": 1,
@@ -351,14 +348,14 @@ class TestGenerateCoverageBadgeCommand:
             "color": "orange",
         }
         output_path.write_text(json.dumps(existing_badge))
-        
+
         # Create new coverage data
         coverage_data = {"totals": {"percent_covered": 95.0}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify file was overwritten
         badge_data = json.loads(output_path.read_text())
         assert badge_data["message"] == "95%"
@@ -369,13 +366,13 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"totals": {"percent_covered": 0.0}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify
         badge_data = json.loads(output_path.read_text())
         assert badge_data["message"] == "0%"
@@ -386,13 +383,13 @@ class TestGenerateCoverageBadgeCommand:
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
-        
+
         coverage_data = {"totals": {"percent_covered": 100.0}}
         coverage_json_path.write_text(json.dumps(coverage_data))
-        
+
         # Execute
         generate_coverage_badge_command(coverage_json_path, output_path)
-        
+
         # Verify
         badge_data = json.loads(output_path.read_text())
         assert badge_data["message"] == "100%"
