@@ -1,4 +1,18 @@
-"""Command to update README.md with the current output from `make help`."""
+"""Command to update README.md with the current output from `make help`.
+
+This module provides functionality to automatically synchronize the README.md
+file with the current Makefile help output, keeping documentation up to date.
+
+Example:
+    Update README with make help::
+
+        from rhiza_tools.commands.update_readme import update_readme_command
+        update_readme_command()
+
+    Preview changes with dry run::
+
+        update_readme_command(dry_run=True)
+"""
 
 import re
 import subprocess
@@ -11,8 +25,21 @@ from loguru import logger
 def _get_make_help_output() -> str:
     """Generate the help output from Makefile.
 
+    Runs `make help` and returns the output with ANSI codes stripped and
+    make directory messages filtered out.
+
     Returns:
-        The help output with ANSI codes stripped and make directory messages filtered out.
+        The help output as a clean string without ANSI codes or directory messages.
+
+    Raises:
+        typer.Exit: If make command is not found or execution fails.
+
+    Example:
+        >>> help_output = _get_make_help_output()
+        >>> print(help_output)
+        install                Install dependencies using uv
+        test                   Run tests with pytest
+        ...
     """
     try:
         # Run make help and capture output
@@ -52,12 +79,27 @@ def _get_make_help_output() -> str:
 def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
     """Update README.md with new help output.
 
+    Searches for the marker line and updates the code block that follows it
+    with the new help output.
+
     Args:
         readme_path: Path to the README.md file.
         help_output: The help output to insert.
 
     Returns:
         True if the README was updated, False if the marker was not found.
+
+    Raises:
+        typer.Exit: If README cannot be read or written.
+
+    Example:
+        >>> from pathlib import Path
+        >>> updated = _update_readme_with_help(
+        ...     Path("README.md"),
+        ...     "install    Install dependencies"
+        ... )
+        >>> print(updated)
+        True
     """
     try:
         content = readme_path.read_text()
@@ -137,8 +179,23 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
 def update_readme_command(dry_run: bool = False):
     """Update README.md with the current output from `make help`.
 
+    This command synchronizes the README.md file with the current Makefile help
+    output by finding the marker line and updating the code block that follows.
+
     Args:
         dry_run: If True, only show what would be done without making changes.
+
+    Raises:
+        typer.Exit: If README.md is not found or cannot be accessed.
+
+    Example:
+        Update README::
+
+            update_readme_command()
+
+        Preview changes::
+
+            update_readme_command(dry_run=True)
     """
     readme_path = Path("README.md")
 

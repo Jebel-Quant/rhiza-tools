@@ -1,4 +1,23 @@
-"""Command to bump version in pyproject.toml using semver and bump-my-version."""
+"""Command to bump version in pyproject.toml using semver and bump-my-version.
+
+This module implements version bumping functionality with support for semantic
+versioning, interactive selection, and various bump types (patch, minor, major,
+prerelease variants).
+
+Example:
+    Bump to a specific version::
+
+        from rhiza_tools.commands.bump import bump_command
+        bump_command("1.2.3")
+
+    Bump patch version with commit::
+
+        bump_command("patch", commit=True)
+
+    Interactive bump (no version specified)::
+
+        bump_command(None)
+"""
 
 from pathlib import Path
 
@@ -45,7 +64,19 @@ _CHOICE_PREFIX_TO_BUMP_TYPE = {
 
 
 def get_current_version() -> str:
-    """Read current version from pyproject.toml."""
+    """Read current version from pyproject.toml.
+
+    Returns:
+        The current version string from the project.version field.
+
+    Raises:
+        typer.Exit: If pyproject.toml cannot be read or parsed.
+
+    Example:
+        >>> version = get_current_version()
+        >>> print(version)
+        '0.1.0'
+    """
     try:
         with open("pyproject.toml") as f:
             data = tomlkit.parse(f.read())
@@ -56,7 +87,22 @@ def get_current_version() -> str:
 
 
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
-    """Calculate next prerelease version for a given token."""
+    """Calculate next prerelease version for a given token.
+
+    Args:
+        current_version: The current semantic version.
+        token: The prerelease token (e.g., "alpha", "beta", "rc", "dev").
+
+    Returns:
+        The next prerelease version with the specified token.
+
+    Example:
+        >>> import semver
+        >>> current = semver.Version.parse("1.0.0")
+        >>> next_alpha = get_next_prerelease(current, "alpha")
+        >>> print(next_alpha)
+        1.0.1-alpha.1
+    """
     if current_version.prerelease:
         if current_version.prerelease.startswith(token):
             return current_version.bump_prerelease()
@@ -67,7 +113,19 @@ def get_next_prerelease(current_version: semver.Version, token: str) -> semver.V
 
 
 def _determine_bump_type_from_choice(choice: str) -> str:
-    """Extract bump type from interactive choice string."""
+    """Extract bump type from interactive choice string.
+
+    Args:
+        choice: The choice string selected by the user (e.g., "Patch (1.0.0 -> 1.0.1)").
+
+    Returns:
+        The bump type extracted from the choice prefix (e.g., "patch").
+
+    Example:
+        >>> bump_type = _determine_bump_type_from_choice("Patch (1.0.0 -> 1.0.1)")
+        >>> print(bump_type)
+        'patch'
+    """
     for prefix, bump_type in _CHOICE_PREFIX_TO_BUMP_TYPE.items():
         if choice.startswith(prefix):
             return bump_type
@@ -75,7 +133,29 @@ def _determine_bump_type_from_choice(choice: str) -> str:
 
 
 def _get_interactive_bump_type(config) -> str:
-    """Get bump type from user through interactive prompt."""
+    """Get bump type from user through interactive prompt.
+
+    Displays an interactive menu with all available bump types and their
+    resulting versions. Returns the selected new version string.
+
+    Args:
+        config: The bumpversion configuration object containing current_version.
+
+    Returns:
+        The new version string selected by the user.
+
+    Raises:
+        typer.Exit: If the current version is invalid or user cancels selection.
+
+    Example:
+        Interactive prompt shows::
+
+            Select bump type (Current: 1.0.0)
+            > Patch (1.0.0 -> 1.0.1)
+              Minor (1.0.0 -> 1.1.0)
+              Major (1.0.0 -> 2.0.0)
+              ...
+    """
     current_version_str = config.current_version
     try:
         current_version = semver.Version.parse(current_version_str)
@@ -124,12 +204,28 @@ def _get_interactive_bump_type(config) -> str:
 def _parse_version_argument(version: str | None, current_version_str: str) -> str:
     """Parse version argument and return explicit version string.
 
+    Converts bump type keywords (patch, minor, major, etc.) to explicit version
+    strings, or validates and returns explicit version strings.
+
     Args:
-        version: The version argument provided by the user.
+        version: The version argument provided by the user. Can be a bump type
+            keyword or an explicit version string.
         current_version_str: The current version string.
 
     Returns:
-        The explicit version string to bump to.
+        The explicit version string to bump to, or empty string if version is None.
+
+    Raises:
+        typer.Exit: If the version format is invalid.
+
+    Example:
+        >>> version = _parse_version_argument("patch", "1.0.0")
+        >>> print(version)
+        '1.0.1'
+
+        >>> version = _parse_version_argument("2.0.0", "1.0.0")
+        >>> print(version)
+        '2.0.0'
     """
     if not version:
         return ""
@@ -177,7 +273,38 @@ def bump_command(
     allow_dirty: bool = False,
     verbose: bool = False,
 ):
-    """Bump version in pyproject.toml using bump-my-version."""
+    """Bump version in pyproject.toml using bump-my-version.
+
+    This function handles the complete version bumping workflow including
+    configuration loading, version parsing, interactive selection (if needed),
+    and executing the bump operation.
+
+    Args:
+        version: The version to bump to. Can be an explicit version (e.g., "1.2.3"),
+            a bump type ("patch", "minor", "major"), a prerelease type
+            ("alpha", "beta", "rc", "dev"), or None for interactive selection.
+        dry_run: If True, show what would change without actually changing anything.
+        commit: If True, automatically commit the version change to git.
+        allow_dirty: If True, allow bumping even with uncommitted changes.
+        verbose: If True, show detailed output from the bump-my-version tool.
+
+    Raises:
+        typer.Exit: If pyproject.toml is missing, configuration is invalid, or
+            bump operation fails.
+
+    Example:
+        Bump to patch version::
+
+            bump_command("patch")
+
+        Bump with dry run::
+
+            bump_command("1.2.3", dry_run=True)
+
+        Interactive bump with commit::
+
+            bump_command(None, commit=True)
+    """
     # Check if pyproject.toml exists
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
