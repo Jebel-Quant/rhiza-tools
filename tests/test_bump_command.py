@@ -381,3 +381,116 @@ def test_determine_bump_type_from_choice_no_match():
     # Test with a string that doesn't match any prefix
     result = _determine_bump_type_from_choice("Unknown choice string")
     assert result == ""
+
+
+def test_determine_bump_type_from_choice_with_match():
+    """Test _determine_bump_type_from_choice when a prefix matches."""
+    from rhiza_tools.commands.bump import _determine_bump_type_from_choice
+
+    # Test with strings that match prefixes
+    assert _determine_bump_type_from_choice("Patch (0.1.0 -> 0.1.1)") == "patch"
+    assert _determine_bump_type_from_choice("Minor (0.1.0 -> 0.2.0)") == "minor"
+    assert _determine_bump_type_from_choice("Major (0.1.0 -> 1.0.0)") == "major"
+    assert _determine_bump_type_from_choice("Alpha (0.1.0 -> 0.1.1-alpha.1)") == "alpha"
+    assert _determine_bump_type_from_choice("Beta (0.1.0 -> 0.1.1-beta.1)") == "beta"
+    assert _determine_bump_type_from_choice("RC (0.1.0 -> 0.1.1-rc.1)") == "rc"
+    assert _determine_bump_type_from_choice("Dev (0.1.0 -> 0.1.1-dev.1)") == "dev"
+    assert _determine_bump_type_from_choice("Prerelease (0.1.0-alpha.1 -> 0.1.0-alpha.2)") == "prerelease"
+    assert _determine_bump_type_from_choice("Build (0.1.0 -> 0.1.0+build.1)") == "build"
+
+
+def test_bump_interactive_invalid_semver_in_config(bump_project, monkeypatch):
+    """Test interactive bump when config has invalid semantic version."""
+    # Update pyproject.toml with invalid version for interactive mode
+    with open("pyproject.toml") as f:
+        data = tomlkit.parse(f.read())
+
+    data["project"]["version"] = "invalid-version"
+
+    with open("pyproject.toml", "w") as f:
+        f.write(tomlkit.dumps(data))
+
+    # Mock interactive prompt - though it should fail before reaching it
+    class MockQuestion:
+        def ask(self):
+            return "Patch (invalid-version -> 0.1.1)"
+
+    def mock_select(*args, **kwargs):
+        return MockQuestion()
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+
+    # Should fail with exit code 1 due to invalid semver
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version=None)
+    assert excinfo.value.exit_code == 1
+
+
+def test_bump_with_allow_dirty_flag(bump_project, monkeypatch):
+    """Test bump command with allow_dirty flag."""
+    # Create a modified file to make the repo dirty
+    with open("test_file.txt", "w") as f:
+        f.write("test")
+
+    # Mock get_configuration to verify allow_dirty is passed
+    called_with_params = {}
+
+    def mock_get_config(*args, **kwargs):
+        called_with_params.update(kwargs)
+        # Import the real function to get a real config
+        from bumpversion.config import get_configuration as real_get_config
+
+        return real_get_config(*args, **kwargs)
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
+
+    # Test with allow_dirty=True
+    bump_command(version="patch", allow_dirty=True)
+    assert called_with_params.get("allow_dirty") is True
+
+
+def test_bump_with_commit_flag(bump_project, monkeypatch):
+    """Test bump command with commit flag."""
+    # Mock get_configuration to verify commit flag is passed
+    called_with_params = {}
+
+    def mock_get_config(*args, **kwargs):
+        called_with_params.update(kwargs)
+        # Import the real function to get a real config
+        from bumpversion.config import get_configuration as real_get_config
+
+        return real_get_config(*args, **kwargs)
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
+
+    # Test with commit=True
+    bump_command(version="patch", commit=True)
+    assert called_with_params.get("commit") is True
+
+
+def test_bump_configuration_load_failure(bump_project, monkeypatch):
+    """Test bump command when configuration loading fails."""
+
+    def mock_get_config(*args, **kwargs):
+        raise Exception("Configuration load error")
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
+
+    # Should fail with exit code 1
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version="patch")
+    assert excinfo.value.exit_code == 1
+
+
+def test_bump_operation_failure(bump_project, monkeypatch):
+    """Test bump command when the bump operation fails."""
+
+    def mock_do_bump(*args, **kwargs):
+        raise Exception("Bump operation failed")
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.do_bump", mock_do_bump)
+
+    # Should fail with exit code 1
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version="patch")
+    assert excinfo.value.exit_code == 1

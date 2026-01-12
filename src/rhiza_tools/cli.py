@@ -1,8 +1,11 @@
 """CLI commands for Rhiza Tools."""
 
+from pathlib import Path
+
 import typer
 
 from .commands.bump import bump_command
+from .commands.generate_badge import generate_coverage_badge_command
 from .commands.update_readme import update_readme_command
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
@@ -23,6 +26,22 @@ def bump(
 
 
 @app.command()
+def generate_coverage_badge(
+    coverage_json: Path = typer.Option(
+        Path("_tests/coverage.json"),
+        "--coverage-json",
+        help="Path to coverage.json file",
+    ),
+    output: Path = typer.Option(
+        Path("_book/tests/coverage-badge.json"),
+        help="Path to output badge JSON",
+    ),
+):
+    """Generate a coverage badge for the project."""
+    generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
+
+
+@app.command()
 def release(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ):
@@ -31,7 +50,7 @@ def release(
         typer.echo("Would create and push release tag")
     else:
         typer.echo("Creating and pushing release tag")
-        # TODO: Implement actual release logic here (port from release.sh)
+        # Implement actual release logic here (port from release.sh)
 
 
 @app.command(name="update-readme")
