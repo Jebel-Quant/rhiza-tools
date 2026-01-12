@@ -50,3 +50,28 @@ key = "value"
     config = RhizaConfig(config_path=config_file)
     assert config.get("key") == "value"
     assert config.get("missing", "default") == "default"
+
+
+def test_load_config_function(tmp_path, monkeypatch):
+    """Test the load_config convenience function."""
+    from rhiza_tools.config import load_config
+
+    # Change to temp directory
+    monkeypatch.chdir(tmp_path)
+
+    # Create a config file
+    config_file = tmp_path / CONFIG_FILENAME
+    config_file.parent.mkdir(parents=True, exist_ok=True)
+    config_content = """
+[tool.bumpversion]
+current_version = "2.0.0"
+"""
+    config_file.write_text(config_content)
+
+    # Test with path argument
+    config = load_config(config_file)
+    assert config.bumpversion["current_version"] == "2.0.0"
+
+    # Test without path argument (should use default)
+    config2 = load_config(None)
+    assert isinstance(config2, RhizaConfig)
