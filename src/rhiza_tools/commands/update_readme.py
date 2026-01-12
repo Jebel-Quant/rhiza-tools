@@ -35,8 +35,8 @@ def _get_make_help_output() -> str:
         typer.Exit: If make command is not found or execution fails.
 
     Example:
-        >>> help_output = _get_make_help_output()
-        >>> print(help_output)
+        >>> help_output = _get_make_help_output()  # doctest: +SKIP
+        >>> print(help_output)  # doctest: +SKIP
         install                Install dependencies using uv
         test                   Run tests with pytest
         ...
@@ -94,11 +94,11 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
 
     Example:
         >>> from pathlib import Path
-        >>> updated = _update_readme_with_help(
+        >>> updated = _update_readme_with_help(  # doctest: +SKIP
         ...     Path("README.md"),
         ...     "install    Install dependencies"
         ... )
-        >>> print(updated)
+        >>> print(updated)  # doctest: +SKIP
         True
     """
     try:

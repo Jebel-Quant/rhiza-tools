@@ -73,9 +73,9 @@ def get_current_version() -> str:
         typer.Exit: If pyproject.toml cannot be read or parsed.
 
     Example:
-        >>> version = get_current_version()
-        >>> print(version)
-        '0.1.0'
+        >>> version = get_current_version()  # doctest: +SKIP
+        >>> print(version)  # doctest: +SKIP
+        0.1.0
     """
     try:
         with open("pyproject.toml") as f:
@@ -124,7 +124,7 @@ def _determine_bump_type_from_choice(choice: str) -> str:
     Example:
         >>> bump_type = _determine_bump_type_from_choice("Patch (1.0.0 -> 1.0.1)")
         >>> print(bump_type)
-        'patch'
+        patch
     """
     for prefix, bump_type in _CHOICE_PREFIX_TO_BUMP_TYPE.items():
         if choice.startswith(prefix):
@@ -221,11 +221,11 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     Example:
         >>> version = _parse_version_argument("patch", "1.0.0")
         >>> print(version)
-        '1.0.1'
+        1.0.1
 
         >>> version = _parse_version_argument("2.0.0", "1.0.0")
         >>> print(version)
-        '2.0.0'
+        2.0.0
     """
     if not version:
         return ""

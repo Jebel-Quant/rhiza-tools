@@ -24,11 +24,11 @@ def get_badge_color(coverage: int) -> str:
     Example:
         >>> color = get_badge_color(95)
         >>> print(color)
-        'brightgreen'
+        brightgreen
 
         >>> color = get_badge_color(45)
         >>> print(color)
-        'red'
+        red
     """
     if coverage >= 90:
         return "brightgreen"
