@@ -9,6 +9,15 @@ from rhiza_tools.cli import app
 runner = CliRunner()
 
 
+def test_version_flag():
+    """Test the --version flag."""
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert "rhiza-tools version" in result.stdout
+    # Check that it displays a version number (should be the actual version)
+    assert "0.1.4" in result.stdout or "unknown" in result.stdout
+
+
 def test_bump_command(monkeypatch):
     """Test the bump command."""
     mock_bump_command = MagicMock()

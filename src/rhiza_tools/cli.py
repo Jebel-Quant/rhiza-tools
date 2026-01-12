@@ -30,11 +30,35 @@ from pathlib import Path
 
 import typer
 
+from rhiza_tools import __version__
+
 from .commands.bump import bump_command
 from .commands.generate_badge import generate_coverage_badge_command
 from .commands.update_readme import update_readme_command
 
+
+def version_callback(value: bool):
+    """Display the version and exit."""
+    if value:
+        typer.echo(f"rhiza-tools version {__version__}")
+        raise typer.Exit()
+
+
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        help="Show the version and exit.",
+        callback=version_callback,
+        is_eager=True,
+    ),
+):
+    """Rhiza Tools - Extra utilities for Rhiza."""
+    pass
 
 
 @app.command()
