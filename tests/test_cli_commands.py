@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from typer.testing import CliRunner
 
+from rhiza_tools import __version__
 from rhiza_tools.cli import app
 
 runner = CliRunner()
@@ -14,8 +15,8 @@ def test_version_flag():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert "rhiza-tools version" in result.stdout
-    # Check that it displays a version number (should be the actual version)
-    assert "0.1.4" in result.stdout or "unknown" in result.stdout
+    # Check that it displays the actual version from the package
+    assert __version__ in result.stdout
 
 
 def test_bump_command(monkeypatch):
