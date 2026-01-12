@@ -205,3 +205,116 @@ Some other content here.
 
     # Verify content is unchanged
     assert readme_path.read_text() == initial_content
+
+
+def test_update_readme_with_help_read_error(tmp_path):
+    """Test _update_readme_with_help handles read errors other than FileNotFoundError."""
+    readme_path = tmp_path / "README.md"
+    readme_path.write_text("# Test")
+
+    # Mock Path.read_text to raise a generic exception
+    with patch("pathlib.Path.read_text", side_effect=PermissionError("Permission denied")):
+        with pytest.raises(typer.Exit) as exc_info:
+            _update_readme_with_help(readme_path, "help output")
+        assert exc_info.value.exit_code == 1
+
+
+def test_update_readme_with_help_file_not_found(tmp_path):
+    """Test _update_readme_with_help handles FileNotFoundError."""
+    readme_path = tmp_path / "nonexistent_file.md"
+
+    # Try to update a non-existent file
+    with pytest.raises(typer.Exit) as exc_info:
+        _update_readme_with_help(readme_path, "help output")
+    assert exc_info.value.exit_code == 1
+
+
+def test_update_readme_with_help_write_error(tmp_path):
+    """Test _update_readme_with_help handles write errors."""
+    from pathlib import Path
+
+    readme_path = tmp_path / "README.md"
+
+    # Create a README with the target section
+    initial_content = """# Project
+
+Run `make help` to see all available targets:
+
+```makefile
+old help content
+```
+
+Footer content.
+"""
+    readme_path.write_text(initial_content)
+
+    help_output = "New help output"
+
+    # We need to mock write_text but allow read_text to work normally
+    original_read = Path.read_text
+
+    def mock_write(*args, **kwargs):
+        raise PermissionError("Permission denied")
+
+    with patch("pathlib.Path.write_text", mock_write):
+        with patch("pathlib.Path.read_text", original_read):
+            with pytest.raises(typer.Exit) as exc_info:
+                _update_readme_with_help(readme_path, help_output)
+            assert exc_info.value.exit_code == 1
+
+
+def test_update_readme_command_successful_update(tmp_path, monkeypatch):
+    """Test the command successfully updates README.md."""
+    monkeypatch.chdir(tmp_path)
+    readme_path = tmp_path / "README.md"
+
+    # Create a README with the target section
+    initial_content = """# Project
+
+Run `make help` to see all available targets:
+
+```makefile
+old content
+```
+
+Footer.
+"""
+    readme_path.write_text(initial_content)
+
+    # Mock make help output
+    mock_result = Mock()
+    mock_result.stdout = "New help output from make"
+
+    with patch("subprocess.run", return_value=mock_result):
+        # Run the command
+        update_readme_command(dry_run=False)
+
+    # Verify content was updated
+    new_content = readme_path.read_text()
+    assert "New help output from make" in new_content
+    assert "old content" not in new_content
+
+
+def test_update_readme_command_no_marker_found(tmp_path, monkeypatch):
+    """Test the command when README has no marker."""
+    monkeypatch.chdir(tmp_path)
+    readme_path = tmp_path / "README.md"
+
+    # Create a README without the marker
+    initial_content = """# Project
+
+No help section here.
+"""
+    readme_path.write_text(initial_content)
+
+    # Mock make help output
+    mock_result = Mock()
+    mock_result.stdout = "New help output"
+
+    with patch("subprocess.run", return_value=mock_result):
+        # Run the command - should not fail but also not update
+        update_readme_command(dry_run=False)
+
+    # Verify content was NOT updated
+    new_content = readme_path.read_text()
+    assert new_content == initial_content
