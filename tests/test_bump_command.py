@@ -439,6 +439,7 @@ def test_bump_with_allow_dirty_flag(bump_project, monkeypatch):
         called_with_params.update(kwargs)
         # Import the real function to get a real config
         from bumpversion.config import get_configuration as real_get_config
+
         return real_get_config(*args, **kwargs)
 
     monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
@@ -457,6 +458,7 @@ def test_bump_with_commit_flag(bump_project, monkeypatch):
         called_with_params.update(kwargs)
         # Import the real function to get a real config
         from bumpversion.config import get_configuration as real_get_config
+
         return real_get_config(*args, **kwargs)
 
     monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
