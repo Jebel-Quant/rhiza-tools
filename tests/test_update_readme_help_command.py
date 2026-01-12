@@ -209,8 +209,6 @@ Some other content here.
 
 def test_update_readme_with_help_read_error(tmp_path):
     """Test _update_readme_with_help handles read errors other than FileNotFoundError."""
-    from pathlib import Path
-    
     readme_path = tmp_path / "README.md"
     readme_path.write_text("# Test")
 
@@ -234,7 +232,7 @@ def test_update_readme_with_help_file_not_found(tmp_path):
 def test_update_readme_with_help_write_error(tmp_path):
     """Test _update_readme_with_help handles write errors."""
     from pathlib import Path
-    
+
     readme_path = tmp_path / "README.md"
 
     # Create a README with the target section
@@ -254,10 +252,10 @@ Footer content.
 
     # We need to mock write_text but allow read_text to work normally
     original_read = Path.read_text
-    
+
     def mock_write(*args, **kwargs):
         raise PermissionError("Permission denied")
-    
+
     with patch("pathlib.Path.write_text", mock_write):
         with patch("pathlib.Path.read_text", original_read):
             with pytest.raises(typer.Exit) as exc_info:
