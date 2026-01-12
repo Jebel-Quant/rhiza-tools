@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate a coverage badge endpoint JSON for shields.io.
 
-This script reads _tests/coverage.json and creates a shields.io endpoint JSON file
-at _book/tests/coverage-badge.json.
+This script reads a coverage report JSON file and creates a shields.io endpoint
+JSON file for a coverage badge at a specified output path.
 """
 
 import json
