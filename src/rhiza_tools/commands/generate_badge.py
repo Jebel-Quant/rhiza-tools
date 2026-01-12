@@ -13,11 +13,22 @@ from pathlib import Path
 def get_badge_color(coverage: int) -> str:
     """Determine badge color based on coverage percentage.
 
+    Colors follow a common convention where higher coverage gets "greener" colors.
+
     Args:
-        coverage: Coverage percentage (0-100)
+        coverage: Coverage percentage (0-100).
 
     Returns:
-        str: Color name for shields.io badge
+        Color name for shields.io badge.
+
+    Example:
+        >>> color = get_badge_color(95)
+        >>> print(color)
+        brightgreen
+
+        >>> color = get_badge_color(45)
+        >>> print(color)
+        red
     """
     if coverage >= 90:
         return "brightgreen"
@@ -39,12 +50,28 @@ def generate_coverage_badge_command(
 ) -> None:
     """Generate coverage badge JSON from coverage report.
 
+    Reads a pytest-cov generated coverage.json file and creates a shields.io
+    endpoint JSON file with appropriate color coding based on coverage percentage.
+
     Args:
-        coverage_json_path: Path to the coverage.json file
-        output_path: Path where the badge JSON should be written
+        coverage_json_path: Path to the coverage.json file.
+        output_path: Path where the badge JSON should be written.
 
     Raises:
-        SystemExit: If the coverage JSON is invalid or missing required data
+        SystemExit: If the coverage JSON is invalid or missing required data.
+
+    Example:
+        Generate badge from coverage report::
+
+            from pathlib import Path
+            generate_coverage_badge_command(
+                Path("_tests/coverage.json"),
+                Path("_book/tests/coverage-badge.json")
+            )
+
+        The generated JSON can be used with shields.io::
+
+            https://img.shields.io/endpoint?url=<url-to-badge-json>
     """
     # Check if coverage.json exists
     if not coverage_json_path.exists():
