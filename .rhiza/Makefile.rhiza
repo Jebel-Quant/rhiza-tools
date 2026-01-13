@@ -18,7 +18,7 @@ export RHIZA_LOGO
 ##@ Rhiza Workflows
 
 print-logo:
-	@printf "${BLUE}$$RHIZA_LOGO${RESET}\n"
+	@printf "%b%s%b\n" "${BLUE}" "$$RHIZA_LOGO" "${RESET}"
 
 
 sync: ## sync with template repository as defined in .rhiza/template.yml
