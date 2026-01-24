@@ -83,7 +83,7 @@ def get_current_version() -> str:
             return data["project"]["version"]
     except Exception as e:
         logger.error(f"Failed to read version from pyproject.toml: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
@@ -161,7 +161,7 @@ def _get_interactive_bump_type(config) -> str:
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
         logger.error(f"Invalid semantic version in configuration: {current_version_str}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     next_patch = current_version.bump_patch()
     next_minor = current_version.bump_minor()
@@ -234,7 +234,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
         logger.error(f"Invalid semantic version: {current_version_str}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Check if it's a bump type keyword
     if version == "patch":
@@ -261,7 +261,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     except ValueError:
         logger.error(f"Invalid version format: {version}")
         logger.error("Please use a valid semantic version.")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     return version
 
@@ -325,7 +325,7 @@ def bump_command(
         config = get_configuration(config_file=config_path, **overrides)
     except Exception as e:
         logger.error(f"Failed to load bumpversion configuration: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
@@ -351,7 +351,7 @@ def bump_command(
         )
     except Exception as e:
         logger.error(f"bump-my-version failed: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     if not dry_run:
         # Re-read config to get updated version

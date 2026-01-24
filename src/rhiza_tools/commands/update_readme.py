@@ -15,7 +15,7 @@ Example:
 """
 
 import re
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 import typer
@@ -43,7 +43,7 @@ def _get_make_help_output() -> str:
     """
     try:
         # Run make help and capture output
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607
             ["make", "help"],
             capture_output=True,
             text=True,
@@ -70,10 +70,10 @@ def _get_make_help_output() -> str:
 
     except FileNotFoundError:
         logger.error("make command not found")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
     except Exception as e:
         logger.error(f"Failed to run 'make help': {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
@@ -105,10 +105,10 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
         content = readme_path.read_text()
     except FileNotFoundError:
         logger.error(f"README file not found: {readme_path}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
     except Exception as e:
         logger.error(f"Failed to read README: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Look for the marker pattern
     marker = "Run `make help` to see all available targets:"
@@ -170,10 +170,11 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
     # Write the updated content
     try:
         readme_path.write_text("\n".join(new_lines))
-        return True
     except Exception as e:
         logger.error(f"Failed to write README: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
+    else:
+        return True
 
 
 def update_readme_command(dry_run: bool = False):

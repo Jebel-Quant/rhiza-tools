@@ -27,6 +27,7 @@ Example:
 """
 
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -108,15 +109,19 @@ def bump(
 
 @app.command()
 def generate_coverage_badge(
-    coverage_json: Path = typer.Option(
-        Path("_tests/coverage.json"),
-        "--coverage-json",
-        help="Path to coverage.json file",
-    ),
-    output: Path = typer.Option(
-        Path("_book/tests/coverage-badge.json"),
-        help="Path to output badge JSON",
-    ),
+    coverage_json: Annotated[
+        Path,
+        typer.Option(
+            "--coverage-json",
+            help="Path to coverage.json file",
+        ),
+    ] = Path("_tests/coverage.json"),
+    output: Annotated[
+        Path,
+        typer.Option(
+            help="Path to output badge JSON",
+        ),
+    ] = Path("_book/tests/coverage-badge.json"),
 ):
     """Generate a coverage badge for the project.
 

@@ -254,7 +254,7 @@ Footer content.
     original_read = Path.read_text
 
     def mock_write(*args, **kwargs):
-        raise PermissionError("Permission denied")
+        raise PermissionError("Permission denied")  # noqa: TRY003
 
     with patch("pathlib.Path.write_text", mock_write):
         with patch("pathlib.Path.read_text", original_read):
