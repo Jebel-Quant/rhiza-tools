@@ -16,3 +16,5 @@ include:
 exclude:
   - .github/workflows/rhiza_docker.yml
   - .github/workflows/rhiza_devcontainer.yml
+  - book/marimo
+  - book/jupyter
