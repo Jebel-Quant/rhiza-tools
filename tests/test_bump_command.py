@@ -258,7 +258,7 @@ def test_get_current_version_error_handling(bump_project, monkeypatch):
     """Test error handling when reading version from pyproject.toml fails."""
 
     def mock_open_error(*args, **kwargs):
-        raise OSError("File read error")
+        raise OSError("File read error")  # noqa: TRY003
 
     monkeypatch.setattr("builtins.open", mock_open_error)
 
@@ -472,7 +472,7 @@ def test_bump_configuration_load_failure(bump_project, monkeypatch):
     """Test bump command when configuration loading fails."""
 
     def mock_get_config(*args, **kwargs):
-        raise Exception("Configuration load error")
+        raise Exception("Configuration load error")  # noqa: TRY002, TRY003
 
     monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
 
@@ -486,7 +486,7 @@ def test_bump_operation_failure(bump_project, monkeypatch):
     """Test bump command when the bump operation fails."""
 
     def mock_do_bump(*args, **kwargs):
-        raise Exception("Bump operation failed")
+        raise Exception("Bump operation failed")  # noqa: TRY002, TRY003
 
     monkeypatch.setattr("rhiza_tools.commands.bump.do_bump", mock_do_bump)
 

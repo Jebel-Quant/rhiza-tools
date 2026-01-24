@@ -15,7 +15,7 @@ Example:
 """
 
 import re
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 import typer
@@ -43,7 +43,7 @@ def _get_make_help_output() -> str:
     """
     try:
         # Run make help and capture output
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607
             ["make", "help"],
             capture_output=True,
             text=True,
@@ -70,10 +70,91 @@ def _get_make_help_output() -> str:
 
     except FileNotFoundError:
         logger.error("make command not found")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
     except Exception as e:
         logger.error(f"Failed to run 'make help': {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
+
+
+def _read_readme_content(readme_path: Path) -> str:
+    """Read content from README file.
+
+    Args:
+        readme_path: Path to the README.md file.
+
+    Returns:
+        The content of the README file.
+
+    Raises:
+        typer.Exit: If README cannot be read.
+    """
+    try:
+        return readme_path.read_text()
+    except FileNotFoundError:
+        logger.error(f"README file not found: {readme_path}")
+        raise typer.Exit(code=1) from None
+    except Exception as e:
+        logger.error(f"Failed to read README: {e}")
+        raise typer.Exit(code=1) from None
+
+
+def _write_readme_content(readme_path: Path, content: str) -> None:
+    """Write content to README file.
+
+    Args:
+        readme_path: Path to the README.md file.
+        content: The content to write.
+
+    Raises:
+        typer.Exit: If README cannot be written.
+    """
+    try:
+        readme_path.write_text(content)
+    except Exception as e:
+        logger.error(f"Failed to write README: {e}")
+        raise typer.Exit(code=1) from None
+
+
+def _replace_code_block_content(lines: list[str], start_idx: int, help_output: str) -> tuple[list[str], int]:
+    """Replace content within a code block after the marker.
+
+    Args:
+        lines: List of lines from the README.
+        start_idx: Index where the code block should start.
+        help_output: The new content to insert.
+
+    Returns:
+        Tuple of (new lines to add, next index to process).
+        Returns empty list and same index if code fence not found.
+    """
+    new_lines = []
+    i = start_idx
+
+    # Skip empty line if present
+    if i < len(lines) and lines[i].strip() == "":
+        new_lines.append(lines[i])
+        i += 1
+
+    # Check for opening code fence
+    if i >= len(lines) or lines[i].strip() != "```makefile":
+        return [], start_idx
+
+    new_lines.append(lines[i])
+    i += 1
+
+    # Add the new help output
+    new_lines.append(help_output)
+
+    # Skip old content until we find the closing fence
+    while i < len(lines) and lines[i].strip() != "```":
+        i += 1
+
+    # Add the closing fence if found
+    if i < len(lines):
+        new_lines.append(lines[i])
+        i += 1
+
+    return new_lines, i
 
 
 def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
@@ -101,23 +182,13 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
         >>> print(updated)  # doctest: +SKIP
         True
     """
-    try:
-        content = readme_path.read_text()
-    except FileNotFoundError:
-        logger.error(f"README file not found: {readme_path}")
-        raise typer.Exit(code=1)
-    except Exception as e:
-        logger.error(f"Failed to read README: {e}")
-        raise typer.Exit(code=1)
-
-    # Look for the marker pattern
+    content = _read_readme_content(readme_path)
     marker = "Run `make help` to see all available targets:"
 
     if marker not in content:
         logger.info("No help section marker found in README.md - skipping update")
         return False
 
-    # Split content into lines for processing
     lines = content.split("\n")
     new_lines = []
     i = 0
@@ -126,39 +197,17 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
     while i < len(lines):
         line = lines[i]
 
-        # Check if this is the marker line
         if line.strip() == marker:
-            # Add the marker line
             new_lines.append(line)
-            pattern_found = True
             i += 1
 
-            # Skip empty line if present
-            if i < len(lines) and lines[i].strip() == "":
-                new_lines.append(lines[i])
-                i += 1
-
-            # Check for opening code fence
-            if i < len(lines) and lines[i].strip() == "```makefile":
-                new_lines.append(lines[i])
-                i += 1
-
-                # Add the new help output
-                new_lines.append(help_output)
-
-                # Skip old content until we find the closing fence
-                while i < len(lines) and lines[i].strip() != "```":
-                    i += 1
-
-                # Add the closing fence if found
-                if i < len(lines):
-                    new_lines.append(lines[i])
-                    i += 1
+            block_lines, new_idx = _replace_code_block_content(lines, i, help_output)
+            if block_lines:
+                new_lines.extend(block_lines)
+                i = new_idx
+                pattern_found = True
             else:
-                # If no code fence found after marker, log warning and skip update
                 logger.warning("Help section marker found but no code fence follows - skipping update")
-                pattern_found = False
-                continue
         else:
             new_lines.append(line)
             i += 1
@@ -167,13 +216,8 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
         logger.info("Help section not properly formatted in README.md - skipping update")
         return False
 
-    # Write the updated content
-    try:
-        readme_path.write_text("\n".join(new_lines))
-        return True
-    except Exception as e:
-        logger.error(f"Failed to write README: {e}")
-        raise typer.Exit(code=1)
+    _write_readme_content(readme_path, "\n".join(new_lines))
+    return True
 
 
 def update_readme_command(dry_run: bool = False):

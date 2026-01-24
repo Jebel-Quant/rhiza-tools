@@ -20,6 +20,7 @@ Example:
 """
 
 from pathlib import Path
+from typing import Any
 
 import questionary as qs
 import semver
@@ -83,7 +84,7 @@ def get_current_version() -> str:
             return data["project"]["version"]
     except Exception as e:
         logger.error(f"Failed to read version from pyproject.toml: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
@@ -161,7 +162,7 @@ def _get_interactive_bump_type(config) -> str:
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
         logger.error(f"Invalid semantic version in configuration: {current_version_str}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     next_patch = current_version.bump_patch()
     next_minor = current_version.bump_minor()
@@ -234,7 +235,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
         logger.error(f"Invalid semantic version: {current_version_str}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Check if it's a bump type keyword
     if version == "patch":
@@ -261,9 +262,90 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     except ValueError:
         logger.error(f"Invalid version format: {version}")
         logger.error("Please use a valid semantic version.")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     return version
+
+
+def _validate_pyproject_exists():
+    """Validate that pyproject.toml exists in the current directory.
+
+    Raises:
+        typer.Exit: If pyproject.toml is not found.
+    """
+    if not Path("pyproject.toml").exists():
+        logger.error("pyproject.toml not found in current directory")
+        raise typer.Exit(code=1)
+
+
+def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool) -> tuple[Any, Path]:
+    """Build bumpversion configuration with appropriate overrides.
+
+    Args:
+        current_version_str: The current version string.
+        allow_dirty: If True, allow bumping even with uncommitted changes.
+        commit: If True, automatically commit the version change to git.
+
+    Returns:
+        A tuple of (config object, config_path).
+
+    Raises:
+        typer.Exit: If configuration loading fails.
+    """
+    config_path = Path(CONFIG_FILENAME)
+    overrides = {"current_version": current_version_str}
+    if allow_dirty:
+        overrides["allow_dirty"] = True
+    if commit:
+        overrides["commit"] = True
+
+    try:
+        config = get_configuration(config_file=config_path, **overrides)
+    except Exception as e:
+        logger.error(f"Failed to load bumpversion configuration: {e}")
+        raise typer.Exit(code=1) from None
+    else:
+        return config, config_path
+
+
+def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool):
+    """Execute the bump operation using bump-my-version.
+
+    Args:
+        new_version_str: The new version string to bump to.
+        config: The bumpversion configuration object.
+        config_path: Path to the bumpversion configuration file.
+        dry_run: If True, show what would change without actually changing anything.
+        verbose: If True, show detailed output from the bump-my-version tool.
+
+    Raises:
+        typer.Exit: If the bump operation fails.
+    """
+    logger.info("Running bump-my-version...")
+    setup_logging(verbose=1 if verbose else 0)
+
+    try:
+        do_bump(
+            version_part=None,
+            new_version=new_version_str,
+            config=config,
+            config_file=config_path,
+            dry_run=dry_run,
+        )
+    except Exception as e:
+        logger.error(f"bump-my-version failed: {e}")
+        raise typer.Exit(code=1) from None
+
+
+def _log_bump_success(current_version_str: str):
+    """Log successful version bump and post-bump instructions.
+
+    Args:
+        current_version_str: The original version string before the bump.
+    """
+    updated_version = get_current_version()
+    logger.success(f"Version bumped: {current_version_str} -> {updated_version}")
+    logger.info("Don't forget to run 'uv lock' to update the lockfile if needed.")
 
 
 def bump_command(
@@ -305,27 +387,10 @@ def bump_command(
 
             bump_command(None, commit=True)
     """
-    # Check if pyproject.toml exists
-    if not Path("pyproject.toml").exists():
-        logger.error("pyproject.toml not found in current directory")
-        raise typer.Exit(code=1)
+    _validate_pyproject_exists()
 
-    # Get current version from pyproject.toml
     current_version_str = get_current_version()
-
-    # Construct configuration
-    config_path = Path(CONFIG_FILENAME)
-    overrides = {"current_version": current_version_str}
-    if allow_dirty:
-        overrides["allow_dirty"] = True
-    if commit:
-        overrides["commit"] = True
-
-    try:
-        config = get_configuration(config_file=config_path, **overrides)
-    except Exception as e:
-        logger.error(f"Failed to load bumpversion configuration: {e}")
-        raise typer.Exit(code=1)
+    config, config_path = _build_configuration(current_version_str, allow_dirty, commit)
 
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
@@ -337,25 +402,7 @@ def bump_command(
 
     logger.info(f"New version will be: {new_version_str}")
 
-    # Run bump-my-version
-    logger.info("Running bump-my-version...")
-    setup_logging(verbose=1 if verbose else 0)
-
-    try:
-        do_bump(
-            version_part=None,
-            new_version=new_version_str,
-            config=config,
-            config_file=config_path,
-            dry_run=dry_run,
-        )
-    except Exception as e:
-        logger.error(f"bump-my-version failed: {e}")
-        raise typer.Exit(code=1)
+    _execute_bump(new_version_str, config, config_path, dry_run, verbose)
 
     if not dry_run:
-        # Re-read config to get updated version
-        # Note: Since we removed current_version from config file, we should read from pyproject.toml again
-        updated_version = get_current_version()
-        logger.success(f"Version bumped: {current_version_str} -> {updated_version}")
-        logger.info("Don't forget to run 'uv lock' to update the lockfile if needed.")
+        _log_bump_success(current_version_str)

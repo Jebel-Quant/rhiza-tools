@@ -17,6 +17,14 @@ dependencies = [
     "bump-my-version==1.2.6",
 ]
 
+[dependency-groups]
+dev = [
+    "marimo>=0.18.0,<1.0",   # Reactive notebook runtime for book/ examples
+    "numpy>=2.4.0,<3.0",     # Numerical computing for notebook data analysis
+    "plotly>=6.5.0,<7.0",    # Interactive visualization in notebooks
+    "pandas>=3,<3.1",        # Data manipulation for notebook examples
+]
+
 [project.scripts]
 rhiza-tools = "rhiza_tools.__main__:app"
 
@@ -29,6 +37,10 @@ packages = ["src/rhiza_tools"]
 [tool.deptry.package_module_name_map]
 "bump-my-version" = "bumpversion"
 "loguru" = "loguru"
+"marimo" = "marimo"
+"numpy" = "numpy"
+"pandas" = "pandas"
+"plotly" = "plotly"
 "questionary" = "questionary"
 "semver" = "semver"
 "tomlkit" = "tomlkit"

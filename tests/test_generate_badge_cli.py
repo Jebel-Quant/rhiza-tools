@@ -222,7 +222,7 @@ class TestGenerateCoverageBadgeCLI:
 
         # Patch the generate_coverage_badge_command to raise PermissionError
         def mock_command(*args, **kwargs):
-            raise PermissionError("Permission denied")
+            raise PermissionError("Permission denied")  # noqa: TRY003
 
         with patch("rhiza_tools.cli.generate_coverage_badge_command", mock_command):
             result = runner.invoke(app, ["generate-coverage-badge"])
