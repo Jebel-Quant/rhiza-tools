@@ -100,7 +100,8 @@ class RhizaConfig:
             bv_config = config.bumpversion
             print(bv_config.get("current_version"))
         """
-        return self._data.get("tool", {}).get("bumpversion", {})
+        result: dict[str, Any] = self._data.get("tool", {}).get("bumpversion", {})
+        return result
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value.

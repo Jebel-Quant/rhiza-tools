@@ -220,7 +220,7 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
     return True
 
 
-def update_readme_command(dry_run: bool = False):
+def update_readme_command(dry_run: bool = False) -> None:
     """Update README.md with the current output from `make help`.
 
     This command synchronizes the README.md file with the current Makefile help

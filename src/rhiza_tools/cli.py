@@ -38,7 +38,7 @@ from .commands.generate_badge import generate_coverage_badge_command
 from .commands.update_readme import update_readme_command
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
     """Display the version and exit."""
     if value:
         typer.echo(f"rhiza-tools version {__version__}")
@@ -48,7 +48,7 @@ def version_callback(value: bool):
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
 
-@app.callback()
+@app.callback()  # type: ignore[misc]
 def main(
     version: bool = typer.Option(
         None,
@@ -57,12 +57,12 @@ def main(
         callback=version_callback,
         is_eager=True,
     ),
-):
+) -> None:
     """Rhiza Tools - Extra utilities for Rhiza."""
     pass
 
 
-@app.command()
+@app.command()  # type: ignore[misc]
 def bump(
     version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
@@ -71,7 +71,7 @@ def bump(
         False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output from bump-my-version."),
-):
+) -> None:
     """Bump the version of the project.
 
     This command updates the version in pyproject.toml using semantic versioning.
@@ -107,7 +107,7 @@ def bump(
     bump_command(version, dry_run, commit, allow_dirty, verbose)
 
 
-@app.command()
+@app.command()  # type: ignore[misc]
 def generate_coverage_badge(
     coverage_json: Annotated[
         Path,
@@ -122,7 +122,7 @@ def generate_coverage_badge(
             help="Path to output badge JSON",
         ),
     ] = Path("_book/tests/coverage-badge.json"),
-):
+) -> None:
     """Generate a coverage badge for the project.
 
     Reads a coverage report JSON file and creates a shields.io endpoint JSON file
@@ -147,10 +147,10 @@ def generate_coverage_badge(
     generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
 
 
-@app.command()
+@app.command()  # type: ignore[misc]
 def release(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-):
+) -> None:
     """Create a git tag and push to remote to trigger the release workflow.
 
     This command creates a git tag based on the current version and pushes it
@@ -176,10 +176,10 @@ def release(
         # Implement actual release logic here (port from release.sh)
 
 
-@app.command(name="update-readme")
+@app.command(name="update-readme")  # type: ignore[misc]
 def update_readme(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-):
+) -> None:
     """Update README.md with the current output from `make help`.
 
     This command runs `make help` and updates the README.md file with the current

@@ -81,7 +81,7 @@ def get_current_version() -> str:
     try:
         with open("pyproject.toml") as f:
             data = tomlkit.parse(f.read())
-            return data["project"]["version"]
+            return str(data["project"]["version"])  # type: ignore[index]
     except Exception as e:
         logger.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None
@@ -133,7 +133,7 @@ def _determine_bump_type_from_choice(choice: str) -> str:
     return ""
 
 
-def _get_interactive_bump_type(config) -> str:
+def _get_interactive_bump_type(config: Any) -> str:
     """Get bump type from user through interactive prompt.
 
     Displays an interactive menu with all available bump types and their
@@ -198,7 +198,7 @@ def _get_interactive_bump_type(config) -> str:
     # Extract the new version string from the choice
     # Format is "Label (Current -> New)"
     # We want "New"
-    new_version = choice.split("-> ")[1].rstrip(")")
+    new_version: str = choice.split("-> ")[1].rstrip(")")
     return new_version
 
 
@@ -267,7 +267,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     return version
 
 
-def _validate_pyproject_exists():
+def _validate_pyproject_exists() -> None:
     """Validate that pyproject.toml exists in the current directory.
 
     Raises:
@@ -293,7 +293,7 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         typer.Exit: If configuration loading fails.
     """
     config_path = Path(CONFIG_FILENAME)
-    overrides = {"current_version": current_version_str}
+    overrides: dict[str, Any] = {"current_version": current_version_str}
     if allow_dirty:
         overrides["allow_dirty"] = True
     if commit:
@@ -308,7 +308,7 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         return config, config_path
 
 
-def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool):
+def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool) -> None:
     """Execute the bump operation using bump-my-version.
 
     Args:
@@ -337,7 +337,7 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
         raise typer.Exit(code=1) from None
 
 
-def _log_bump_success(current_version_str: str):
+def _log_bump_success(current_version_str: str) -> None:
     """Log successful version bump and post-bump instructions.
 
     Args:
@@ -354,7 +354,7 @@ def bump_command(
     commit: bool = False,
     allow_dirty: bool = False,
     verbose: bool = False,
-):
+) -> None:
     """Bump version in pyproject.toml using bump-my-version.
 
     This function handles the complete version bumping workflow including
