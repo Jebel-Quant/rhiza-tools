@@ -20,6 +20,7 @@ Example:
 """
 
 from pathlib import Path
+from typing import Any
 
 import questionary as qs
 import semver
@@ -277,7 +278,7 @@ def _validate_pyproject_exists():
         raise typer.Exit(code=1)
 
 
-def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool):
+def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool) -> tuple[Any, Path]:
     """Build bumpversion configuration with appropriate overrides.
 
     Args:
@@ -286,7 +287,7 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         commit: If True, automatically commit the version change to git.
 
     Returns:
-        The loaded bumpversion configuration object.
+        A tuple of (config object, config_path).
 
     Raises:
         typer.Exit: If configuration loading fails.
@@ -299,13 +300,14 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         overrides["commit"] = True
 
     try:
-        return get_configuration(config_file=config_path, **overrides)
+        config = get_configuration(config_file=config_path, **overrides)
+        return config, config_path
     except Exception as e:
         logger.error(f"Failed to load bumpversion configuration: {e}")
         raise typer.Exit(code=1) from None
 
 
-def _execute_bump(new_version_str: str, config, config_path: Path, dry_run: bool, verbose: bool):
+def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool):
     """Execute the bump operation using bump-my-version.
 
     Args:
@@ -387,7 +389,7 @@ def bump_command(
     _validate_pyproject_exists()
 
     current_version_str = get_current_version()
-    config = _build_configuration(current_version_str, allow_dirty, commit)
+    config, config_path = _build_configuration(current_version_str, allow_dirty, commit)
 
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
@@ -399,7 +401,7 @@ def bump_command(
 
     logger.info(f"New version will be: {new_version_str}")
 
-    _execute_bump(new_version_str, config, Path(CONFIG_FILENAME), dry_run, verbose)
+    _execute_bump(new_version_str, config, config_path, dry_run, verbose)
 
     if not dry_run:
         _log_bump_success(current_version_str)
