@@ -301,10 +301,11 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
 
     try:
         config = get_configuration(config_file=config_path, **overrides)
-        return config, config_path
     except Exception as e:
         logger.error(f"Failed to load bumpversion configuration: {e}")
         raise typer.Exit(code=1) from None
+    else:
+        return config, config_path
 
 
 def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool):
