@@ -81,7 +81,7 @@ def get_current_version() -> str:
     try:
         with open("pyproject.toml") as f:
             data = tomlkit.parse(f.read())
-            return str(data["project"]["version"])  # type: ignore[index]
+            return str(data["project"]["version"])
     except Exception as e:
         logger.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None
