@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "loguru>=0.7.3",
+    "pyyaml>=6.0.0",
     "questionary>=2.1.1",
     "semver>=3.0.4",
     "tomlkit>=0.13.3",
@@ -41,6 +42,7 @@ packages = ["src/rhiza_tools"]
 "numpy" = "numpy"
 "pandas" = "pandas"
 "plotly" = "plotly"
+"pyyaml" = "yaml"
 "questionary" = "questionary"
 "semver" = "semver"
 "tomlkit" = "tomlkit"

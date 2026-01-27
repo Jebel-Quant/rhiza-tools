@@ -61,3 +61,13 @@ def test_update_readme(monkeypatch):
     result = runner.invoke(app, ["update-readme"])
     assert result.exit_code == 0
     mock_update_readme.assert_called_once_with(False)
+
+
+def test_check_workflow(monkeypatch):
+    """Test the check-workflow command."""
+    mock_check_workflow = MagicMock()
+    monkeypatch.setattr("rhiza_tools.cli.check_workflow_command", mock_check_workflow)
+
+    result = runner.invoke(app, ["check-workflow", "workflow1.yml", "workflow2.yml"])
+    assert result.exit_code == 0
+    mock_check_workflow.assert_called_once_with(["workflow1.yml", "workflow2.yml"])

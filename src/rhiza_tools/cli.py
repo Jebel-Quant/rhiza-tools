@@ -34,6 +34,7 @@ import typer
 from rhiza_tools import __version__
 
 from .commands.bump import bump_command
+from .commands.check_workflow import check_workflow_command
 from .commands.generate_badge import generate_coverage_badge_command
 from .commands.update_readme import update_readme_command
 
@@ -199,3 +200,28 @@ def update_readme(
             $ rhiza-tools update-readme --dry-run
     """
     update_readme_command(dry_run)
+
+
+@app.command(name="check-workflow")  # type: ignore[untyped-decorator]
+def check_workflow(
+    files: Annotated[list[str], typer.Argument(help="Workflow files to check")],
+) -> None:
+    """Check GitHub Actions workflow files for correct naming prefix.
+
+    This command validates that workflow files have the "(RHIZA) " prefix in
+    their name field. If a workflow file doesn't have the correct prefix, it
+    will be automatically updated.
+
+    Args:
+        files: List of workflow file paths to check.
+
+    Example:
+        Check a single workflow file::
+
+            $ rhiza-tools check-workflow .github/workflows/ci.yml
+
+        Check multiple workflow files::
+
+            $ rhiza-tools check-workflow .github/workflows/*.yml
+    """
+    check_workflow_command(files)
