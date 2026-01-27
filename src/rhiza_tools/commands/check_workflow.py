@@ -46,6 +46,13 @@ def check_file(filepath: str) -> bool:
         logger.error(f"Error: {filepath} missing 'name' field.")
         return False
 
+    if not isinstance(name, str):
+        logger.error(
+            f"Error: {filepath} has non-string 'name' field "
+            f"of type {type(name).__name__!s}: {name!r}"
+        )
+        return False
+
     if not name.startswith("(RHIZA) "):
         logger.info(f"Updating {filepath}: name '{name}' -> '(RHIZA) {name}'")
 
@@ -57,15 +64,20 @@ def check_file(filepath: str) -> bool:
             replaced = False
             for line in lines:
                 # Replace only the top-level name field (assumes it starts at beginning of line)
-                if not replaced and line.startswith("name:"):
-                    # Check if this line corresponds to the extracted name.
-                    # Simple check: does it contain reasonable parts of the name?
-                    # Or just blindly replace top-level name:
-                    # We'll use quotes to be safe
-                    f_write.write(f'name: "(RHIZA) {name}"\n')
+                # Allow optional whitespace before and after the colon
+                stripped = line.lstrip()
+                if not replaced and stripped.startswith("name:") and line[0] not in (" ", "\t"):
+                    # Safely serialize the new name as a YAML scalar with proper escaping
+                    new_name = f"(RHIZA) {name}"
+                    serialized_name = yaml.safe_dump(new_name, default_style='"').strip()
+                    f_write.write(f"name: {serialized_name}\n")
                     replaced = True
                 else:
                     f_write.write(line)
+
+            if not replaced:
+                logger.error(f"Error: {filepath} could not find top-level 'name:' field to update")
+                return False
 
         return False  # Fail so pre-commit knows files were modified
 

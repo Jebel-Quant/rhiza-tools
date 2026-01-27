@@ -28,8 +28,8 @@ class TestCheckFile:
         content = workflow.read_text()
         assert "(RHIZA) My Workflow" in content
 
-    def test_missing_name_field_returns_false(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-        """File without name field returns False with error message."""
+    def test_missing_name_field_returns_false(self, tmp_path: Path) -> None:
+        """File without name field returns False."""
         workflow = tmp_path / "workflow.yml"
         workflow.write_text("on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n")
 
@@ -37,8 +37,8 @@ class TestCheckFile:
 
         assert result is False
 
-    def test_invalid_yaml_returns_false(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-        """Invalid YAML returns False with error message."""
+    def test_invalid_yaml_returns_false(self, tmp_path: Path) -> None:
+        """Invalid YAML returns False."""
         workflow = tmp_path / "workflow.yml"
         workflow.write_text("name: test\n  invalid: yaml: syntax:\n")
 
@@ -71,7 +71,8 @@ jobs:
         workflow = tmp_path / "workflow.yml"
         workflow.write_text(original)
 
-        check_file(str(workflow))
+        result = check_file(str(workflow))
+        assert result is False
 
         content = workflow.read_text()
         # Check name was updated
@@ -100,10 +101,51 @@ jobs:
         workflow = tmp_path / "workflow.yml"
         workflow.write_text("name: Build & Deploy\non: push\n")
 
-        check_file(str(workflow))
+        result = check_file(str(workflow))
+        assert result is False
 
         content = workflow.read_text()
         assert "(RHIZA) Build & Deploy" in content
+
+    def test_non_string_name_field_returns_false(self, tmp_path: Path) -> None:
+        """File with non-string name field returns False."""
+        workflow = tmp_path / "workflow.yml"
+        # YAML boolean value (unquoted 'on' parses as True in YAML 1.1)
+        workflow.write_text("name: 123\non: push\n")
+
+        result = check_file(str(workflow))
+
+        assert result is False
+
+    def test_name_with_quotes_escaped_correctly(self, tmp_path: Path) -> None:
+        """Name containing quotes is escaped correctly in output."""
+        workflow = tmp_path / "workflow.yml"
+        workflow.write_text('name: Test "quoted" name\non: push\n')
+
+        result = check_file(str(workflow))
+        assert result is False
+
+        content = workflow.read_text()
+        # The new name should be properly escaped and valid YAML
+        assert "(RHIZA)" in content
+        # Verify it's valid YAML
+        import yaml
+        parsed = yaml.safe_load(content)
+        assert parsed["name"] == '(RHIZA) Test "quoted" name'
+
+    def test_name_with_backslashes_escaped_correctly(self, tmp_path: Path) -> None:
+        """Name containing backslashes is escaped correctly in output."""
+        workflow = tmp_path / "workflow.yml"
+        workflow.write_text(r'name: Test\path\name' + '\non: push\n')
+
+        result = check_file(str(workflow))
+        assert result is False
+
+        content = workflow.read_text()
+        # Verify it's valid YAML
+        import yaml
+        parsed = yaml.safe_load(content)
+        assert parsed["name"] == r'(RHIZA) Test\path\name'
 
 
 class TestCheckWorkflowCommand:
