@@ -60,7 +60,7 @@ def check_file(filepath: str) -> bool:
                 if not replaced and line.startswith("name:"):
                     # Check if this line corresponds to the extracted name.
                     # Simple check: does it contain reasonable parts of the name?
-                    # Or just blinding replace top-level name:
+                    # Or just blindly replace top-level name:
                     # We'll use quotes to be safe
                     f_write.write(f'name: "(RHIZA) {name}"\n')
                     replaced = True
