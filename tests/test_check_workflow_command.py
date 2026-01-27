@@ -136,7 +136,7 @@ jobs:
     def test_name_with_backslashes_escaped_correctly(self, tmp_path: Path) -> None:
         """Name containing backslashes is escaped correctly and uppercased in output."""
         workflow = tmp_path / "workflow.yml"
-        workflow.write_text(r'name: Test\path\name' + '\non: push\n')
+        workflow.write_text(r"name: Test\path\name" + "\non: push\n")
 
         result = check_file(str(workflow))
         assert result is False
@@ -144,7 +144,7 @@ jobs:
         content = workflow.read_text()
         # Verify it's valid YAML
         parsed = yaml.safe_load(content)
-        assert parsed["name"] == r'(RHIZA) TEST\PATH\NAME'
+        assert parsed["name"] == r"(RHIZA) TEST\PATH\NAME"
 
     def test_lowercase_name_with_prefix_gets_uppercased(self, tmp_path: Path) -> None:
         """Name with prefix but lowercase is updated to uppercase."""

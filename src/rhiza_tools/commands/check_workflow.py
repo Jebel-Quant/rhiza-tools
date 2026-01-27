@@ -47,16 +47,13 @@ def check_file(filepath: str) -> bool:
         return False
 
     if not isinstance(name, str):
-        logger.error(
-            f"Error: {filepath} has non-string 'name' field "
-            f"of type {type(name).__name__!s}: {name!r}"
-        )
+        logger.error(f"Error: {filepath} has non-string 'name' field of type {type(name).__name__!s}: {name!r}")
         return False
 
     prefix = "(RHIZA) "
     # Remove prefix if present to verify the rest of the string
     if name.startswith(prefix):
-        clean_name = name[len(prefix):]
+        clean_name = name[len(prefix) :]
     else:
         clean_name = name
 
