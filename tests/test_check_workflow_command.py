@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from rhiza_tools.commands.check_workflow import check_file, check_workflow_command
 
@@ -129,7 +130,6 @@ jobs:
         # The new name should be properly escaped and valid YAML
         assert "(RHIZA)" in content
         # Verify it's valid YAML
-        import yaml
         parsed = yaml.safe_load(content)
         assert parsed["name"] == '(RHIZA) Test "quoted" name'
 
@@ -143,7 +143,6 @@ jobs:
 
         content = workflow.read_text()
         # Verify it's valid YAML
-        import yaml
         parsed = yaml.safe_load(content)
         assert parsed["name"] == r'(RHIZA) Test\path\name'
 
