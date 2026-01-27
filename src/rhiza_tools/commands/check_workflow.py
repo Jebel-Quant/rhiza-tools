@@ -53,8 +53,17 @@ def check_file(filepath: str) -> bool:
         )
         return False
 
-    if not name.startswith("(RHIZA) "):
-        logger.info(f"Updating {filepath}: name '{name}' -> '(RHIZA) {name}'")
+    prefix = "(RHIZA) "
+    # Remove prefix if present to verify the rest of the string
+    if name.startswith(prefix):
+        clean_name = name[len(prefix):]
+    else:
+        clean_name = name
+
+    expected_name = f"{prefix}{clean_name.upper()}"
+
+    if name != expected_name:
+        logger.info(f"Updating {filepath}: name '{name}' -> '{expected_name}'")
 
         # Read file lines to perform replacement while preserving comments
         with open(filepath) as f_read:
@@ -68,8 +77,7 @@ def check_file(filepath: str) -> bool:
                 stripped = line.lstrip()
                 if not replaced and stripped.startswith("name:") and line[0] not in (" ", "\t"):
                     # Safely serialize the new name as a YAML scalar with proper escaping
-                    new_name = f"(RHIZA) {name}"
-                    serialized_name = yaml.safe_dump(new_name, default_style='"').strip()
+                    serialized_name = yaml.safe_dump(expected_name, default_style='"').strip()
                     f_write.write(f"name: {serialized_name}\n")
                     replaced = True
                 else:

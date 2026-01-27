@@ -12,14 +12,14 @@ class TestCheckFile:
     """Tests for check_file function."""
 
     def test_correct_prefix_returns_true(self, tmp_path: Path) -> None:
-        """File with correct (RHIZA) prefix returns True."""
+        """File with correct (RHIZA) prefix and uppercase name returns True."""
         workflow = tmp_path / "workflow.yml"
-        workflow.write_text('name: "(RHIZA) My Workflow"\non: push\n')
+        workflow.write_text('name: "(RHIZA) MY WORKFLOW"\non: push\n')
 
         assert check_file(str(workflow)) is True
 
     def test_missing_prefix_updates_file(self, tmp_path: Path) -> None:
-        """File without (RHIZA) prefix is updated and returns False."""
+        """File without (RHIZA) prefix is updated with uppercase name and returns False."""
         workflow = tmp_path / "workflow.yml"
         workflow.write_text("name: My Workflow\non: push\n")
 
@@ -27,7 +27,7 @@ class TestCheckFile:
 
         assert result is False
         content = workflow.read_text()
-        assert "(RHIZA) My Workflow" in content
+        assert "(RHIZA) MY WORKFLOW" in content
 
     def test_missing_name_field_returns_false(self, tmp_path: Path) -> None:
         """File without name field returns False."""
@@ -76,29 +76,29 @@ jobs:
         assert result is False
 
         content = workflow.read_text()
-        # Check name was updated
-        assert "(RHIZA) CI Pipeline" in content
+        # Check name was updated to uppercase with prefix
+        assert "(RHIZA) CI PIPELINE" in content
         # Check other content preserved
         assert "branches: [main]" in content
         assert "runs-on: ubuntu-latest" in content
         assert "actions/checkout@v4" in content
 
     def test_quoted_name_with_prefix(self, tmp_path: Path) -> None:
-        """File with quoted name containing prefix returns True."""
+        """File with quoted name containing prefix and uppercase returns True."""
         workflow = tmp_path / "workflow.yml"
-        workflow.write_text('name: "(RHIZA) Test"\non: push\n')
+        workflow.write_text('name: "(RHIZA) TEST"\non: push\n')
 
         assert check_file(str(workflow)) is True
 
     def test_unquoted_name_with_prefix(self, tmp_path: Path) -> None:
-        """File with unquoted name containing prefix returns True."""
+        """File with unquoted name containing prefix and uppercase returns True."""
         workflow = tmp_path / "workflow.yml"
-        workflow.write_text("name: (RHIZA) Test\non: push\n")
+        workflow.write_text("name: (RHIZA) TEST\non: push\n")
 
         assert check_file(str(workflow)) is True
 
     def test_name_with_special_characters(self, tmp_path: Path) -> None:
-        """Name with special characters is handled correctly."""
+        """Name with special characters is handled correctly and uppercased."""
         workflow = tmp_path / "workflow.yml"
         workflow.write_text("name: Build & Deploy\non: push\n")
 
@@ -106,7 +106,7 @@ jobs:
         assert result is False
 
         content = workflow.read_text()
-        assert "(RHIZA) Build & Deploy" in content
+        assert "(RHIZA) BUILD & DEPLOY" in content
 
     def test_non_string_name_field_returns_false(self, tmp_path: Path) -> None:
         """File with non-string name field returns False."""
@@ -119,7 +119,7 @@ jobs:
         assert result is False
 
     def test_name_with_quotes_escaped_correctly(self, tmp_path: Path) -> None:
-        """Name containing quotes is escaped correctly in output."""
+        """Name containing quotes is escaped correctly and uppercased in output."""
         workflow = tmp_path / "workflow.yml"
         workflow.write_text('name: Test "quoted" name\non: push\n')
 
@@ -131,10 +131,10 @@ jobs:
         assert "(RHIZA)" in content
         # Verify it's valid YAML
         parsed = yaml.safe_load(content)
-        assert parsed["name"] == '(RHIZA) Test "quoted" name'
+        assert parsed["name"] == '(RHIZA) TEST "QUOTED" NAME'
 
     def test_name_with_backslashes_escaped_correctly(self, tmp_path: Path) -> None:
-        """Name containing backslashes is escaped correctly in output."""
+        """Name containing backslashes is escaped correctly and uppercased in output."""
         workflow = tmp_path / "workflow.yml"
         workflow.write_text(r'name: Test\path\name' + '\non: push\n')
 
@@ -144,7 +144,20 @@ jobs:
         content = workflow.read_text()
         # Verify it's valid YAML
         parsed = yaml.safe_load(content)
-        assert parsed["name"] == r'(RHIZA) Test\path\name'
+        assert parsed["name"] == r'(RHIZA) TEST\PATH\NAME'
+
+    def test_lowercase_name_with_prefix_gets_uppercased(self, tmp_path: Path) -> None:
+        """Name with prefix but lowercase is updated to uppercase."""
+        workflow = tmp_path / "workflow.yml"
+        workflow.write_text('name: "(RHIZA) lowercase workflow"\non: push\n')
+
+        result = check_file(str(workflow))
+        assert result is False
+
+        content = workflow.read_text()
+        # Verify it's updated to uppercase
+        parsed = yaml.safe_load(content)
+        assert parsed["name"] == "(RHIZA) LOWERCASE WORKFLOW"
 
 
 class TestCheckWorkflowCommand:
@@ -170,7 +183,7 @@ class TestCheckWorkflowCommand:
     def test_correct_file_succeeds(self, tmp_path: Path) -> None:
         """Command with correct file succeeds."""
         workflow = tmp_path / "workflow.yml"
-        workflow.write_text('name: "(RHIZA) Test"\non: push\n')
+        workflow.write_text('name: "(RHIZA) TEST"\non: push\n')
 
         # Should not raise
         check_workflow_command([str(workflow)])
@@ -186,17 +199,17 @@ class TestCheckWorkflowCommand:
             check_workflow_command([str(workflow)])
         assert exc_info.value.exit_code == 1
 
-        # Check that file was updated
+        # Check that file was updated to uppercase
         content = workflow.read_text()
-        assert "(RHIZA) Test" in content
+        assert "(RHIZA) TEST" in content
 
     def test_multiple_files(self, tmp_path: Path) -> None:
         """Command can check multiple files."""
         workflow1 = tmp_path / "workflow1.yml"
-        workflow1.write_text('name: "(RHIZA) Test1"\non: push\n')
+        workflow1.write_text('name: "(RHIZA) TEST1"\non: push\n')
 
         workflow2 = tmp_path / "workflow2.yml"
-        workflow2.write_text('name: "(RHIZA) Test2"\non: push\n')
+        workflow2.write_text('name: "(RHIZA) TEST2"\non: push\n')
 
         # Should not raise
         check_workflow_command([str(workflow1), str(workflow2)])
@@ -206,7 +219,7 @@ class TestCheckWorkflowCommand:
         import typer
 
         workflow1 = tmp_path / "workflow1.yml"
-        workflow1.write_text('name: "(RHIZA) Test1"\non: push\n')
+        workflow1.write_text('name: "(RHIZA) TEST1"\non: push\n')
 
         workflow2 = tmp_path / "workflow2.yml"
         workflow2.write_text("name: Test2\non: push\n")
@@ -215,6 +228,6 @@ class TestCheckWorkflowCommand:
             check_workflow_command([str(workflow1), str(workflow2)])
         assert exc_info.value.exit_code == 1
 
-        # Check that incorrect file was updated
+        # Check that incorrect file was updated to uppercase
         content = workflow2.read_text()
-        assert "(RHIZA) Test2" in content
+        assert "(RHIZA) TEST2" in content
