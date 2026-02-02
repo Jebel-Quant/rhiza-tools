@@ -48,7 +48,7 @@ def version_callback(value: bool) -> None:
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
 
-@app.callback()  # type: ignore[untyped-decorator]
+@app.callback()
 def main(
     version: bool = typer.Option(
         None,
@@ -62,7 +62,7 @@ def main(
     pass
 
 
-@app.command()  # type: ignore[untyped-decorator]
+@app.command()
 def bump(
     version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
@@ -107,7 +107,7 @@ def bump(
     bump_command(version, dry_run, commit, allow_dirty, verbose)
 
 
-@app.command()  # type: ignore[untyped-decorator]
+@app.command()
 def generate_coverage_badge(
     coverage_json: Annotated[
         Path,
@@ -147,7 +147,7 @@ def generate_coverage_badge(
     generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
 
 
-@app.command()  # type: ignore[untyped-decorator]
+@app.command()
 def release(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ) -> None:
@@ -176,7 +176,7 @@ def release(
         # Implement actual release logic here (port from release.sh)
 
 
-@app.command(name="update-readme")  # type: ignore[untyped-decorator]
+@app.command(name="update-readme")
 def update_readme(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
 ) -> None:

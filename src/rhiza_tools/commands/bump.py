@@ -20,7 +20,7 @@ Example:
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import questionary as qs
 import semver
@@ -81,7 +81,8 @@ def get_current_version() -> str:
     try:
         with open("pyproject.toml") as f:
             data = tomlkit.parse(f.read())
-            return str(data["project"]["version"])
+            project = cast(dict[str, Any], data["project"])
+            return str(project["version"])
     except Exception as e:
         logger.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None
