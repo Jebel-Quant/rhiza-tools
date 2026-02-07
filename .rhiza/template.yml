@@ -1,20 +1,9 @@
 template-repository: jebel-quant/rhiza
 template-branch: main
-include:
-  - .github
+
+templates:
+  - github
+  - core
   - tests
-  - .editorconfig
-  - .gitignore
-  - .pre-commit-config.yaml
-  - CODE_OF_CONDUCT.md
-  - CONTRIBUTING.md
-  - Makefile
-  - ruff.toml
-  - pytest.ini
+  - legal
   - book
-  - .rhiza
-exclude:
-  - .github/workflows/rhiza_docker.yml
-  - .github/workflows/rhiza_devcontainer.yml
-  - book/marimo
-  - book/jupyter
