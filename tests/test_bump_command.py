@@ -54,6 +54,7 @@ replace = 'version = "{new_version}"'
 
     # Commit the config file to git so tests with commit=True can work
     import subprocess
+
     git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
     subprocess.run([git, "add", ".rhiza/.cfg.toml"], check=True, capture_output=True)
     subprocess.run([git, "commit", "-m", "Add bumpversion config"], check=True, capture_output=True)

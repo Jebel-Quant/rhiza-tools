@@ -1,6 +1,5 @@
 """Pytest configuration and fixtures for the tests directory."""
 
-import pathlib
 import subprocess
 
 import pytest
