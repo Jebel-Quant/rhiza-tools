@@ -37,7 +37,7 @@ jobs:
         uses: ./.github/actions/configure-git-auth
         with:
           token: ${{ secrets.GH_PAT }}
-
+          
       - id: versions
         env:
           UV_EXTRA_INDEX_URL: ${{ secrets.UV_EXTRA_INDEX_URL }}
