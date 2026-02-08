@@ -1,7 +1,6 @@
 """Comprehensive unit tests for version matrix command."""
 
 import json
-from pathlib import Path
 
 import pytest
 
