@@ -94,17 +94,24 @@ def analyze_benchmarks_command(
         with benchmarks_json.open() as f:
             data = json.load(f)
     except json.JSONDecodeError:
-        logger.warning(f"benchmarks.json at {benchmarks_json} is invalid or empty; skipping analysis and exiting successfully.")
+        logger.warning(
+            f"benchmarks.json at {benchmarks_json} is invalid or empty; skipping analysis and exiting successfully."
+        )
         sys.exit(0)
 
     # Validate structure: require a 'benchmarks' list
     if not isinstance(data, dict) or "benchmarks" not in data or not isinstance(data["benchmarks"], list):
-        logger.warning(f"benchmarks.json at {benchmarks_json} missing valid 'benchmarks' list; skipping analysis and exiting successfully.")
+        logger.warning(
+            f"benchmarks.json at {benchmarks_json} missing valid 'benchmarks' list; "
+            "skipping analysis and exiting successfully."
+        )
         sys.exit(0)
 
     # Check if benchmarks list is empty
     if not data["benchmarks"]:
-        logger.warning(f"benchmarks.json at {benchmarks_json} contains no benchmarks; skipping analysis and exiting successfully.")
+        logger.warning(
+            f"benchmarks.json at {benchmarks_json} contains no benchmarks; skipping analysis and exiting successfully."
+        )
         sys.exit(0)
 
     # Extract relevant info: Benchmark name, Mean (ms), OPS

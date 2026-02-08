@@ -838,6 +838,8 @@ source = { editable = "." }
 dependencies = [
     { name = "bump-my-version" },
     { name = "loguru" },
+    { name = "pandas" },
+    { name = "plotly" },
     { name = "questionary" },
     { name = "semver" },
     { name = "tomlkit" },
@@ -848,14 +850,14 @@ dependencies = [
 dev = [
     { name = "marimo" },
     { name = "numpy" },
-    { name = "pandas" },
-    { name = "plotly" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "bump-my-version", specifier = "==1.2.6" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "pandas", specifier = ">=3,<3.1" },
+    { name = "plotly", specifier = ">=6.5.0,<7.0" },
     { name = "questionary", specifier = ">=2.1.1" },
     { name = "semver", specifier = ">=3.0.4" },
     { name = "tomlkit", specifier = ">=0.13.3" },
@@ -866,8 +868,6 @@ requires-dist = [
 dev = [
     { name = "marimo", specifier = ">=0.18.0,<1.0" },
     { name = "numpy", specifier = ">=2.4.0,<3.0" },
-    { name = "pandas", specifier = ">=3,<3.1" },
-    { name = "plotly", specifier = ">=6.5.0,<7.0" },
 ]
 
 [[package]]
