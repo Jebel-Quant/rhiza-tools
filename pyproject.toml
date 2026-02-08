@@ -15,14 +15,14 @@ dependencies = [
     "tomlkit>=0.13.3",
     "typer>=0.9.0",
     "bump-my-version==1.2.6",
+    "pandas>=3,<3.1",
+    "plotly>=6.5.0,<7.0",
 ]
 
 [dependency-groups]
 dev = [
     "marimo>=0.18.0,<1.0",   # Reactive notebook runtime for book/ examples
     "numpy>=2.4.0,<3.0",     # Numerical computing for notebook data analysis
-    "plotly>=6.5.0,<7.0",    # Interactive visualization in notebooks
-    "pandas>=3,<3.1",        # Data manipulation for notebook examples
 ]
 
 [project.scripts]
