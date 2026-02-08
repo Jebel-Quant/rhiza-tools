@@ -36,6 +36,7 @@ from rhiza_tools import __version__
 from .commands.bump import bump_command
 from .commands.generate_badge import generate_coverage_badge_command
 from .commands.update_readme import update_readme_command
+from .commands.version_matrix import version_matrix_command
 
 
 def version_callback(value: bool) -> None:
@@ -199,3 +200,52 @@ def update_readme(
             $ rhiza-tools update-readme --dry-run
     """
     update_readme_command(dry_run)
+
+
+@app.command(name="version-matrix")
+def version_matrix(
+    pyproject: Annotated[
+        Path,
+        typer.Option(
+            "--pyproject",
+            help="Path to pyproject.toml file",
+        ),
+    ] = Path("pyproject.toml"),
+    candidates: Annotated[
+        str | None,
+        typer.Option(
+            "--candidates",
+            help="Comma-separated list of candidate Python versions (e.g., '3.11,3.12,3.13')",
+        ),
+    ] = None,
+) -> None:
+    """Emit supported Python versions from pyproject.toml as JSON.
+
+    This command reads the requires-python field from pyproject.toml and outputs
+    a JSON array of Python versions that satisfy the constraint. This is primarily
+    used in GitHub Actions to compute the test matrix.
+
+    Args:
+        pyproject: Path to the pyproject.toml file.
+        candidates: Comma-separated list of candidate Python versions to evaluate.
+            Defaults to "3.11,3.12,3.13,3.14".
+
+    Example:
+        Get supported versions with defaults::
+
+            $ rhiza-tools version-matrix
+            ["3.11", "3.12"]
+
+        Use custom pyproject.toml path::
+
+            $ rhiza-tools version-matrix --pyproject /path/to/pyproject.toml
+
+        Use custom candidates::
+
+            $ rhiza-tools version-matrix --candidates "3.10,3.11,3.12"
+    """
+    candidates_list = None
+    if candidates:
+        candidates_list = [v.strip() for v in candidates.split(",")]
+
+    version_matrix_command(pyproject_path=pyproject, candidates=candidates_list)
