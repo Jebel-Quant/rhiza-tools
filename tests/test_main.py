@@ -46,15 +46,25 @@ def test_main_if_name_main_block():
     # Use runpy to execute the module as __main__
     # This properly triggers the if __name__ == "__main__" block
 
-    # Mock sys.argv and the app to prevent actual execution
-    with patch("sys.argv", ["rhiza_tools", "--help"]):
-        with patch("rhiza_tools.cli.app") as mock_app:
-            try:
-                # Run the module as if it were __main__
-                runpy.run_module("rhiza_tools.__main__", run_name="__main__")
-            except SystemExit:
-                # Expected when app() runs and exits
-                pass
+    # Remove rhiza_tools.__main__ from sys.modules to avoid the warning
+    # about finding the module before execution
+    main_module_name = "rhiza_tools.__main__"
+    saved_module = sys.modules.pop(main_module_name, None)
 
-            # The app should have been called
-            assert mock_app.called
+    try:
+        # Mock sys.argv and the app to prevent actual execution
+        with patch("sys.argv", ["rhiza_tools", "--help"]):
+            with patch("rhiza_tools.cli.app") as mock_app:
+                try:
+                    # Run the module as if it were __main__
+                    runpy.run_module(main_module_name, run_name="__main__")
+                except SystemExit:
+                    # Expected when app() runs and exits
+                    pass
+
+                # The app should have been called
+                assert mock_app.called
+    finally:
+        # Restore the module to sys.modules if it was there before
+        if saved_module is not None:
+            sys.modules[main_module_name] = saved_module
