@@ -33,6 +33,7 @@ import typer
 
 from rhiza_tools import __version__
 
+from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.bump import bump_command
 from .commands.generate_badge import generate_coverage_badge_command
 from .commands.update_readme import update_readme_command
@@ -249,3 +250,47 @@ def version_matrix(
         candidates_list = [v.strip() for v in candidates.split(",")]
 
     version_matrix_command(pyproject_path=pyproject, candidates=candidates_list)
+
+
+@app.command(name="analyze-benchmarks")
+def analyze_benchmarks(
+    benchmarks_json: Annotated[
+        Path,
+        typer.Option(
+            "--benchmarks-json",
+            help="Path to benchmarks.json file",
+        ),
+    ] = Path("_benchmarks/benchmarks.json"),
+    output_html: Annotated[
+        Path,
+        typer.Option(
+            "--output-html",
+            help="Path to save HTML visualization",
+        ),
+    ] = Path("_benchmarks/benchmarks.html"),
+) -> None:
+    """Analyze pytest-benchmark results and visualize them.
+
+    This command reads a benchmarks.json file produced by pytest-benchmark,
+    prints a table with benchmark name, mean milliseconds, and operations per
+    second, and generates an interactive Plotly bar chart of mean runtimes.
+
+    Note: This command requires pandas and plotly. Install with:
+    uv pip install -e '.[dev]' or pip install 'rhiza-tools[dev]'
+
+    Args:
+        benchmarks_json: Path to the benchmarks.json file.
+        output_html: Path where the HTML visualization should be saved.
+
+    Example:
+        Analyze benchmarks with default paths::
+
+            $ rhiza-tools analyze-benchmarks
+
+        Use custom paths::
+
+            $ rhiza-tools analyze-benchmarks \
+                --benchmarks-json tests/benchmarks.json \
+                --output-html reports/benchmarks.html
+    """
+    analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html)
