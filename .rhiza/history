@@ -32,13 +32,6 @@
 .rhiza/docs/CONFIG.md
 .rhiza/docs/PRIVATE_PACKAGES.md
 .rhiza/docs/TOKEN_SETUP.md
-.rhiza/make.d/00-custom-env.mk
-.rhiza/make.d/01-test.mk
-.rhiza/make.d/02-book.mk
-.rhiza/make.d/05-github.mk
-.rhiza/make.d/06-agentic.mk
-.rhiza/make.d/08-docs.mk
-.rhiza/make.d/10-custom-task.mk
 .rhiza/make.d/README.md
 .rhiza/requirements/README.md
 .rhiza/requirements/docs.txt
