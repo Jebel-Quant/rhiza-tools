@@ -36,6 +36,7 @@ from rhiza_tools import __version__
 from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.bump import bump_command
 from .commands.generate_badge import generate_coverage_badge_command
+from .commands.release import release_command
 from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
 
@@ -171,11 +172,7 @@ def release(
 
             $ rhiza-tools release --dry-run
     """
-    if dry_run:
-        typer.echo("Would create and push release tag")
-    else:
-        typer.echo("Creating and pushing release tag")
-        # Implement actual release logic here (port from release.sh)
+    release_command(dry_run)
 
 
 @app.command(name="update-readme")
