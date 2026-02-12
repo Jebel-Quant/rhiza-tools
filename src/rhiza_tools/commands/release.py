@@ -121,19 +121,24 @@ def check_branch_status(current_branch: str) -> None:
 
     if local != remote:
         if local == base:
+            # Local is behind remote (need to pull)
             logger.error(f"Your branch is behind '{upstream}'. Please pull changes.")
             raise typer.Exit(code=1)
-        elif remote != base:
-            logger.error(f"Your branch has diverged from '{upstream}'. Please reconcile.")
-            raise typer.Exit(code=1)
         else:
-            # Local is ahead of remote
-            logger.warning(f"Your branch is ahead of '{upstream}'.")
-            logger.info("Unpushed commits:")
-            result = run_git_command(["git", "log", "--oneline", "--graph", "--decorate", f"{upstream}..HEAD"])
-            logger.info(result.stdout)
-            logger.warning("Please push changes to remote before releasing.")
-            raise typer.Exit(code=1)
+            # Either local is ahead of remote OR branches have diverged
+            # Check if remote == base to distinguish between the two cases
+            if remote == base:
+                # Local is ahead of remote (need to push)
+                logger.warning(f"Your branch is ahead of '{upstream}'.")
+                logger.info("Unpushed commits:")
+                result = run_git_command(["git", "log", "--oneline", "--graph", "--decorate", f"{upstream}..HEAD"])
+                logger.info(result.stdout)
+                logger.warning("Please push changes to remote before releasing.")
+                raise typer.Exit(code=1)
+            else:
+                # Branches have diverged (need to merge or rebase)
+                logger.error(f"Your branch has diverged from '{upstream}'. Please reconcile.")
+                raise typer.Exit(code=1)
 
 
 def get_default_branch() -> str:
@@ -249,10 +254,18 @@ def push_tag(tag: str, dry_run: bool = False) -> None:
     # Get repository URL for GitHub Actions link
     result = run_git_command(["git", "remote", "get-url", "origin"])
     repo_url = result.stdout.strip()
-    # Convert git@github.com:user/repo.git or https://github.com/user/repo.git to user/repo
-    if "github.com" in repo_url:
-        repo_path = repo_url.split("github.com")[-1]
-        repo_path = repo_path.lstrip(":/").rstrip(".git")
+    
+    # Try to extract GitHub repository path for displaying the Actions URL
+    # Support both SSH (git@github.com:user/repo.git) and HTTPS (https://github.com/user/repo.git) formats
+    repo_path = None
+    if repo_url.startswith("git@github.com:"):
+        # SSH format: git@github.com:user/repo.git
+        repo_path = repo_url[len("git@github.com:"):].rstrip(".git")
+    elif repo_url.startswith("https://github.com/"):
+        # HTTPS format: https://github.com/user/repo.git
+        repo_path = repo_url[len("https://github.com/"):].rstrip(".git")
+    
+    if repo_path:
         logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
 
 
