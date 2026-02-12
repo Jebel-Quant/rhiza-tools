@@ -1,8 +1,8 @@
-"""Command to create and push release tags.
+"""Command to create and push release tags using bump-my-version.
 
-This module implements release functionality that creates git tags and pushes them
-to remote, triggering the release workflow. It replaces the functionality of
-release.sh with Python-based implementation.
+This module implements release functionality that uses bump-my-version to create
+git tags and pushes them to remote, triggering the release workflow. It replaces
+the functionality of release.sh with Python-based implementation using bump-my-version.
 
 Example:
     Create and push a release tag::
@@ -21,6 +21,8 @@ from typing import Any
 
 import tomlkit
 import typer
+from bumpversion.bump import do_bump
+from bumpversion.config import get_configuration
 from loguru import logger
 
 
@@ -193,38 +195,57 @@ def check_tag_exists(tag: str) -> tuple[bool, bool]:
     return exists_locally, exists_remotely
 
 
-def create_tag(tag: str, message: str, dry_run: bool = False) -> None:
-    """Create a git tag.
+def create_tag_with_bumpversion(current_version: str, dry_run: bool = False) -> None:
+    """Create a git tag using bump-my-version.
+
+    Uses bump-my-version to create a tag for the current version. This leverages
+    bump-my-version's built-in tagging functionality including GPG signing support.
 
     Args:
-        tag: The tag name to create.
-        message: The tag message.
+        current_version: The current version string.
         dry_run: If True, only show what would be done.
 
     Raises:
         typer.Exit: If tag creation fails.
 
     Example:
-        >>> create_tag("v1.0.0", "Release v1.0.0")  # doctest: +SKIP
+        >>> create_tag_with_bumpversion("1.0.0")  # doctest: +SKIP
     """
-    # Check if GPG signing is configured
-    signing_key = run_git_command(["git", "config", "--get", "user.signingkey"], check=False)
-    gpgsign = run_git_command(["git", "config", "--get", "commit.gpgsign"], check=False)
+    from rhiza_tools.config import CONFIG_FILENAME
 
-    use_signing = signing_key.returncode == 0 or gpgsign.stdout.strip() == "true"
+    logger.info("Creating tag using bump-my-version...")
 
-    if use_signing:
-        logger.info("GPG signing is enabled. Creating signed tag.")
-        command = ["git", "tag", "-s", tag, "-m", message]
-    else:
-        logger.info("GPG signing is not enabled. Creating unsigned tag.")
-        command = ["git", "tag", "-a", tag, "-m", message]
+    config_path = Path(CONFIG_FILENAME)
 
-    if dry_run:
-        logger.info(f"[DRY-RUN] Would run: {' '.join(command)}")
-    else:
-        run_git_command(command)
-        logger.success(f"Tag '{tag}' created locally")
+    # Build configuration with tag enabled
+    overrides: dict[str, Any] = {
+        "current_version": current_version,
+        "tag": True,  # Enable tagging
+        "commit": False,  # Don't commit (version already bumped)
+    }
+
+    try:
+        config = get_configuration(config_file=config_path, **overrides)
+    except Exception as e:
+        logger.error(f"Failed to load bumpversion configuration: {e}")
+        raise typer.Exit(code=1) from None
+
+    # Use bump-my-version to create the tag
+    # We pass the same version as new_version to avoid changing the version
+    # This just creates the tag for the current version
+    try:
+        do_bump(
+            version_part=None,
+            new_version=current_version,
+            config=config,
+            config_file=config_path,
+            dry_run=dry_run,
+        )
+        if not dry_run:
+            logger.success(f"Tag 'v{current_version}' created successfully")
+    except Exception as e:
+        logger.error(f"Failed to create tag: {e}")
+        raise typer.Exit(code=1) from None
 
 
 def push_tag(tag: str, dry_run: bool = False) -> None:
@@ -254,7 +275,7 @@ def push_tag(tag: str, dry_run: bool = False) -> None:
     # Get repository URL for GitHub Actions link
     result = run_git_command(["git", "remote", "get-url", "origin"])
     repo_url = result.stdout.strip()
-    
+
     # Try to extract GitHub repository path for displaying the Actions URL
     # Support both SSH (git@github.com:user/repo.git) and HTTPS (https://github.com/user/repo.git) formats
     repo_path = None
@@ -264,7 +285,7 @@ def push_tag(tag: str, dry_run: bool = False) -> None:
     elif repo_url.startswith("https://github.com/"):
         # HTTPS format: https://github.com/user/repo.git
         repo_path = repo_url[len("https://github.com/"):].rstrip(".git")
-    
+
     if repo_path:
         logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
 
@@ -354,7 +375,7 @@ def release_command(dry_run: bool = False) -> None:
                 logger.info("Release cancelled by user")
                 raise typer.Exit(code=0)
 
-        create_tag(tag, f"Release {tag}", dry_run)
+        create_tag_with_bumpversion(current_version, dry_run)
 
     # Push tag
     logger.info("Pushing tag to remote...")

@@ -10,7 +10,7 @@ from rhiza_tools.commands.release import (
     check_branch_status,
     check_clean_working_tree,
     check_tag_exists,
-    create_tag,
+    create_tag_with_bumpversion,
     get_current_version,
     get_default_branch,
     push_tag,
@@ -216,47 +216,42 @@ def test_check_tag_exists():
         assert remote is False
 
 
-def test_create_tag_unsigned(monkeypatch):
-    """Test creating an unsigned tag."""
-    mock_run_git = MagicMock()
-    mock_run_git.return_value.returncode = 1  # No signing key
+def test_create_tag_with_bumpversion(mock_pyproject, monkeypatch):
+    """Test creating a tag using bump-my-version."""
+    mock_do_bump = MagicMock()
+    mock_get_config = MagicMock()
 
-    with patch("rhiza_tools.commands.release.run_git_command", mock_run_git):
-        create_tag("v1.0.0", "Release v1.0.0", dry_run=False)
+    with patch("rhiza_tools.commands.release.do_bump", mock_do_bump):
+        with patch("rhiza_tools.commands.release.get_configuration", mock_get_config):
+            create_tag_with_bumpversion("1.0.0", dry_run=False)
 
-        # Should call git tag -a
-        calls = mock_run_git.call_args_list
-        tag_call = [c for c in calls if "tag" in c[0][0]]
-        assert len(tag_call) > 0
-        assert "-a" in tag_call[-1][0][0]
+            # Should call get_configuration with tag=True
+            mock_get_config.assert_called_once()
+            call_kwargs = mock_get_config.call_args[1]
+            assert call_kwargs["tag"] is True
+            assert call_kwargs["commit"] is False
+            assert call_kwargs["current_version"] == "1.0.0"
 
-
-def test_create_tag_signed(monkeypatch):
-    """Test creating a signed tag."""
-
-    def mock_run_git_command(cmd, check=True):
-        result = MagicMock()
-        if "user.signingkey" in cmd:
-            result.returncode = 0  # Signing key configured
-        else:
-            result.returncode = 0
-        return result
-
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        create_tag("v1.0.0", "Release v1.0.0", dry_run=False)
+            # Should call do_bump with the current version as new_version
+            mock_do_bump.assert_called_once()
+            call_kwargs = mock_do_bump.call_args[1]
+            assert call_kwargs["new_version"] == "1.0.0"
+            assert call_kwargs["dry_run"] is False
 
 
-def test_create_tag_dry_run(monkeypatch):
+def test_create_tag_with_bumpversion_dry_run(mock_pyproject, monkeypatch):
     """Test creating a tag in dry-run mode."""
-    mock_run_git = MagicMock()
-    mock_run_git.return_value.returncode = 1  # No signing key
+    mock_do_bump = MagicMock()
+    mock_get_config = MagicMock()
 
-    with patch("rhiza_tools.commands.release.run_git_command", mock_run_git):
-        create_tag("v1.0.0", "Release v1.0.0", dry_run=True)
+    with patch("rhiza_tools.commands.release.do_bump", mock_do_bump):
+        with patch("rhiza_tools.commands.release.get_configuration", mock_get_config):
+            create_tag_with_bumpversion("1.0.0", dry_run=True)
 
-        # Should not create actual tag in dry-run
-        tag_calls = [c for c in mock_run_git.call_args_list if "tag" in c[0][0] and "-a" in c[0][0]]
-        assert len(tag_calls) == 0
+            # Should call do_bump with dry_run=True
+            mock_do_bump.assert_called_once()
+            call_kwargs = mock_do_bump.call_args[1]
+            assert call_kwargs["dry_run"] is True
 
 
 def test_push_tag(monkeypatch):
