@@ -269,7 +269,7 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
             result.stdout = "origin/main"
         elif "remote" in cmd and "show" in cmd:
             result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif "rev-parse" in cmd and "v1.2.3" in str(cmd):
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"  # Tag exists locally
             result.returncode = 0
         elif "rev-parse" in cmd:
@@ -278,8 +278,8 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
-        elif "describe" in cmd:
-            result.stdout = "v1.2.2"  # Previous tag
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"  # Previous tags
         elif "rev-list" in cmd:
             result.stdout = "5"  # 5 commits
         elif "remote" in cmd and "get-url" in cmd:
@@ -305,7 +305,7 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
             result.stdout = "origin/main"
         elif "remote" in cmd and "show" in cmd:
             result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif "rev-parse" in cmd and "v1.2.3" in str(cmd):
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.returncode = 1  # Tag doesn't exist locally
         elif "rev-parse" in cmd:
             result.stdout = "abc123"

@@ -323,11 +323,13 @@ def release_command(dry_run: bool = False, non_interactive: bool = False) -> Non
     logger.info("Pushing tag to remote...")
     logger.info(f"Pushing tag '{tag}' to origin will trigger the release workflow.")
 
-    # Show commits since last tag
-    result = run_git_command(["git", "describe", "--tags", "--abbrev=0", f"{tag}^"], check=False)
+    # Show commits since last tag (if any)
+    # Try to find the previous tag by excluding the current tag
+    result = run_git_command(["git", "tag", "--sort=-version:refname", "--merged", "HEAD"], check=False)
     if result.returncode == 0:
-        last_tag = result.stdout.strip()
-        if last_tag and last_tag != tag:
+        tags = [t.strip() for t in result.stdout.split('\n') if t.strip() and t.strip() != tag]
+        if tags:
+            last_tag = tags[0]  # Most recent tag (excluding current)
             count_result = run_git_command(["git", "rev-list", f"{last_tag}..{tag}", "--count"], check=False)
             if count_result.returncode == 0:
                 commit_count = count_result.stdout.strip()
