@@ -231,11 +231,12 @@ def create_tag_with_bumpversion(current_version: str, dry_run: bool = False) -> 
         raise typer.Exit(code=1) from None
 
     # Use bump-my-version to create the tag
-    # We pass the same version as new_version to avoid changing the version
-    # This just creates the tag for the current version
+    # We pass version_part=None and new_version=current_version to create a tag
+    # without bumping the version. This is the recommended way to use do_bump for
+    # tag-only operations according to bump-my-version's API.
     try:
         do_bump(
-            version_part=None,
+            version_part=None,  # None indicates no version bump, just tag creation
             new_version=current_version,
             config=config,
             config_file=config_path,

@@ -235,6 +235,7 @@ def test_create_tag_with_bumpversion(mock_pyproject, monkeypatch):
             # Should call do_bump with the current version as new_version
             mock_do_bump.assert_called_once()
             call_kwargs = mock_do_bump.call_args[1]
+            assert call_kwargs["version_part"] is None  # No version bump, just tag creation
             assert call_kwargs["new_version"] == "1.0.0"
             assert call_kwargs["dry_run"] is False
 
