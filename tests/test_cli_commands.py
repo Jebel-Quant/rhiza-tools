@@ -42,13 +42,19 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--dry-run"])
     assert result.exit_code == 0
-    mock_release_command.assert_called_once_with(True)
+    mock_release_command.assert_called_once_with(True, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release"])
     assert result.exit_code == 0
-    mock_release_command.assert_called_once_with(False)
+    mock_release_command.assert_called_once_with(False, False)
+
+    mock_release_command.reset_mock()
+
+    result = runner.invoke(app, ["release", "--non-interactive"])
+    assert result.exit_code == 0
+    mock_release_command.assert_called_once_with(False, True)
 
 
 def test_update_readme(monkeypatch):

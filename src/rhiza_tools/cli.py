@@ -153,26 +153,34 @@ def generate_coverage_badge(
 @app.command()
 def release(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
+    non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
 ) -> None:
-    """Create a git tag and push to remote to trigger the release workflow.
+    """Push a release tag to remote to trigger the release workflow.
 
-    This command creates a git tag based on the current version and pushes it
-    to the remote repository, which triggers the automated release workflow.
+    This command validates the repository state and pushes the git tag for the
+    current version to the remote repository, which triggers the automated release
+    workflow.
+
+    Note: Tags are created by bump-my-version during 'make bump' or 'rhiza-tools bump'.
 
     Args:
-        dry_run: If True, show what would happen without actually creating or
-            pushing the tag.
+        dry_run: If True, show what would happen without actually pushing the tag.
+        non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
 
     Example:
-        Create and push a release tag::
+        Push a release tag (with prompts)::
 
             $ rhiza-tools release
 
         Preview what would happen::
 
             $ rhiza-tools release --dry-run
+
+        Non-interactive mode (for CI/CD)::
+
+            $ rhiza-tools release --non-interactive
     """
-    release_command(dry_run)
+    release_command(dry_run, non_interactive)
 
 
 @app.command(name="update-readme")

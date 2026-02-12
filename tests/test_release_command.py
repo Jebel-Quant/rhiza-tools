@@ -10,7 +10,6 @@ from rhiza_tools.commands.release import (
     check_branch_status,
     check_clean_working_tree,
     check_tag_exists,
-    create_tag_with_bumpversion,
     get_current_version,
     get_default_branch,
     push_tag,
@@ -216,45 +215,6 @@ def test_check_tag_exists():
         assert remote is False
 
 
-def test_create_tag_with_bumpversion(mock_pyproject, monkeypatch):
-    """Test creating a tag using bump-my-version."""
-    mock_do_bump = MagicMock()
-    mock_get_config = MagicMock()
-
-    with patch("rhiza_tools.commands.release.do_bump", mock_do_bump):
-        with patch("rhiza_tools.commands.release.get_configuration", mock_get_config):
-            create_tag_with_bumpversion("1.0.0", dry_run=False)
-
-            # Should call get_configuration with tag=True
-            mock_get_config.assert_called_once()
-            call_kwargs = mock_get_config.call_args[1]
-            assert call_kwargs["tag"] is True
-            assert call_kwargs["commit"] is False
-            assert call_kwargs["current_version"] == "1.0.0"
-
-            # Should call do_bump with the current version as new_version
-            mock_do_bump.assert_called_once()
-            call_kwargs = mock_do_bump.call_args[1]
-            assert call_kwargs["version_part"] is None  # No version bump, just tag creation
-            assert call_kwargs["new_version"] == "1.0.0"
-            assert call_kwargs["dry_run"] is False
-
-
-def test_create_tag_with_bumpversion_dry_run(mock_pyproject, monkeypatch):
-    """Test creating a tag in dry-run mode."""
-    mock_do_bump = MagicMock()
-    mock_get_config = MagicMock()
-
-    with patch("rhiza_tools.commands.release.do_bump", mock_do_bump):
-        with patch("rhiza_tools.commands.release.get_configuration", mock_get_config):
-            create_tag_with_bumpversion("1.0.0", dry_run=True)
-
-            # Should call do_bump with dry_run=True
-            mock_do_bump.assert_called_once()
-            call_kwargs = mock_do_bump.call_args[1]
-            assert call_kwargs["dry_run"] is True
-
-
 def test_push_tag(monkeypatch):
     """Test pushing a tag to remote."""
     mock_run_git = MagicMock()
@@ -309,14 +269,19 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
             result.stdout = "origin/main"
         elif "remote" in cmd and "show" in cmd:
             result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and "v1.2.3" in str(cmd):
+            result.stdout = "abc123"  # Tag exists locally
+            result.returncode = 0
         elif "rev-parse" in cmd:
             result.stdout = "abc123"
         elif "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
-            result.returncode = 1  # Tag doesn't exist
+            result.returncode = 1  # Tag doesn't exist remotely
         elif "describe" in cmd:
-            result.returncode = 1  # No previous tags
+            result.stdout = "v1.2.2"  # Previous tag
+        elif "rev-list" in cmd:
+            result.stdout = "5"  # 5 commits
         elif "remote" in cmd and "get-url" in cmd:
             result.stdout = "https://github.com/user/repo.git"
 
@@ -324,6 +289,36 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
 
     with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
         release_command(dry_run=True)  # Should complete without errors
+
+
+def test_release_command_tag_missing(mock_pyproject, monkeypatch):
+    """Test release_command when tag doesn't exist locally."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and "v1.2.3" in str(cmd):
+            result.returncode = 1  # Tag doesn't exist locally
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd and "--tags" in cmd:
+            result.returncode = 1  # Tag doesn't exist remotely
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with pytest.raises(typer.Exit):
+            release_command()
 
 
 def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):

@@ -1,11 +1,11 @@
-"""Command to create and push release tags using bump-my-version.
+"""Command to push release tags to remote.
 
-This module implements release functionality that uses bump-my-version to create
-git tags and pushes them to remote, triggering the release workflow. It replaces
-the functionality of release.sh with Python-based implementation using bump-my-version.
+This module implements release functionality that validates the git repository
+state and pushes tags to remote, triggering the release workflow. Tags are
+created by bump-my-version during the bump process.
 
 Example:
-    Create and push a release tag::
+    Push a release tag::
 
         from rhiza_tools.commands.release import release_command
         release_command()
@@ -21,8 +21,6 @@ from typing import Any
 
 import tomlkit
 import typer
-from bumpversion.bump import do_bump
-from bumpversion.config import get_configuration
 from loguru import logger
 
 
@@ -195,66 +193,15 @@ def check_tag_exists(tag: str) -> tuple[bool, bool]:
     return exists_locally, exists_remotely
 
 
-def create_tag_with_bumpversion(current_version: str, dry_run: bool = False) -> None:
-    """Create a git tag using bump-my-version.
-
-    Uses bump-my-version to create a tag for the current version. This leverages
-    bump-my-version's built-in tagging functionality including GPG signing support.
-
-    Args:
-        current_version: The current version string.
-        dry_run: If True, only show what would be done.
-
-    Raises:
-        typer.Exit: If tag creation fails.
-
-    Example:
-        >>> create_tag_with_bumpversion("1.0.0")  # doctest: +SKIP
-    """
-    from rhiza_tools.config import CONFIG_FILENAME
-
-    logger.info("Creating tag using bump-my-version...")
-
-    config_path = Path(CONFIG_FILENAME)
-
-    # Build configuration with tag enabled
-    overrides: dict[str, Any] = {
-        "current_version": current_version,
-        "tag": True,  # Enable tagging
-        "commit": False,  # Don't commit (version already bumped)
-    }
-
-    try:
-        config = get_configuration(config_file=config_path, **overrides)
-    except Exception as e:
-        logger.error(f"Failed to load bumpversion configuration: {e}")
-        raise typer.Exit(code=1) from None
-
-    # Use bump-my-version to create the tag
-    # We pass version_part=None and new_version=current_version to create a tag
-    # without bumping the version. This is the recommended way to use do_bump for
-    # tag-only operations according to bump-my-version's API.
-    try:
-        do_bump(
-            version_part=None,  # None indicates no version bump, just tag creation
-            new_version=current_version,
-            config=config,
-            config_file=config_path,
-            dry_run=dry_run,
-        )
-        if not dry_run:
-            logger.success(f"Tag 'v{current_version}' created successfully")
-    except Exception as e:
-        logger.error(f"Failed to create tag: {e}")
-        raise typer.Exit(code=1) from None
 
 
-def push_tag(tag: str, dry_run: bool = False) -> None:
+def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> None:
     """Push a git tag to the remote repository.
 
     Args:
         tag: The tag name to push.
         dry_run: If True, only show what would be done.
+        non_interactive: If True, skip confirmation prompts.
 
     Raises:
         typer.Exit: If push fails.
@@ -291,30 +238,38 @@ def push_tag(tag: str, dry_run: bool = False) -> None:
         logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
 
 
-def release_command(dry_run: bool = False) -> None:
-    """Create and push a release tag based on the current version.
+def release_command(dry_run: bool = False, non_interactive: bool = False) -> None:
+    """Push a release tag to remote.
 
     This command performs the following steps:
     1. Reads the current version from pyproject.toml
     2. Validates the git repository state (clean working tree, up-to-date with remote)
-    3. Creates a git tag for the release (v{version})
+    3. Checks that a tag exists for the current version (created by bump-my-version)
     4. Pushes the tag to remote, triggering the release workflow
+
+    Note: Tags should be created using 'make bump' or 'rhiza-tools bump' which runs
+    bump-my-version with tag creation enabled.
 
     Args:
         dry_run: If True, show what would be done without making any changes.
+        non_interactive: If True, skip all confirmation prompts.
 
     Raises:
         typer.Exit: If pyproject.toml is missing, repository is not clean,
-            or any git operations fail.
+            tag doesn't exist, or any git operations fail.
 
     Example:
-        Create and push a release::
+        Push a release tag::
 
             release_command()
 
         Preview what would happen::
 
             release_command(dry_run=True)
+
+        Non-interactive mode::
+
+            release_command(non_interactive=True)
     """
     # Validate pyproject.toml exists
     if not Path("pyproject.toml").exists():
@@ -326,7 +281,7 @@ def release_command(dry_run: bool = False) -> None:
     tag = f"v{current_version}"
 
     logger.info(f"Current version: {current_version}")
-    logger.info(f"Tag to create: {tag}")
+    logger.info(f"Expected tag: {tag}")
 
     # Get current branch
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
@@ -337,7 +292,7 @@ def release_command(dry_run: bool = False) -> None:
     if current_branch != default_branch:
         logger.warning(f"You are on branch '{current_branch}' but the default branch is '{default_branch}'")
         logger.warning("Releases are typically created from the default branch.")
-        if not dry_run:
+        if not dry_run and not non_interactive:
             response = typer.confirm(f"Proceed with release from '{current_branch}'?")
             if not response:
                 logger.info("Release cancelled by user")
@@ -357,33 +312,19 @@ def release_command(dry_run: bool = False) -> None:
         logger.error(f"The release for version {current_version} has already been published.")
         raise typer.Exit(code=1)
 
-    skip_tag_create = False
-    if exists_locally:
-        logger.warning(f"Tag '{tag}' already exists locally")
-        if not dry_run:
-            response = typer.confirm("Tag exists. Skip tag creation and proceed to push?")
-            if not response:
-                logger.info("Release cancelled by user")
-                raise typer.Exit(code=0)
-        skip_tag_create = True
+    if not exists_locally:
+        logger.error(f"Tag '{tag}' does not exist locally")
+        logger.error("Please run 'make bump' or 'rhiza-tools bump' to create a new version with tag")
+        raise typer.Exit(code=1)
 
-    # Create tag
-    if not skip_tag_create:
-        logger.info("Creating tag...")
-        if not dry_run:
-            response = typer.confirm(f"Create tag '{tag}' for version {current_version}?")
-            if not response:
-                logger.info("Release cancelled by user")
-                raise typer.Exit(code=0)
-
-        create_tag_with_bumpversion(current_version, dry_run)
+    logger.success(f"Tag '{tag}' found locally")
 
     # Push tag
     logger.info("Pushing tag to remote...")
     logger.info(f"Pushing tag '{tag}' to origin will trigger the release workflow.")
 
     # Show commits since last tag
-    result = run_git_command(["git", "describe", "--tags", "--abbrev=0"], check=False)
+    result = run_git_command(["git", "describe", "--tags", "--abbrev=0", f"{tag}^"], check=False)
     if result.returncode == 0:
         last_tag = result.stdout.strip()
         if last_tag and last_tag != tag:
@@ -392,13 +333,13 @@ def release_command(dry_run: bool = False) -> None:
                 commit_count = count_result.stdout.strip()
                 logger.info(f"Commits since {last_tag}: {commit_count}")
 
-    if not dry_run:
+    if not dry_run and not non_interactive:
         response = typer.confirm("Push tag to remote and trigger release workflow?")
         if not response:
             logger.info("Release cancelled by user")
             raise typer.Exit(code=0)
 
-    push_tag(tag, dry_run)
+    push_tag(tag, dry_run, non_interactive)
 
     if dry_run:
         logger.info("[DRY-RUN] Release process completed (no changes made)")
