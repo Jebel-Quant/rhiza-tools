@@ -383,7 +383,7 @@ def _calculate_new_version(selected_bump_type: str) -> str:
     """Calculate what the new version would be after bumping.
 
     Args:
-        selected_bump_type: Bump type to apply (MAJOR, MINOR, PATCH).
+        selected_bump_type: Bump type to apply (MAJOR, MINOR, PATCH, PRERELEASE, ALPHA, BETA, RC, DEV, BUILD).
 
     Returns:
         The new version string.
@@ -392,6 +392,7 @@ def _calculate_new_version(selected_bump_type: str) -> str:
         typer.Exit: If bump type is invalid or current version is invalid.
     """
     import semver
+    from rhiza_tools.commands.bump import get_next_prerelease
 
     current = get_current_version()
     try:
@@ -400,10 +401,17 @@ def _calculate_new_version(selected_bump_type: str) -> str:
         logger.error(f"Invalid semantic version: {current}")
         raise typer.Exit(code=1) from None
 
+    # Build map of all supported bump types
     bump_map: dict[str, str] = {
         "MAJOR": str(current_semver.bump_major()),
         "MINOR": str(current_semver.bump_minor()),
         "PATCH": str(current_semver.bump_patch()),
+        "PRERELEASE": str(current_semver.bump_prerelease()),
+        "BUILD": str(current_semver.bump_build()),
+        "ALPHA": str(get_next_prerelease(current_semver, "alpha")),
+        "BETA": str(get_next_prerelease(current_semver, "beta")),
+        "RC": str(get_next_prerelease(current_semver, "rc")),
+        "DEV": str(get_next_prerelease(current_semver, "dev")),
     }
 
     if selected_bump_type not in bump_map:
