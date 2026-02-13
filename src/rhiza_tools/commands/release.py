@@ -252,14 +252,15 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
 
 
 def _get_bump_type_interactively(
-    non_interactive: bool, bump_type: str | None, dry_run: bool
+    non_interactive: bool, bump_type: str | None, dry_run: bool, with_bump: bool = False
 ) -> tuple[bool, str | None]:
     """Get bump type interactively or from parameters.
 
     Args:
         non_interactive: If True, skip interactive prompts.
         bump_type: Explicit bump type provided.
-        dry_run: If True, skip interactive prompts.
+        dry_run: If True, skip interactive prompts (unless with_bump is set).
+        with_bump: If True, enable interactive bump selection even in dry-run mode.
 
     Returns:
         Tuple of (should_bump, selected_bump_type).
@@ -269,7 +270,28 @@ def _get_bump_type_interactively(
     should_bump = False
     selected_bump_type = bump_type
 
-    if not non_interactive and not bump_type and not dry_run:
+    if bump_type:
+        # Explicit bump type provided
+        should_bump = True
+        selected_bump_type = bump_type.upper()
+    elif with_bump and not non_interactive:
+        # --with-bump flag: prompt for bump type (even in dry-run)
+        try:
+            choices = ["PATCH", "MINOR", "MAJOR"]
+            selected_bump_type = qs.select(
+                "Select bump type:",
+                choices=choices,
+            ).ask()
+            should_bump = selected_bump_type is not None
+        except EOFError:
+            logger.debug("Running in non-interactive environment")
+    elif with_bump and non_interactive:
+        # --with-bump in non-interactive mode without explicit type: default to PATCH
+        logger.warning("--with-bump in non-interactive mode without --bump type, defaulting to PATCH")
+        should_bump = True
+        selected_bump_type = "PATCH"
+    elif not non_interactive and not dry_run:
+        # Default interactive mode: ask if user wants to bump
         try:
             should_bump = qs.confirm(
                 "Would you like to bump the version before releasing?",
@@ -277,28 +299,61 @@ def _get_bump_type_interactively(
             ).ask()
 
             if should_bump:
-                # Ask for bump type
                 choices = ["PATCH", "MINOR", "MAJOR"]
                 selected_bump_type = qs.select(
                     "Select bump type:",
                     choices=choices,
                 ).ask()
         except EOFError:
-            # In testing or non-interactive environment
             logger.debug("Running in non-interactive environment")
-    elif bump_type:
-        should_bump = True
-        selected_bump_type = bump_type.upper()
 
     return should_bump, selected_bump_type
 
 
-def _perform_version_bump(selected_bump_type: str, dry_run: bool) -> None:
+def _calculate_new_version(selected_bump_type: str) -> str:
+    """Calculate what the new version would be after bumping.
+
+    Args:
+        selected_bump_type: Bump type to apply (MAJOR, MINOR, PATCH).
+
+    Returns:
+        The new version string.
+
+    Raises:
+        typer.Exit: If bump type is invalid or current version is invalid.
+    """
+    import semver
+
+    current = get_current_version()
+    try:
+        current_semver = semver.Version.parse(current)
+    except ValueError:
+        logger.error(f"Invalid semantic version: {current}")
+        raise typer.Exit(code=1) from None
+
+    bump_map: dict[str, str] = {
+        "MAJOR": str(current_semver.bump_major()),
+        "MINOR": str(current_semver.bump_minor()),
+        "PATCH": str(current_semver.bump_patch()),
+    }
+
+    if selected_bump_type not in bump_map:
+        valid_types = list(bump_map.keys())
+        logger.error(f"Invalid bump type: {selected_bump_type}. Must be one of {valid_types}")
+        raise typer.Exit(code=1)
+
+    return bump_map[selected_bump_type]
+
+
+def _perform_version_bump(selected_bump_type: str, dry_run: bool) -> str:
     """Perform version bump with validation.
 
     Args:
         selected_bump_type: Bump type to apply.
         dry_run: If True, only simulate the bump.
+
+    Returns:
+        The new version string (calculated even in dry-run mode).
 
     Raises:
         typer.Exit: If bump type is invalid.
@@ -307,11 +362,8 @@ def _perform_version_bump(selected_bump_type: str, dry_run: bool) -> None:
 
     logger.info(f"Bumping version with type: {selected_bump_type}")
 
-    # Validate bump type
-    valid_types = ["MAJOR", "MINOR", "PATCH"]
-    if selected_bump_type not in valid_types:
-        logger.error(f"Invalid bump type: {selected_bump_type}. Must be one of {valid_types}")
-        raise typer.Exit(code=1)
+    # Calculate the new version before performing the bump
+    new_version = _calculate_new_version(selected_bump_type)
 
     # Call bump_command
     bump_command(
@@ -325,6 +377,8 @@ def _perform_version_bump(selected_bump_type: str, dry_run: bool) -> None:
 
     if dry_run:
         logger.info("[DRY-RUN] Version would be bumped before release")
+
+    return new_version
 
 
 def _validate_tag_state(tag: str, current_version: str) -> None:
@@ -420,11 +474,12 @@ def release_command(
     push: bool = False,
     dry_run: bool = False,
     non_interactive: bool = False,
+    with_bump: bool = False,
 ) -> None:
     """Push a release tag to remote.
 
     This command performs the following steps:
-    1. Optionally bumps the version if bump_type is provided
+    1. Optionally bumps the version if bump_type is provided or with_bump is True
     2. Reads the current version from pyproject.toml
     3. Validates the git repository state (clean working tree, up-to-date with remote)
     4. Checks that a tag exists for the current version (created by bump-my-version)
@@ -435,6 +490,7 @@ def release_command(
         push: If True, push changes without prompting.
         dry_run: If True, show what would be done without making any changes.
         non_interactive: If True, skip all confirmation prompts.
+        with_bump: If True, enable interactive bump selection (works with dry-run).
 
     Raises:
         typer.Exit: If pyproject.toml is missing, repository is not clean,
@@ -456,6 +512,10 @@ def release_command(
         Bump and release::
 
             release_command(bump_type="MINOR", push=True)
+
+        Interactive bump with dry-run::
+
+            release_command(with_bump=True, push=True, dry_run=True)
     """
     # Validate pyproject.toml exists
     if not Path("pyproject.toml").exists():
@@ -468,14 +528,18 @@ def release_command(
     logger.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
     # Interactive mode: ask if user wants to bump version
-    should_bump, selected_bump_type = _get_bump_type_interactively(non_interactive, bump_type, dry_run)
+    should_bump, selected_bump_type = _get_bump_type_interactively(non_interactive, bump_type, dry_run, with_bump)
 
     # Perform bump if requested
+    bumped_new_version: str | None = None
     if should_bump and selected_bump_type:
-        _perform_version_bump(selected_bump_type, dry_run)
+        bumped_new_version = _perform_version_bump(selected_bump_type, dry_run)
 
-    # Get current version
-    current_version = get_current_version()
+    # Get current version - in dry-run mode with bump, use the calculated new version
+    if dry_run and bumped_new_version:
+        current_version = bumped_new_version
+    else:
+        current_version = get_current_version()
     tag = f"v{current_version}"
 
     logger.info(f"Current version: {current_version}")
@@ -486,14 +550,25 @@ def release_command(
     if current_branch != default_branch:
         logger.info(f"Note: You are on branch '{current_branch}' (default branch is '{default_branch}')")
 
-    # Check for uncommitted changes
-    check_clean_working_tree()
+    # Check for uncommitted changes (skip in dry-run mode)
+    if not dry_run:
+        check_clean_working_tree()
 
-    # Check branch is up-to-date with remote
-    check_branch_status(current_branch)
+    # Check branch is up-to-date with remote (skip in dry-run mode)
+    if not dry_run:
+        check_branch_status(current_branch)
 
-    # Validate tag state
-    _validate_tag_state(tag, current_version)
+    # Validate tag state (skip full validation in dry-run with bump since tag won't exist yet)
+    if dry_run and bumped_new_version:
+        # In dry-run with bump, the tag won't exist yet - just check it's not already on remote
+        _, exists_remotely = check_tag_exists(tag)
+        if exists_remotely:
+            logger.error(f"Tag '{tag}' already exists on remote")
+            logger.error(f"The release for version {current_version} has already been published.")
+            raise typer.Exit(code=1)
+        logger.info(f"[DRY-RUN] Tag '{tag}' would be created by the bump and release process")
+    else:
+        _validate_tag_state(tag, current_version)
 
     # Push tag
     logger.info("Preparing to push tag to remote...")

@@ -163,6 +163,11 @@ def generate_coverage_badge(
 @app.command()
 def release(
     bump: str | None = typer.Option(None, "--bump", help="Bump type (MAJOR, MINOR, PATCH) before release."),
+    with_bump: bool = typer.Option(
+        False,
+        "--with-bump",
+        help="Interactively select bump type before release (works with --dry-run).",
+    ),
     push: bool = typer.Option(False, "--push", help="Push changes to remote (default: prompt in interactive mode)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
@@ -175,6 +180,7 @@ def release(
 
     Args:
         bump: Bump type (MAJOR, MINOR, PATCH) to apply before release.
+        with_bump: If True, interactively select bump type before release.
         push: If True, push changes without prompting (implies non-interactive for push).
         dry_run: If True, show what would happen without actually pushing the tag.
         non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
@@ -195,8 +201,12 @@ def release(
         Bump version and release::
 
             $ rhiza-tools release --bump MINOR --push
+
+        Interactive bump with dry-run preview::
+
+            $ rhiza-tools release --with-bump --push --dry-run
     """
-    release_command(bump, push, dry_run, non_interactive)
+    release_command(bump, push, dry_run, non_interactive, with_bump)
 
 
 @app.command(name="update-readme")
