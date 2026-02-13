@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
+from rhiza_tools.commands.bump import BumpOptions
 from rhiza_tools.commands.release import (
     check_branch_status,
     check_clean_working_tree,
@@ -631,11 +632,11 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
         return result
 
     # Mock bump_command
-    bump_called = {"called": False, "version": None}
+    bump_called = {"called": False, "options": None}
 
-    def mock_bump_command(version, **kwargs):
+    def mock_bump_command(options):
         bump_called["called"] = True
-        bump_called["version"] = version
+        bump_called["options"] = options
         # Update pyproject.toml version
         import tomlkit
 
@@ -650,7 +651,8 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
             release_command(bump_type="PATCH", push=True, dry_run=True)
 
     assert bump_called["called"]
-    assert bump_called["version"] == "patch"
+    assert isinstance(bump_called["options"], BumpOptions)
+    assert bump_called["options"].version == "patch"
 
 
 def test_release_with_push_flag(mock_pyproject, monkeypatch):
@@ -840,7 +842,7 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
 
     bump_called = {"called": False}
 
-    def mock_bump_command(**kwargs):
+    def mock_bump_command(options):
         bump_called["called"] = True
 
     with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):

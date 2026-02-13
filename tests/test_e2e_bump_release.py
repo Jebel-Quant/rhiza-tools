@@ -438,10 +438,13 @@ class TestInteractiveReleaseWithBump:
             with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
                 release_command(bump_type="MINOR", push=True, dry_run=True)
 
-        # bump_command should be called with 'minor'
+        # bump_command should be called with BumpOptions containing 'minor'
         mock_bump.assert_called_once()
-        call_kwargs = mock_bump.call_args
-        assert call_kwargs[1]["version"] == "minor" or call_kwargs[0][0] == "minor"
+        call_args = mock_bump.call_args[0]
+        assert len(call_args) == 1
+        options = call_args[0]
+        assert isinstance(options, BumpOptions)
+        assert options.version == "minor"
 
         # Version should be unchanged (dry-run)
         assert get_current_version() == "0.1.0"
@@ -764,9 +767,11 @@ class TestWithBumpFlag:
                 release_command(with_bump=True, non_interactive=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
-        # Should have been called with 'patch' (lowercased PATCH)
-        call_kwargs = mock_bump.call_args
-        assert call_kwargs[1]["version"] == "patch" or call_kwargs[0][0] == "patch"
+        # Should have been called with BumpOptions containing 'patch' (lowercased PATCH)
+        call_args = mock_bump.call_args[0]
+        options = call_args[0]
+        assert isinstance(options, BumpOptions)
+        assert options.version == "patch"
 
     def test_with_bump_user_cancels_selection(self, e2e_project):
         """--with-bump: user cancels bump type selection."""
@@ -792,8 +797,11 @@ class TestWithBumpFlag:
                 release_command(bump_type="MAJOR", with_bump=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
-        call_kwargs = mock_bump.call_args
-        assert call_kwargs[1]["version"] == "major" or call_kwargs[0][0] == "major"
+        # Should have been called with BumpOptions containing 'major'
+        call_args = mock_bump.call_args[0]
+        options = call_args[0]
+        assert isinstance(options, BumpOptions)
+        assert options.version == "major"
 
     def test_with_bump_eoferror_handled(self, e2e_project):
         """--with-bump should handle EOFError gracefully (non-tty)."""

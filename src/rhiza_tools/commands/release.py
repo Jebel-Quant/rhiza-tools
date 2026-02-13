@@ -387,21 +387,23 @@ def _perform_version_bump(selected_bump_type: str, dry_run: bool) -> str:
     Raises:
         typer.Exit: If bump type is invalid.
     """
-    from rhiza_tools.commands.bump import bump_command
+    from rhiza_tools.commands.bump import BumpOptions, bump_command
 
     logger.info(f"Bumping version with type: {selected_bump_type}")
 
     # Calculate the new version before performing the bump
     new_version = _calculate_new_version(selected_bump_type)
 
-    # Call bump_command
+    # Call bump_command with BumpOptions
     bump_command(
-        version=selected_bump_type.lower(),
-        dry_run=dry_run,
-        commit=True,
-        push=False,  # Don't push yet, we'll do it after tagging
-        allow_dirty=False,
-        verbose=False,
+        BumpOptions(
+            version=selected_bump_type.lower(),
+            dry_run=dry_run,
+            commit=True,
+            push=False,  # Don't push yet, we'll do it after tagging
+            allow_dirty=False,
+            verbose=False,
+        )
     )
 
     if dry_run:
