@@ -7,6 +7,7 @@ import tomlkit
 import typer
 
 from rhiza_tools.commands.bump import (
+    BumpOptions,
     bump_command,
     get_current_version,
 )
@@ -72,72 +73,72 @@ replace = 'version = "{new_version}"'
 
 def test_bump_patch(bump_project):
     """Test bumping the patch version."""
-    bump_command(version="patch")
+    bump_command(BumpOptions(version="patch"))
     assert get_current_version() == "0.1.1"
 
 
 def test_bump_minor(bump_project):
     """Test bumping the minor version."""
-    bump_command(version="minor")
+    bump_command(BumpOptions(version="minor"))
     assert get_current_version() == "0.2.0"
 
 
 def test_bump_major(bump_project):
     """Test bumping the major version."""
-    bump_command(version="major")
+    bump_command(BumpOptions(version="major"))
     assert get_current_version() == "1.0.0"
 
 
 def test_bump_explicit_version(bump_project):
     """Test bumping to an explicit version."""
-    bump_command(version="1.2.3")
+    bump_command(BumpOptions(version="1.2.3"))
     assert get_current_version() == "1.2.3"
 
 
 def test_bump_explicit_version_with_v_prefix(bump_project):
     """Test bumping to an explicit version with 'v' prefix."""
-    bump_command(version="v1.2.3")
+    bump_command(BumpOptions(version="v1.2.3"))
     assert get_current_version() == "1.2.3"
 
 
 def test_dry_run(bump_project):
     """Test dry run does not change the version."""
-    bump_command(version="patch", dry_run=True)
+    bump_command(BumpOptions(version="patch", dry_run=True))
     assert get_current_version() == "0.1.0"
 
 
 def test_invalid_version(bump_project):
     """Test that invalid versions raise an error."""
     with pytest.raises(typer.Exit):
-        bump_command(version="invalid")
+        bump_command(BumpOptions(version="invalid"))
 
 
 def test_missing_pyproject_toml(bump_project):
     """Test that missing pyproject.toml raises an error."""
     os.remove("pyproject.toml")
     with pytest.raises(typer.Exit):
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
 
 
 def test_bump_prerelease(bump_project):
     """Test bumping prerelease."""
     # First bump to a prerelease version
-    bump_command(version="0.1.0-alpha.1")
+    bump_command(BumpOptions(version="0.1.0-alpha.1"))
     assert get_current_version() == "0.1.0-alpha.1"
 
     # Bump prerelease
-    bump_command(version="prerelease")
+    bump_command(BumpOptions(version="prerelease"))
     assert get_current_version() == "0.1.0-alpha.2"
 
 
 def test_bump_build(bump_project):
     """Test bumping build."""
     # First bump to a build version
-    bump_command(version="0.1.0+build.1")
+    bump_command(BumpOptions(version="0.1.0+build.1"))
     assert get_current_version() == "0.1.0+build.1"
 
     # Bump build
-    bump_command(version="build")
+    bump_command(BumpOptions(version="build"))
     assert get_current_version() == "0.1.0+build.2"
 
 
@@ -154,7 +155,7 @@ def test_bump_interactive_patch(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1"
 
 
@@ -170,7 +171,7 @@ def test_bump_interactive_minor(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.2.0"
 
 
@@ -188,7 +189,7 @@ def test_bump_interactive_cancel(bump_project, monkeypatch):
 
     # Should exit with code 0 if cancelled
     with pytest.raises(typer.Exit) as excinfo:
-        bump_command(version=None)
+        bump_command(BumpOptions(version=None))
 
     assert excinfo.value.exit_code == 0
     assert get_current_version() == "0.1.0"
@@ -196,44 +197,44 @@ def test_bump_interactive_cancel(bump_project, monkeypatch):
 
 def test_bump_alpha_argument(bump_project):
     """Test bumping alpha version via argument."""
-    bump_command(version="alpha")
+    bump_command(BumpOptions(version="alpha"))
     assert get_current_version() == "0.1.1-alpha.1"
 
-    bump_command(version="alpha")
+    bump_command(BumpOptions(version="alpha"))
     assert get_current_version() == "0.1.1-alpha.2"
 
 
 def test_bump_beta_argument(bump_project):
     """Test bumping beta version via argument."""
-    bump_command(version="beta")
+    bump_command(BumpOptions(version="beta"))
     assert get_current_version() == "0.1.1-beta.1"
 
 
 def test_bump_dev_argument(bump_project):
     """Test bumping dev version via argument."""
-    bump_command(version="dev")
+    bump_command(BumpOptions(version="dev"))
     assert get_current_version() == "0.1.1-dev.1"
 
 
 def test_bump_rc_argument(bump_project):
     """Test bumping rc version via argument."""
-    bump_command(version="rc")
+    bump_command(BumpOptions(version="rc"))
     assert get_current_version() == "0.1.1-rc.1"
 
 
 def test_bump_prerelease_transition(bump_project):
     """Test transitioning between prerelease types."""
     # Start with alpha
-    bump_command(version="alpha")
+    bump_command(BumpOptions(version="alpha"))
     assert get_current_version() == "0.1.1-alpha.1"
 
     # Switch to beta
-    bump_command(version="beta")
+    bump_command(BumpOptions(version="beta"))
     assert get_current_version() == "0.1.1-beta.1"
 
     # Switch back to alpha (should bump patch and start new alpha)
     # 0.1.1-beta.1 -> alpha -> 0.1.1-alpha.1
-    bump_command(version="alpha")
+    bump_command(BumpOptions(version="alpha"))
     assert get_current_version() == "0.1.1-alpha.1"
 
 
@@ -249,7 +250,7 @@ def test_bump_interactive_rc(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-rc.1"
 
 
@@ -265,7 +266,7 @@ def test_bump_interactive_build(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.0+build.1"
 
 
@@ -294,7 +295,7 @@ def test_bump_invalid_semantic_version_in_pyproject(bump_project):
         f.write(tomlkit.dumps(data))
 
     with pytest.raises(typer.Exit) as excinfo:
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
     assert excinfo.value.exit_code == 1
 
 
@@ -310,7 +311,7 @@ def test_bump_interactive_alpha(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-alpha.1"
 
 
@@ -326,7 +327,7 @@ def test_bump_interactive_beta(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-beta.1"
 
 
@@ -342,14 +343,14 @@ def test_bump_interactive_dev(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-dev.1"
 
 
 def test_bump_interactive_prerelease(bump_project, monkeypatch):
     """Test interactive bump selection (Prerelease)."""
     # First set up a prerelease version
-    bump_command(version="0.1.0-alpha.1")
+    bump_command(BumpOptions(version="0.1.0-alpha.1"))
 
     class MockQuestion:
         def ask(self):
@@ -360,7 +361,7 @@ def test_bump_interactive_prerelease(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.0-alpha.2"
 
 
@@ -376,7 +377,7 @@ def test_bump_interactive_major(bump_project, monkeypatch):
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
 
-    bump_command(version=None)
+    bump_command(BumpOptions(version=None))
     assert get_current_version() == "1.0.0"
 
 
@@ -437,7 +438,7 @@ def test_bump_interactive_invalid_semver_in_config(bump_project, monkeypatch):
 
     # Should fail with exit code 1 due to invalid semver
     with pytest.raises(typer.Exit) as excinfo:
-        bump_command(version=None)
+        bump_command(BumpOptions(version=None))
     assert excinfo.value.exit_code == 1
 
 
@@ -460,7 +461,7 @@ def test_bump_with_allow_dirty_flag(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
 
     # Test with allow_dirty=True
-    bump_command(version="patch", allow_dirty=True)
+    bump_command(BumpOptions(version="patch", allow_dirty=True))
     assert called_with_params.get("allow_dirty") is True
 
 
@@ -479,7 +480,7 @@ def test_bump_with_commit_flag(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump.get_configuration", mock_get_config)
 
     # Test with commit=True
-    bump_command(version="patch", commit=True)
+    bump_command(BumpOptions(version="patch", commit=True))
     assert called_with_params.get("commit") is True
 
 
@@ -493,7 +494,7 @@ def test_bump_configuration_load_failure(bump_project, monkeypatch):
 
     # Should fail with exit code 1
     with pytest.raises(typer.Exit) as excinfo:
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
     assert excinfo.value.exit_code == 1
 
 
@@ -507,7 +508,7 @@ def test_bump_operation_failure(bump_project, monkeypatch):
 
     # Should fail with exit code 1
     with pytest.raises(typer.Exit) as excinfo:
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
     assert excinfo.value.exit_code == 1
 
 
@@ -518,7 +519,7 @@ def test_bump_with_push_flag(bump_project):
     # Mock _handle_push_to_remote to avoid real git push
     mock_push = MagicMock()
     with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
-        bump_command(version="patch", push=True)
+        bump_command(BumpOptions(version="patch", push=True))
 
     assert get_current_version() == "0.1.1"
     mock_push.assert_called_once()
@@ -534,7 +535,7 @@ def test_bump_with_branch_flag(bump_project):
 
     with patch("rhiza_tools.commands.bump._handle_branch_checkout", mock_checkout):
         with patch("rhiza_tools.commands.bump._restore_original_branch", mock_restore):
-            bump_command(version="patch", branch="test-branch")
+            bump_command(BumpOptions(version="patch", branch="test-branch"))
 
     assert get_current_version() == "0.1.1"
     mock_checkout.assert_called_once_with("test-branch", False)
@@ -549,7 +550,7 @@ def test_bump_push_flag_implies_commit(bump_project):
     mock_push = MagicMock()
     with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
         # Call with push=True but commit=False - push should still happen (implies commit)
-        bump_command(version="patch", push=True, commit=False)
+        bump_command(BumpOptions(version="patch", push=True, commit=False))
 
     assert get_current_version() == "0.1.1"
     mock_push.assert_called_once()
@@ -562,7 +563,7 @@ def test_bump_with_push_failure(bump_project):
     # Mock _handle_push_to_remote to simulate push failure
     with patch("rhiza_tools.commands.bump._handle_push_to_remote", side_effect=typer.Exit(code=1)):
         with pytest.raises(typer.Exit) as excinfo:
-            bump_command(version="patch", push=True)
+            bump_command(BumpOptions(version="patch", push=True))
         assert excinfo.value.exit_code == 1
 
 
@@ -616,7 +617,7 @@ def test_log_bump_success_fallback(bump_project):
     from rhiza_tools.commands.bump import _log_bump_success
 
     # Bump to a version first
-    bump_command(version="patch")
+    bump_command(BumpOptions(version="patch"))
 
     # Create a mock config with no files_to_modify attribute
     mock_config = Mock()
@@ -635,7 +636,7 @@ def test_log_bump_success_with_file_read_exception(bump_project, monkeypatch):
     from rhiza_tools.commands.bump import _log_bump_success
 
     # Bump to a version first
-    bump_command(version="patch")
+    bump_command(BumpOptions(version="patch"))
 
     # Mock Path.read_text to raise an exception
     original_read_text = Path.read_text

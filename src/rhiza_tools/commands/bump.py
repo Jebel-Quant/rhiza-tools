@@ -20,6 +20,7 @@ Example:
 """
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -63,6 +64,29 @@ _CHOICE_PREFIX_TO_BUMP_TYPE = {
     "Prerelease": "prerelease",
     "Build": "build",
 }
+
+
+@dataclass
+class BumpOptions:
+    """Configuration options for bump command.
+
+    Attributes:
+        version: The version to bump to. Can be an explicit version, bump type, or None.
+        dry_run: If True, show what would change without actually changing anything.
+        commit: If True, automatically commit the version change to git.
+        push: If True, push changes to remote after commit (implies commit=True).
+        branch: Branch to perform the bump on (default: current branch).
+        allow_dirty: If True, allow bumping even with uncommitted changes.
+        verbose: If True, show detailed output from the bump-my-version tool.
+    """
+
+    version: str | None = None
+    dry_run: bool = False
+    commit: bool = False
+    push: bool = False
+    branch: str | None = None
+    allow_dirty: bool = False
+    verbose: bool = False
 
 
 def get_current_version() -> str:
@@ -642,15 +666,7 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
         )  # nosec
 
 
-def bump_command(
-    version: str | None = None,
-    dry_run: bool = False,
-    commit: bool = False,
-    push: bool = False,
-    branch: str | None = None,
-    allow_dirty: bool = False,
-    verbose: bool = False,
-) -> None:
+def bump_command(options: BumpOptions) -> None:
     """Bump version in pyproject.toml using bump-my-version.
 
     This function handles the complete version bumping workflow including
@@ -658,15 +674,7 @@ def bump_command(
     and executing the bump operation.
 
     Args:
-        version: The version to bump to. Can be an explicit version (e.g., "1.2.3"),
-            a bump type ("patch", "minor", "major"), a prerelease type
-            ("alpha", "beta", "rc", "dev"), or None for interactive selection.
-        dry_run: If True, show what would change without actually changing anything.
-        commit: If True, automatically commit the version change to git.
-        push: If True, push changes to remote after commit (implies commit=True).
-        branch: Branch to perform the bump on (default: current branch).
-        allow_dirty: If True, allow bumping even with uncommitted changes.
-        verbose: If True, show detailed output from the bump-my-version tool.
+        options: Configuration options for the bump command.
 
     Raises:
         typer.Exit: If pyproject.toml is missing, configuration is invalid, or
@@ -675,31 +683,30 @@ def bump_command(
     Example:
         Bump to patch version::
 
-            bump_command("patch")
+            bump_command(BumpOptions(version="patch"))
 
         Bump with dry run::
 
-            bump_command("1.2.3", dry_run=True)
+            bump_command(BumpOptions(version="1.2.3", dry_run=True))
 
         Interactive bump with commit::
 
-            bump_command(None, commit=True)
+            bump_command(BumpOptions(commit=True))
 
         Bump and push to remote::
 
-            bump_command("minor", push=True)
+            bump_command(BumpOptions(version="minor", push=True))
     """
     _validate_pyproject_exists()
 
     # Handle branch checkout if specified
-    original_branch = _handle_branch_checkout(branch, dry_run)
+    original_branch = _handle_branch_checkout(options.branch, options.dry_run)
 
     # If push is True, commit must also be True
-    if push:
-        commit = True
+    commit = options.commit or options.push
 
     current_version_str = get_current_version()
-    config, config_path = _build_configuration(current_version_str, allow_dirty, commit)
+    config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
     # Get current branch for display
     current_git_branch = _get_current_git_branch()
@@ -708,8 +715,8 @@ def bump_command(
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
     # Determine new version string
-    if version:
-        new_version_str = _parse_version_argument(version, current_version_str)
+    if options.version:
+        new_version_str = _parse_version_argument(options.version, current_version_str)
     else:
         new_version_str = _get_interactive_bump_type(config)
 
@@ -719,19 +726,21 @@ def bump_command(
     _preview_file_modifications(config, current_version_str, new_version_str)
 
     # Interactive preview and confirmation (only in true interactive mode)
-    if not version and not dry_run:
-        if not _show_interactive_preview(current_version_str, new_version_str, current_git_branch, commit, push):
+    if not options.version and not options.dry_run:
+        if not _show_interactive_preview(
+            current_version_str, new_version_str, current_git_branch, commit, options.push
+        ):
             logger.info("Version bump cancelled by user")
             raise typer.Exit(code=0)
 
-    _execute_bump(new_version_str, config, config_path, dry_run, verbose)
+    _execute_bump(new_version_str, config, config_path, options.dry_run, options.verbose)
 
-    if not dry_run:
+    if not options.dry_run:
         _log_bump_success(current_version_str, config)
 
         # Handle push
-        if push:
-            _handle_push_to_remote(version)
+        if options.push:
+            _handle_push_to_remote(options.version)
 
     # Restore original branch if we switched
-    _restore_original_branch(original_branch, dry_run)
+    _restore_original_branch(original_branch, options.dry_run)

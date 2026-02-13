@@ -21,20 +21,40 @@ def test_version_flag():
 
 def test_bump_command(monkeypatch):
     """Test the bump command."""
+    from rhiza_tools.commands.bump import BumpOptions
+
     mock_bump_command = MagicMock()
     monkeypatch.setattr("rhiza_tools.cli.bump_command", mock_bump_command)
 
     result = runner.invoke(app, ["bump", "1.0.1", "--dry-run"])
     assert result.exit_code == 0
-    # bump_command(version, dry_run, commit, push, branch, allow_dirty, verbose)
-    mock_bump_command.assert_called_once_with("1.0.1", True, False, False, None, False, False)
+    # bump_command should be called with a BumpOptions object
+    assert mock_bump_command.call_count == 1
+    options = mock_bump_command.call_args[0][0]
+    assert isinstance(options, BumpOptions)
+    assert options.version == "1.0.1"
+    assert options.dry_run is True
+    assert options.commit is False
+    assert options.push is False
+    assert options.branch is None
+    assert options.allow_dirty is False
+    assert options.verbose is False
 
     mock_bump_command.reset_mock()
 
     result = runner.invoke(app, ["bump", "patch", "--commit", "--allow-dirty", "--verbose"])
     assert result.exit_code == 0
-    # bump_command(version, dry_run, commit, push, branch, allow_dirty, verbose)
-    mock_bump_command.assert_called_once_with("patch", False, True, False, None, True, True)
+    # bump_command should be called with a BumpOptions object
+    assert mock_bump_command.call_count == 1
+    options = mock_bump_command.call_args[0][0]
+    assert isinstance(options, BumpOptions)
+    assert options.version == "patch"
+    assert options.dry_run is False
+    assert options.commit is True
+    assert options.push is False
+    assert options.branch is None
+    assert options.allow_dirty is True
+    assert options.verbose is True
 
 
 def test_release_command(monkeypatch):

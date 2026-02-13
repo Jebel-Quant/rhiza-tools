@@ -117,7 +117,18 @@ def bump(
 
             $ rhiza-tools bump minor --push
     """
-    bump_command(version, dry_run, commit, push, branch, allow_dirty, verbose)
+    from rhiza_tools.commands.bump import BumpOptions
+
+    options = BumpOptions(
+        version=version,
+        dry_run=dry_run,
+        commit=commit,
+        push=push,
+        branch=branch,
+        allow_dirty=allow_dirty,
+        verbose=verbose,
+    )
+    bump_command(options)
 
 
 @app.command()
