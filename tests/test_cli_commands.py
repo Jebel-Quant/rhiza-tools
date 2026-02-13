@@ -35,15 +35,26 @@ def test_bump_command(monkeypatch):
     mock_bump_command.assert_called_once_with("patch", False, True, True, True)
 
 
-def test_release_command():
+def test_release_command(monkeypatch):
     """Test the release command."""
+    mock_release_command = MagicMock()
+    monkeypatch.setattr("rhiza_tools.cli.release_command", mock_release_command)
+
     result = runner.invoke(app, ["release", "--dry-run"])
     assert result.exit_code == 0
-    assert "Would create and push release tag" in result.stdout
+    mock_release_command.assert_called_once_with(True, False)
+
+    mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release"])
     assert result.exit_code == 0
-    assert "Creating and pushing release tag" in result.stdout
+    mock_release_command.assert_called_once_with(False, False)
+
+    mock_release_command.reset_mock()
+
+    result = runner.invoke(app, ["release", "--non-interactive"])
+    assert result.exit_code == 0
+    mock_release_command.assert_called_once_with(False, True)
 
 
 def test_update_readme(monkeypatch):

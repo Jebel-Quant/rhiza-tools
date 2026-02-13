@@ -22,6 +22,6 @@ bump: pre-bump ## bump version
 	fi
 	@$(MAKE) post-bump
 
-release: pre-release install-uv ## create tag and push to remote with prompts
-	@UV_BIN="${UV_BIN}" /bin/sh ".rhiza/scripts/release.sh"
+release: pre-release install ## create tag and push to remote with prompts
+	@${UVX_BIN} "rhiza-tools>=0.2.3" release
 	@$(MAKE) post-release
