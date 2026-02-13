@@ -254,18 +254,58 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
 def _prompt_for_bump_type() -> str | None:
     """Prompt user to select bump type.
 
+    Shows the same interactive menu as the bump command with version previews.
+
     Returns:
-        Selected bump type or None if cancelled.
+        Selected bump type in uppercase (e.g., "PATCH", "MINOR", "MAJOR") or None if cancelled.
     """
     import questionary as qs
+    import semver
+    from rhiza_tools.commands.bump import get_next_prerelease, _COOL_STYLE
 
     try:
-        choices = ["PATCH", "MINOR", "MAJOR"]
-        result = qs.select(
-            "Select bump type:",
-            choices=choices,
+        current_version_str = get_current_version()
+        try:
+            current_version = semver.Version.parse(current_version_str)
+        except ValueError:
+            logger.error(f"Invalid semantic version: {current_version_str}")
+            return None
+
+        # Calculate next versions for each bump type
+        next_patch = current_version.bump_patch()
+        next_minor = current_version.bump_minor()
+        next_major = current_version.bump_major()
+        next_prerelease = current_version.bump_prerelease()
+        next_build = current_version.bump_build()
+        next_alpha = get_next_prerelease(current_version, "alpha")
+        next_beta = get_next_prerelease(current_version, "beta")
+        next_rc = get_next_prerelease(current_version, "rc")
+        next_dev = get_next_prerelease(current_version, "dev")
+
+        # Show the same menu as bump command
+        choice = qs.select(
+            f"Select bump type (Current: {current_version_str})",
+            choices=[
+                f"Patch ({current_version_str} -> {next_patch})",
+                f"Minor ({current_version_str} -> {next_minor})",
+                f"Major ({current_version_str} -> {next_major})",
+                qs.Separator("-" * 30),
+                f"Prerelease ({current_version_str} -> {next_prerelease})",
+                f"Alpha ({current_version_str} -> {next_alpha})",
+                f"Beta ({current_version_str} -> {next_beta})",
+                f"RC ({current_version_str} -> {next_rc})",
+                f"Dev ({current_version_str} -> {next_dev})",
+                f"Build ({current_version_str} -> {next_build})",
+            ],
+            style=_COOL_STYLE,
         ).ask()
-        return cast(str | None, result)
+
+        if not choice:
+            return None
+
+        # Extract bump type from choice (e.g., "Patch (...)" -> "PATCH")
+        bump_type = choice.split()[0].upper()
+        return bump_type
     except EOFError:
         logger.debug("Running in non-interactive environment")
         return None
