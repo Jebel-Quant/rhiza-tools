@@ -15,7 +15,7 @@ Example:
         release_command(dry_run=True)
 """
 
-import subprocess
+import subprocess  # nosec B404 - subprocess needed for git operations
 from pathlib import Path
 from typing import Any
 
@@ -65,7 +65,7 @@ def run_git_command(command: list[str], check: bool = True) -> subprocess.Comple
         >>> result = run_git_command(["git", "status", "--porcelain"])  # doctest: +SKIP
         >>> print(result.stdout)  # doctest: +SKIP
     """
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)  # nosec B603 - git commands are trusted
     if check and result.returncode != 0:
         logger.error(f"Git command failed: {' '.join(command)}")
         logger.error(f"Error: {result.stderr}")
