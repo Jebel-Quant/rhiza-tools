@@ -347,3 +347,254 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
     with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
         with pytest.raises(typer.Exit):
             release_command()
+
+
+def test_check_branch_status_no_upstream(monkeypatch):
+    """Test error when no upstream branch is configured."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        if "--symbolic-full-name" in cmd:
+            result.returncode = 1  # No upstream
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with pytest.raises(typer.Exit):
+            check_branch_status("main")
+
+
+def test_check_branch_status_ahead_of_remote(monkeypatch):
+    """Test warning when branch is ahead of remote."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "--symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "rev-parse" in cmd and "@" in cmd:
+            result.stdout = "def456"  # local commit
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"  # remote commit
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"  # base is same as remote
+        elif "log" in cmd:
+            result.stdout = "* def456 Local commit\n"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with pytest.raises(typer.Exit):
+            check_branch_status("main")
+
+
+def test_get_default_branch_no_head_branch(monkeypatch):
+    """Test error when default branch cannot be found in remote output."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = "* remote origin\n  some other info\n"  # No HEAD branch line
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with pytest.raises(typer.Exit):
+            get_default_branch()
+
+
+def test_push_tag_ssh_url(monkeypatch):
+    """Test pushing tag with SSH GitHub URL."""
+    mock_run_git = MagicMock()
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "git@github.com:user/repo.git"
+    mock_run_git.return_value = mock_result
+
+    with patch("rhiza_tools.commands.release.run_git_command", mock_run_git):
+        push_tag("v1.0.0", dry_run=False, non_interactive=True)
+
+        # Should push the tag
+        calls = [c[0][0] for c in mock_run_git.call_args_list]
+        push_calls = [c for c in calls if "push" in c]
+        assert len(push_calls) == 1
+
+
+def test_release_command_non_default_branch_non_interactive(mock_pyproject, monkeypatch):
+    """Test release from non-default branch in non-interactive mode."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "feature-branch"  # Not on main
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/feature-branch"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"  # Tag exists locally
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1  # Tag doesn't exist remotely
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"
+        elif "rev-list" in cmd:
+            result.stdout = "5"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        # Should not raise in non-interactive mode
+        release_command(dry_run=True, non_interactive=True)
+
+
+def test_release_command_with_commit_count(mock_pyproject, monkeypatch):
+    """Test release showing commit count since last tag."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.3\nv1.2.2\nv1.2.1"  # Include current tag in list
+        elif "rev-list" in cmd:
+            result.stdout = "10"  # 10 commits since last tag
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        release_command(dry_run=True, non_interactive=True)
+
+
+def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
+    """Test release when user declines to push tag."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("typer.confirm", return_value=False):
+            with pytest.raises(typer.Exit) as exc_info:
+                release_command(dry_run=False, non_interactive=False)
+            assert exc_info.value.exit_code == 0
+
+
+def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
+    """Test successful release in non-dry-run mode."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+        elif "push" in cmd:
+            result.returncode = 0
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        # Should complete successfully in non-interactive mode
+        release_command(dry_run=False, non_interactive=True)
+
+
+def test_release_command_user_declines_non_default_branch(mock_pyproject, monkeypatch):
+    """Test release when user declines to proceed from non-default branch."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "feature-branch"  # Not on default branch
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/feature-branch"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("typer.confirm", return_value=False):
+            with pytest.raises(typer.Exit) as exc_info:
+                release_command(dry_run=False, non_interactive=False)
+            assert exc_info.value.exit_code == 0
