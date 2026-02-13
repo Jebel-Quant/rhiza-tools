@@ -733,7 +733,8 @@ class TestWithBumpFlag:
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
             with patch("rhiza_tools.commands.bump.bump_command"):
                 with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = "MINOR"
+                    # Mock return value should match the new format with version preview
+                    mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
                     release_command(with_bump=True, push=True, dry_run=True)
 
         mock_select.assert_called_once()
@@ -749,7 +750,8 @@ class TestWithBumpFlag:
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
             with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
                 with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = "MINOR"
+                    # Mock return value should match the new format with version preview
+                    mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
                     release_command(with_bump=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
@@ -813,6 +815,35 @@ class TestWithBumpFlag:
                 # Should not crash, just skip bump
                 release_command(with_bump=True, dry_run=True)
 
+    def test_with_bump_shows_all_bump_types(self, e2e_project):
+        """--with-bump should show all bump types like bump command (Patch, Minor, Major, Prerelease, Alpha, Beta, RC, Dev, Build)."""
+        mock_git = _make_mock_git_for_release(
+            tag_exists_locally=False,
+            tag_exists_remotely=False,
+            version="0.2.0",
+        )
+
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
+            with patch("rhiza_tools.commands.bump.bump_command"):
+                with patch("questionary.select") as mock_select:
+                    # Test with different bump types to verify they all work
+                    for choice in [
+                        "Patch (0.1.0 -> 0.1.1)",
+                        "Minor (0.1.0 -> 0.2.0)",
+                        "Major (0.1.0 -> 1.0.0)",
+                        "Prerelease (0.1.0 -> 0.1.1-rc.1)",
+                        "Alpha (0.1.0 -> 0.1.1-alpha.1)",
+                        "Beta (0.1.0 -> 0.1.1-beta.1)",
+                        "RC (0.1.0 -> 0.1.1-rc.1)",
+                        "Dev (0.1.0 -> 0.1.1-dev.1)",
+                        "Build (0.1.0 -> 0.1.0+build.1)",
+                    ]:
+                        mock_select.return_value.ask.return_value = choice
+                        release_command(with_bump=True, push=True, dry_run=True)
+                        # Verify the call was made
+                        assert mock_select.called
+                        mock_select.reset_mock()
+
 
 # ──────────────────────────────────────────────
 # _get_bump_type_interactively Tests
@@ -849,7 +880,8 @@ class TestGetBumpTypeInteractively:
     def test_with_bump_prompts_interactively(self):
         """with_bump should prompt for type selection."""
         with patch("questionary.select") as mock_select:
-            mock_select.return_value.ask.return_value = "MINOR"
+            # Mock return value should match the new format with version preview
+            mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
             should_bump, bump_type = _get_bump_type_interactively(
                 non_interactive=False, bump_type=None, dry_run=True, with_bump=True
             )
