@@ -17,7 +17,7 @@ Example:
 
 import subprocess  # nosec B404 - subprocess needed for git operations
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import tomlkit
 import typer
@@ -261,10 +261,11 @@ def _prompt_for_bump_type() -> str | None:
 
     try:
         choices = ["PATCH", "MINOR", "MAJOR"]
-        return qs.select(
+        result = qs.select(
             "Select bump type:",
             choices=choices,
         ).ask()
+        return cast(str | None, result)
     except EOFError:
         logger.debug("Running in non-interactive environment")
         return None
@@ -300,12 +301,12 @@ def _handle_default_interactive_bump() -> tuple[bool, str | None]:
             "Would you like to bump the version before releasing?",
             default=False,
         ).ask()
-
-        if should_bump:
-            return True, _prompt_for_bump_type()
-        return False, None
     except EOFError:
         logger.debug("Running in non-interactive environment")
+        return False, None
+    else:
+        if should_bump:
+            return True, _prompt_for_bump_type()
         return False, None
 
 
