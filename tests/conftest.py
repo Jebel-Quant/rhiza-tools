@@ -22,6 +22,9 @@ def temp_project(tmp_path, monkeypatch):
     # Change to temporary directory
     monkeypatch.chdir(tmp_path)
 
+    # Prevent git from walking up to the real repo if anything goes wrong
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
+
     # Initialize git repository
     subprocess.run([GIT, "init"], check=True, capture_output=True)
     subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)

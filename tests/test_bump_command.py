@@ -14,7 +14,10 @@ from rhiza_tools.commands.bump import (
 
 @pytest.fixture
 def bump_project(temp_project):
-    """Create a project with bumpversion config."""
+    """Create a project with bumpversion config.
+
+    Yields the project path, then asserts no git tags were created.
+    """
     rhiza_dir = temp_project / ".rhiza"
     rhiza_dir.mkdir(exist_ok=True)
 
@@ -59,7 +62,12 @@ replace = 'version = "{new_version}"'
     subprocess.run([git, "add", ".rhiza/.cfg.toml"], check=True, capture_output=True)
     subprocess.run([git, "commit", "-m", "Add bumpversion config"], check=True, capture_output=True)
 
-    return temp_project
+    yield temp_project
+
+    # Safety check: ensure no git tags were created during the test
+    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)
+    tags = result.stdout.strip()
+    assert tags == "", f"Git tags were unexpectedly created during test: {tags}"
 
 
 def test_bump_patch(bump_project):

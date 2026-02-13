@@ -38,6 +38,9 @@ def e2e_project(tmp_path, monkeypatch):
     """
     monkeypatch.chdir(tmp_path)
 
+    # Prevent git from walking up to the real repo
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
+
     # Initialize git repo
     subprocess.run([GIT, "init"], check=True, capture_output=True)
     subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)
@@ -914,7 +917,7 @@ class TestSequentialBumpRelease:
         bump_command(version="patch", commit=True)
         assert get_current_version() == "0.1.1"
 
-        # Step 2: Verify tag was created by bump-my-version
+        # Step 2: Verify tag was created by bump-my-version (safe - runs in temp repo)
         result = subprocess.run([GIT, "tag", "-l", "v0.1.1"], capture_output=True, text=True, check=True)
         assert "v0.1.1" in result.stdout
 
@@ -932,7 +935,7 @@ class TestSequentialBumpRelease:
         bump_command(version="minor", commit=True)
         assert get_current_version() == "0.2.0"
 
-        # Verify tag
+        # Verify tag was created (safe - runs in temp repo)
         result = subprocess.run([GIT, "tag", "-l", "v0.2.0"], capture_output=True, text=True, check=True)
         assert "v0.2.0" in result.stdout
 
