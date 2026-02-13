@@ -1,11 +1,9 @@
 """Tests for analyze_benchmarks command."""
 
 import json
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-import typer
 
 from rhiza_tools.commands.analyze_benchmarks import analyze_benchmarks_command
 
@@ -110,9 +108,8 @@ def test_analyze_benchmarks_success(benchmark_json_file, tmp_path):
     assert output_html.stat().st_size > 0
 
 
-def test_analyze_benchmarks_default_paths(valid_benchmark_data, tmp_path):
+def test_analyze_benchmarks_default_paths(valid_benchmark_data, tmp_path, monkeypatch):
     """Test analyze_benchmarks with default paths."""
-    import os
     from unittest.mock import patch
 
     # Create default path structure
@@ -122,17 +119,13 @@ def test_analyze_benchmarks_default_paths(valid_benchmark_data, tmp_path):
     default_json.write_text(json.dumps(valid_benchmark_data))
 
     # Change to tmp directory and run with default paths
-    old_cwd = os.getcwd()
-    try:
-        os.chdir(tmp_path)
-        
-        # Mock only fig.show() to prevent opening browser during tests
-        with patch("plotly.graph_objs._figure.Figure.show"):
-            analyze_benchmarks_command()
+    monkeypatch.chdir(tmp_path)
 
-        # Verify output file was created at default location
-        output_html = tmp_path / "_benchmarks" / "benchmarks.html"
-        assert output_html.exists()
-        assert output_html.stat().st_size > 0
-    finally:
-        os.chdir(old_cwd)
+    # Mock only fig.show() to prevent opening browser during tests
+    with patch("plotly.graph_objs._figure.Figure.show"):
+        analyze_benchmarks_command()
+
+    # Verify output file was created at default location
+    output_html = tmp_path / "_benchmarks" / "benchmarks.html"
+    assert output_html.exists()
+    assert output_html.stat().st_size > 0

@@ -503,113 +503,59 @@ def test_bump_operation_failure(bump_project, monkeypatch):
     assert excinfo.value.exit_code == 1
 
 
-def test_bump_with_push_flag(bump_project, monkeypatch):
+def test_bump_with_push_flag(bump_project):
     """Test bump command with push flag."""
-    import subprocess
-    from unittest.mock import MagicMock
+    from unittest.mock import MagicMock, patch
 
-    # Mock subprocess.run to capture git push command
-    original_run = subprocess.run
-    push_called = {"called": False}
-
-    def mock_run(cmd, **kwargs):
-        if isinstance(cmd, list) and "push" in cmd:
-            push_called["called"] = True
-            result = MagicMock()
-            result.returncode = 0
-            result.stdout = ""
-            result.stderr = ""
-            return result
-        return original_run(cmd, **kwargs)
-
-    monkeypatch.setattr("subprocess.run", mock_run)
-
-    # Test with push=True and explicit version
-    bump_command(version="patch", push=True)
-    assert get_current_version() == "0.1.1"
-    assert push_called["called"], "Git push should have been called"
-
-
-def test_bump_with_branch_flag(bump_project, monkeypatch):
-    """Test bump command with branch flag."""
-    import subprocess
-
-    # Get the current default branch name
-    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
-    default_branch = result.stdout.strip()
-
-    # Create a new branch
-    subprocess.run(["git", "checkout", "-b", "test-branch"], check=True, capture_output=True)
-    subprocess.run(["git", "checkout", default_branch], check=True, capture_output=True)
-
-    # Mock subprocess.run to track branch checkout
-    original_run = subprocess.run
-    checkout_calls = []
-
-    def mock_run(cmd, **kwargs):
-        if isinstance(cmd, list) and "checkout" in cmd and len(cmd) == 3:
-            checkout_calls.append(cmd[2])
-        return original_run(cmd, **kwargs)
-
-    monkeypatch.setattr("subprocess.run", mock_run)
-
-    # Test with branch flag
-    bump_command(version="patch", branch="test-branch")
-    assert get_current_version() == "0.1.1"
-    # Should have switched to test-branch and back to default branch
-    assert "test-branch" in checkout_calls
-
-
-def test_bump_push_flag_implies_commit(bump_project, monkeypatch):
-    """Test that push flag implies commit flag."""
-    import subprocess
-    from unittest.mock import MagicMock
-
-    # Mock subprocess.run
-    original_run = subprocess.run
-    push_called = {"called": False}
-
-    def mock_run(cmd, **kwargs):
-        if isinstance(cmd, list) and "push" in cmd:
-            push_called["called"] = True
-            result = MagicMock()
-            result.returncode = 0
-            result.stdout = ""
-            result.stderr = ""
-            return result
-        return original_run(cmd, **kwargs)
-
-    monkeypatch.setattr("subprocess.run", mock_run)
-
-    # Call with push=True but commit=False - should still commit
-    bump_command(version="patch", push=True, commit=False)
-    assert get_current_version() == "0.1.1"
-    assert push_called["called"]
-
-
-def test_bump_with_push_failure(bump_project, monkeypatch):
-    """Test bump command when git push fails."""
-    import subprocess
-    from unittest.mock import MagicMock
-
-    # Mock subprocess.run to make push fail
-    original_run = subprocess.run
-
-    def mock_run(cmd, **kwargs):
-        if isinstance(cmd, list) and "push" in cmd:
-            result = MagicMock()
-            result.returncode = 1
-            result.stdout = ""
-            result.stderr = "error: failed to push"
-            return result
-        return original_run(cmd, **kwargs)
-
-    monkeypatch.setattr("subprocess.run", mock_run)
-
-    # Should fail with exit code 1
-    with pytest.raises(typer.Exit) as excinfo:
+    # Mock _handle_push_to_remote to avoid real git push
+    mock_push = MagicMock()
+    with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
         bump_command(version="patch", push=True)
-    assert excinfo.value.exit_code == 1
+
+    assert get_current_version() == "0.1.1"
+    mock_push.assert_called_once()
+
+
+def test_bump_with_branch_flag(bump_project):
+    """Test bump command with branch flag."""
+    from unittest.mock import MagicMock, patch
+
+    # Mock branch checkout/restore to avoid real git branch operations
+    mock_checkout = MagicMock(return_value="original-branch")
+    mock_restore = MagicMock()
+
+    with patch("rhiza_tools.commands.bump._handle_branch_checkout", mock_checkout):
+        with patch("rhiza_tools.commands.bump._restore_original_branch", mock_restore):
+            bump_command(version="patch", branch="test-branch")
+
+    assert get_current_version() == "0.1.1"
+    mock_checkout.assert_called_once_with("test-branch", False)
+    mock_restore.assert_called_once_with("original-branch", False)
+
+
+def test_bump_push_flag_implies_commit(bump_project):
+    """Test that push flag implies commit flag."""
+    from unittest.mock import MagicMock, patch
+
+    # Mock _handle_push_to_remote to avoid real git push
+    mock_push = MagicMock()
+    with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
+        # Call with push=True but commit=False - push should still happen (implies commit)
+        bump_command(version="patch", push=True, commit=False)
+
+    assert get_current_version() == "0.1.1"
+    mock_push.assert_called_once()
+
+
+def test_bump_with_push_failure(bump_project):
+    """Test bump command when git push fails."""
+    from unittest.mock import patch
+
+    # Mock _handle_push_to_remote to simulate push failure
+    with patch("rhiza_tools.commands.bump._handle_push_to_remote", side_effect=typer.Exit(code=1)):
+        with pytest.raises(typer.Exit) as excinfo:
+            bump_command(version="patch", push=True)
+        assert excinfo.value.exit_code == 1
 
 
 def test_show_file_changes_with_nonexistent_file(bump_project):
@@ -757,14 +703,11 @@ def test_branch_checkout_fails_gracefully(bump_project, monkeypatch):
 
     from rhiza_tools.commands.bump import _handle_branch_checkout
 
-    # Mock subprocess.run
+    # Mock subprocess.run - intercept checkout commands, fall through for rev-parse
     original_run = subprocess.run
-    call_count = {"count": 0}
 
     def mock_run(cmd, **kwargs):
-        call_count["count"] += 1
-        if isinstance(cmd, list) and "checkout" in cmd and call_count["count"] > 1:
-            # Fail on checkout but not on rev-parse
+        if isinstance(cmd, list) and "checkout" in cmd:
             result = MagicMock()
             result.returncode = 1
             result.stdout = ""

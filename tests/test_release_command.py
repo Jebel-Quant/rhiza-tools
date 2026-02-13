@@ -835,7 +835,7 @@ def test_perform_version_bump_invalid_type(mock_pyproject):
 
 
 def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
-    """Test _perform_version_bump in dry-run mode."""
+    """Test _perform_version_bump in dry-run mode returns new version."""
     from rhiza_tools.commands.release import _perform_version_bump
 
     bump_called = {"called": False}
@@ -844,9 +844,27 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
         bump_called["called"] = True
 
     with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
-        _perform_version_bump("MINOR", dry_run=True)
+        new_version = _perform_version_bump("MINOR", dry_run=True)
 
     assert bump_called["called"]
+    assert new_version == "1.3.0"  # 1.2.3 -> 1.3.0
+
+
+def test_calculate_new_version(mock_pyproject):
+    """Test _calculate_new_version calculates correctly."""
+    from rhiza_tools.commands.release import _calculate_new_version
+
+    assert _calculate_new_version("PATCH") == "1.2.4"
+    assert _calculate_new_version("MINOR") == "1.3.0"
+    assert _calculate_new_version("MAJOR") == "2.0.0"
+
+
+def test_calculate_new_version_invalid_type(mock_pyproject):
+    """Test _calculate_new_version with invalid type."""
+    from rhiza_tools.commands.release import _calculate_new_version
+
+    with pytest.raises(typer.Exit):
+        _calculate_new_version("INVALID")
 
 
 def test_show_commits_since_last_tag_with_commits(monkeypatch):

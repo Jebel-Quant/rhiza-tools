@@ -44,22 +44,29 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive)
-    mock_release_command.assert_called_once_with(None, False, True, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, False, True, False, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive)
-    mock_release_command.assert_called_once_with(None, False, False, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, False, False, False, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release", "--non-interactive"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive)
-    mock_release_command.assert_called_once_with(None, False, False, True)
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, False, False, True, False)
+
+    mock_release_command.reset_mock()
+
+    result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
+    assert result.exit_code == 0
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, True, True, False, True)
 
 
 def test_update_readme(monkeypatch):
