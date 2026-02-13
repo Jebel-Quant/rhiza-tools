@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from rhiza_tools.commands.bump import bump_command, get_current_version
+from rhiza_tools.commands.bump import BumpOptions, bump_command, get_current_version
 from rhiza_tools.commands.release import (
     _calculate_new_version,
     _get_bump_type_interactively,
@@ -127,7 +127,7 @@ class TestInteractiveBump:
         monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
         monkeypatch.setattr("rhiza_tools.commands.bump.qs.confirm", mock_confirm)
 
-        bump_command(version=None)
+        bump_command(BumpOptions(version=None))
 
         assert get_current_version() == "0.1.1"
 
@@ -145,7 +145,7 @@ class TestInteractiveBump:
         monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", lambda *a, **kw: MockSelect())
         monkeypatch.setattr("rhiza_tools.commands.bump.qs.confirm", lambda *a, **kw: MockConfirm())
 
-        bump_command(version=None)
+        bump_command(BumpOptions(version=None))
 
         assert get_current_version() == "0.2.0"
 
@@ -163,7 +163,7 @@ class TestInteractiveBump:
         monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", lambda *a, **kw: MockSelect())
         monkeypatch.setattr("rhiza_tools.commands.bump.qs.confirm", lambda *a, **kw: MockConfirm())
 
-        bump_command(version=None)
+        bump_command(BumpOptions(version=None))
 
         assert get_current_version() == "1.0.0"
 
@@ -184,7 +184,7 @@ class TestInteractiveBumpWithPush:
             push_called["called"] = True
 
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
-            bump_command(version="patch", push=True)
+            bump_command(BumpOptions(version="patch", push=True))
 
         assert get_current_version() == "0.1.1"
         assert push_called["called"]
@@ -197,7 +197,7 @@ class TestInteractiveBumpWithPush:
             push_called["called"] = True
 
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
-            bump_command(version="patch", push=True, commit=False)
+            bump_command(BumpOptions(version="patch", push=True, commit=False))
 
         assert get_current_version() == "0.1.1"
         assert push_called["called"]
@@ -215,23 +215,23 @@ class TestNonInteractiveBumpDryRun:
         """Dry-run should not actually change the version."""
         original_version = get_current_version()
 
-        bump_command(version="minor", dry_run=True)
+        bump_command(BumpOptions(version="minor", dry_run=True))
 
         assert get_current_version() == original_version
 
     def test_dry_run_patch(self, e2e_project):
         """Dry-run patch should not change version."""
-        bump_command(version="patch", dry_run=True)
+        bump_command(BumpOptions(version="patch", dry_run=True))
         assert get_current_version() == "0.1.0"
 
     def test_dry_run_major(self, e2e_project):
         """Dry-run major should not change version."""
-        bump_command(version="major", dry_run=True)
+        bump_command(BumpOptions(version="major", dry_run=True))
         assert get_current_version() == "0.1.0"
 
     def test_dry_run_leaves_git_clean(self, e2e_project):
         """Dry-run should not leave any git changes."""
-        bump_command(version="minor", dry_run=True)
+        bump_command(BumpOptions(version="minor", dry_run=True))
 
         result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)
         assert result.stdout.strip() == ""
@@ -247,7 +247,7 @@ class TestNonInteractiveBumpCommitPush:
 
     def test_bump_with_commit_creates_git_commit(self, e2e_project):
         """Bump with --commit should create a git commit."""
-        bump_command(version="patch", commit=True)
+        bump_command(BumpOptions(version="patch", commit=True))
 
         assert get_current_version() == "0.1.1"
 
@@ -268,7 +268,7 @@ class TestNonInteractiveBumpCommitPush:
             push_called["called"] = True
 
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
-            bump_command(version="patch", commit=True, push=True)
+            bump_command(BumpOptions(version="patch", commit=True, push=True))
 
         assert get_current_version() == "0.1.1"
         assert push_called["called"]
@@ -296,7 +296,7 @@ class TestBumpOnBranch:
         ).stdout.strip()
 
         # Bump on feature branch
-        bump_command(version="patch", branch="feature-branch")
+        bump_command(BumpOptions(version="patch", branch="feature-branch"))
 
         # Should be back on original branch
         current = subprocess.run(
@@ -312,7 +312,7 @@ class TestBumpOnBranch:
         subprocess.run([GIT, "checkout", "-b", "feature-branch"], check=True, capture_output=True)
         subprocess.run([GIT, "checkout", "-"], check=True, capture_output=True)
 
-        bump_command(version="patch", branch="feature-branch", dry_run=True)
+        bump_command(BumpOptions(version="patch", branch="feature-branch", dry_run=True))
 
         # Version on any branch should still be 0.1.0
         assert get_current_version() == "0.1.0"
@@ -328,7 +328,7 @@ class TestBumpDryRunPreview:
 
     def test_major_dry_run_no_changes(self, e2e_project):
         """Major dry-run should show preview but not change files."""
-        bump_command(version="major", dry_run=True)
+        bump_command(BumpOptions(version="major", dry_run=True))
 
         assert get_current_version() == "0.1.0"
 
@@ -591,7 +591,7 @@ class TestBumpDirtyWorkingDirectory:
         (e2e_project / "dirty.txt").write_text("dirty")
         subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)
 
-        bump_command(version="patch", allow_dirty=True)
+        bump_command(BumpOptions(version="patch", allow_dirty=True))
         assert get_current_version() == "0.1.1"
 
     def test_bump_dirty_without_commit_succeeds(self, e2e_project):
@@ -600,7 +600,7 @@ class TestBumpDirtyWorkingDirectory:
         subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)
 
         # Without commit flag, bumpversion may still allow dirty (depends on config)
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
         assert get_current_version() == "0.1.1"
 
 
@@ -900,7 +900,17 @@ class TestCLIIntegration:
             ["bump", "minor", "--dry-run", "--commit", "--push", "--allow-dirty", "--verbose"],
         )
         assert result.exit_code == 0
-        mock_bump.assert_called_once_with("minor", True, True, True, None, True, True)
+        # bump_command should be called with a BumpOptions object
+        assert mock_bump.call_count == 1
+        options = mock_bump.call_args[0][0]
+        assert isinstance(options, BumpOptions)
+        assert options.version == "minor"
+        assert options.dry_run is True
+        assert options.commit is True
+        assert options.push is True
+        assert options.branch is None
+        assert options.allow_dirty is True
+        assert options.verbose is True
 
 
 # ──────────────────────────────────────────────
@@ -914,7 +924,7 @@ class TestSequentialBumpRelease:
     def test_bump_then_release_dry_run(self, e2e_project):
         """Bump patch, then release dry-run."""
         # Step 1: Actually bump the version
-        bump_command(version="patch", commit=True)
+        bump_command(BumpOptions(version="patch", commit=True))
         assert get_current_version() == "0.1.1"
 
         # Step 2: Verify tag was created by bump-my-version (safe - runs in temp repo)
@@ -932,7 +942,7 @@ class TestSequentialBumpRelease:
 
     def test_bump_minor_then_release(self, e2e_project):
         """Bump minor, then release dry-run."""
-        bump_command(version="minor", commit=True)
+        bump_command(BumpOptions(version="minor", commit=True))
         assert get_current_version() == "0.2.0"
 
         # Verify tag was created (safe - runs in temp repo)
@@ -941,27 +951,27 @@ class TestSequentialBumpRelease:
 
     def test_multiple_bumps(self, e2e_project):
         """Multiple sequential bumps work correctly."""
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
         assert get_current_version() == "0.1.1"
 
-        bump_command(version="patch")
+        bump_command(BumpOptions(version="patch"))
         assert get_current_version() == "0.1.2"
 
-        bump_command(version="minor")
+        bump_command(BumpOptions(version="minor"))
         assert get_current_version() == "0.2.0"
 
-        bump_command(version="major")
+        bump_command(BumpOptions(version="major"))
         assert get_current_version() == "1.0.0"
 
     def test_bump_prerelease_then_release_candidate(self, e2e_project):
         """Bump through prerelease types."""
-        bump_command(version="alpha")
+        bump_command(BumpOptions(version="alpha"))
         assert get_current_version() == "0.1.1-alpha.1"
 
-        bump_command(version="beta")
+        bump_command(BumpOptions(version="beta"))
         assert get_current_version() == "0.1.1-beta.1"
 
-        bump_command(version="rc")
+        bump_command(BumpOptions(version="rc"))
         assert get_current_version() == "0.1.1-rc.1"
 
 
