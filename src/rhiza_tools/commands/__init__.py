@@ -27,4 +27,10 @@ from .release import release_command
 from .update_readme import update_readme_command
 from .version_matrix import version_matrix_command
 
-__all__ = ["analyze_benchmarks_command", "bump_command", "release_command", "update_readme_command", "version_matrix_command"]
+__all__ = [
+    "analyze_benchmarks_command",
+    "bump_command",
+    "release_command",
+    "update_readme_command",
+    "version_matrix_command",
+]

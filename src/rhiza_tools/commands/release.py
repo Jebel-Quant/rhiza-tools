@@ -193,8 +193,6 @@ def check_tag_exists(tag: str) -> tuple[bool, bool]:
     return exists_locally, exists_remotely
 
 
-
-
 def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> None:
     """Push a git tag to the remote repository.
 
@@ -229,10 +227,10 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
     repo_path = None
     if repo_url.startswith("git@github.com:"):
         # SSH format: git@github.com:user/repo.git
-        repo_path = repo_url[len("git@github.com:"):].rstrip(".git")
+        repo_path = repo_url[len("git@github.com:") :].rstrip(".git")
     elif repo_url.startswith("https://github.com/"):
         # HTTPS format: https://github.com/user/repo.git
-        repo_path = repo_url[len("https://github.com/"):].rstrip(".git")
+        repo_path = repo_url[len("https://github.com/") :].rstrip(".git")
 
     if repo_path:
         logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
@@ -327,7 +325,7 @@ def release_command(dry_run: bool = False, non_interactive: bool = False) -> Non
     # Try to find the previous tag by excluding the current tag
     result = run_git_command(["git", "tag", "--sort=-version:refname", "--merged", "HEAD"], check=False)
     if result.returncode == 0:
-        tags = [t.strip() for t in result.stdout.split('\n') if t.strip() and t.strip() != tag]
+        tags = [t.strip() for t in result.stdout.split("\n") if t.strip() and t.strip() != tag]
         if tags:
             last_tag = tags[0]  # Most recent tag (excluding current)
             count_result = run_git_command(["git", "rev-list", f"{last_tag}..{tag}", "--count"], check=False)
