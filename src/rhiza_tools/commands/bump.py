@@ -393,7 +393,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
     Raises:
         typer.Exit: If checkout fails.
     """
-    import subprocess
+    import subprocess  # nosec
 
     if not branch:
         return None
@@ -404,7 +404,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
         capture_output=True,
         text=True,
         check=False,
-    )
+    )  # nosec
     if result.returncode != 0:
         return None
 
@@ -419,7 +419,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
             capture_output=True,
             text=True,
             check=False,
-        )
+        )  # nosec
         if result.returncode != 0:
             logger.error(f"Failed to checkout branch {branch}: {result.stderr}")
             raise typer.Exit(code=1)
@@ -435,14 +435,14 @@ def _get_current_git_branch() -> str:
     Returns:
         Current branch name or "unknown" if unable to determine.
     """
-    import subprocess
+    import subprocess  # nosec
 
     result = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],
         capture_output=True,
         text=True,
         check=False,
-    )
+    )  # nosec
     return result.stdout.strip() if result.returncode == 0 else "unknown"
 
 
@@ -478,7 +478,7 @@ def _show_interactive_preview(
 
     # Confirm - wrap in try/except to handle testing scenarios
     try:
-        return qs.confirm("Proceed with version bump?", default=True, style=_COOL_STYLE).ask()
+        return cast(bool, qs.confirm("Proceed with version bump?", default=True, style=_COOL_STYLE).ask())
     except EOFError:
         # In testing or non-interactive environment, proceed
         logger.debug("Running in non-interactive environment, proceeding automatically")
@@ -494,7 +494,7 @@ def _handle_push_to_remote(version: str | None) -> None:
     Raises:
         typer.Exit: If push fails.
     """
-    import subprocess
+    import subprocess  # nosec
 
     import questionary as qs
 
@@ -514,7 +514,7 @@ def _handle_push_to_remote(version: str | None) -> None:
         capture_output=True,
         text=True,
         check=False,
-    )
+    )  # nosec
     if result.returncode == 0:
         logger.success("Changes pushed to remote successfully!")
     else:
@@ -530,7 +530,7 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
         original_branch: Original branch to restore, or None.
         dry_run: If True, don't actually restore.
     """
-    import subprocess
+    import subprocess  # nosec
 
     if original_branch and not dry_run:
         logger.info(f"Returning to original branch {original_branch}")
@@ -539,7 +539,7 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
             capture_output=True,
             text=True,
             check=False,
-        )
+        )  # nosec
 
 
 def bump_command(
