@@ -68,6 +68,7 @@
 .rhiza/tests/integration/test_notebook_execution.py
 .rhiza/tests/integration/test_release.py
 .rhiza/tests/integration/test_test_mk.py
+.rhiza/tests/integration/test_virtual_env_unexport.py
 .rhiza/tests/structure/test_lfs_structure.py
 .rhiza/tests/structure/test_project_layout.py
 .rhiza/tests/structure/test_requirements.py
