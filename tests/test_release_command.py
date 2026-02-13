@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
+from rhiza_tools.commands.bump import BumpOptions
 from rhiza_tools.commands.release import (
     check_branch_status,
     check_clean_working_tree,
@@ -598,3 +599,364 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
             with pytest.raises(typer.Exit) as exc_info:
                 release_command(dry_run=False, non_interactive=False)
             assert exc_info.value.exit_code == 0
+
+
+def test_release_with_bump_flag(mock_pyproject, monkeypatch):
+    """Test release command with bump flag."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.3\nv1.2.2"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    # Mock bump_command
+    bump_called = {"called": False, "options": None}
+
+    def mock_bump_command(options):
+        bump_called["called"] = True
+        bump_called["options"] = options
+        # Update pyproject.toml version
+        import tomlkit
+
+        with open("pyproject.toml") as f:
+            data = tomlkit.parse(f.read())
+        data["project"]["version"] = "1.2.4"
+        with open("pyproject.toml", "w") as f:
+            f.write(tomlkit.dumps(data))
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
+            release_command(bump_type="PATCH", push=True, dry_run=True)
+
+    assert bump_called["called"]
+    assert isinstance(bump_called["options"], BumpOptions)
+    assert bump_called["options"].version == "patch"
+
+
+def test_release_with_push_flag(mock_pyproject, monkeypatch):
+    """Test release command with push flag."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+        elif "push" in cmd:
+            result.returncode = 0
+
+        return result
+
+    push_called = {"called": False}
+
+    def mock_push_tag(tag, dry_run=False, non_interactive=False):
+        push_called["called"] = True
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag):
+            release_command(push=True)
+
+    assert push_called["called"]
+
+
+def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
+    """Test release in non-interactive mode with bump."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.3\nv1.2.2"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    # Mock bump_command
+    bump_called = {"called": False}
+
+    def mock_bump_command(version, **kwargs):
+        bump_called["called"] = True
+        # Update pyproject.toml version
+        import tomlkit
+
+        with open("pyproject.toml") as f:
+            data = tomlkit.parse(f.read())
+        data["project"]["version"] = "1.2.4"
+        with open("pyproject.toml", "w") as f:
+            f.write(tomlkit.dumps(data))
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
+            release_command(bump_type="MINOR", push=True, non_interactive=True)
+
+    assert bump_called["called"]
+
+
+def test_push_tag_dry_run_with_tag_details(monkeypatch):
+    """Test push_tag in dry-run mode shows tag details."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        if "show" in cmd:
+            result.stdout = "abc123 Fix bug in parser"
+        else:
+            result.stdout = ""
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        push_tag("v1.0.0", dry_run=True)
+        # Should complete without errors
+
+
+def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
+    """Test _validate_tag_state shows tag details when available."""
+    from rhiza_tools.commands.release import _validate_tag_state
+
+    def mock_check_tag_exists(tag):
+        return (True, False)  # Exists locally, not remotely
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        if "show" in cmd and "--format" in cmd:
+            result.stdout = "abc123def|2024-01-15|Fix critical bug"
+        else:
+            result.stdout = ""
+        return result
+
+    with patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists):
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+            _validate_tag_state("v1.2.3", "1.2.3")
+            # Should complete and show tag details
+
+
+def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
+    """Test _validate_tag_state when git show fails."""
+    from rhiza_tools.commands.release import _validate_tag_state
+
+    def mock_check_tag_exists(tag):
+        return (True, False)  # Exists locally, not remotely
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        if "show" in cmd:
+            result.returncode = 1  # Fail
+            result.stdout = ""
+        else:
+            result.returncode = 0
+            result.stdout = ""
+        return result
+
+    with patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists):
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+            _validate_tag_state("v1.2.3", "1.2.3")
+            # Should complete without showing tag details
+
+
+def test_get_bump_type_interactively_eoferror(monkeypatch):
+    """Test _get_bump_type_interactively handles EOFError."""
+    from rhiza_tools.commands.release import _get_bump_type_interactively
+
+    # Mock questionary to raise EOFError
+    with patch("questionary.confirm") as mock_confirm:
+        mock_confirm.return_value.ask.side_effect = EOFError
+
+        should_bump, bump_type = _get_bump_type_interactively(False, None, False)
+
+        assert should_bump is False
+        assert bump_type is None
+
+
+def test_perform_version_bump_invalid_type(mock_pyproject):
+    """Test _perform_version_bump with invalid bump type."""
+    from rhiza_tools.commands.release import _perform_version_bump
+
+    with pytest.raises(typer.Exit) as excinfo:
+        _perform_version_bump("INVALID", False)
+
+    assert excinfo.value.exit_code == 1
+
+
+def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
+    """Test _perform_version_bump in dry-run mode returns new version."""
+    from rhiza_tools.commands.release import _perform_version_bump
+
+    bump_called = {"called": False}
+
+    def mock_bump_command(options):
+        bump_called["called"] = True
+
+    with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
+        new_version = _perform_version_bump("MINOR", dry_run=True)
+
+    assert bump_called["called"]
+    assert new_version == "1.3.0"  # 1.2.3 -> 1.3.0
+
+
+def test_calculate_new_version(mock_pyproject):
+    """Test _calculate_new_version calculates correctly."""
+    from rhiza_tools.commands.release import _calculate_new_version
+
+    assert _calculate_new_version("PATCH") == "1.2.4"
+    assert _calculate_new_version("MINOR") == "1.3.0"
+    assert _calculate_new_version("MAJOR") == "2.0.0"
+
+
+def test_calculate_new_version_invalid_type(mock_pyproject):
+    """Test _calculate_new_version with invalid type."""
+    from rhiza_tools.commands.release import _calculate_new_version
+
+    with pytest.raises(typer.Exit):
+        _calculate_new_version("INVALID")
+
+
+def test_show_commits_since_last_tag_with_commits(monkeypatch):
+    """Test _show_commits_since_last_tag with actual commits."""
+    from rhiza_tools.commands.release import _show_commits_since_last_tag
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+
+        if "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.3\nv1.2.2\nv1.2.1"
+        elif "log" in cmd:
+            # Return more than 10 commits to test the truncation
+            commits = "\n".join([f"abc{i:04d} Commit message {i}" for i in range(15)])
+            result.stdout = commits
+        else:
+            result.stdout = ""
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        _show_commits_since_last_tag("v1.2.3")
+        # Should complete and show commits
+
+
+def test_show_commits_since_last_tag_no_tags(monkeypatch):
+    """Test _show_commits_since_last_tag when git tag command fails."""
+    from rhiza_tools.commands.release import _show_commits_since_last_tag
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 1
+        result.stdout = ""
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        _show_commits_since_last_tag("v1.2.3")
+        # Should complete without showing anything
+
+
+def test_show_commits_since_last_tag_no_previous_tags(monkeypatch):
+    """Test _show_commits_since_last_tag when there's only one tag."""
+    from rhiza_tools.commands.release import _show_commits_since_last_tag
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+
+        if "tag" in cmd:
+            result.stdout = "v1.2.3"  # Only current tag
+        else:
+            result.stdout = ""
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        _show_commits_since_last_tag("v1.2.3")
+        # Should complete without showing commits
+
+
+def test_push_tag_with_ssh_url(monkeypatch):
+    """Test push_tag with SSH repository URL."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        if "get-url" in cmd:
+            result.stdout = "git@github.com:user/repo.git"
+        else:
+            result.stdout = ""
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        push_tag("v1.0.0", dry_run=False)
+        # Should complete and show GitHub Actions URL
+
+
+def test_push_tag_with_non_github_url(monkeypatch):
+    """Test push_tag with non-GitHub repository URL."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        if "get-url" in cmd:
+            result.stdout = "https://gitlab.com/user/repo.git"
+        else:
+            result.stdout = ""
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        push_tag("v1.0.0", dry_run=False)
+        # Should complete without showing GitHub Actions URL

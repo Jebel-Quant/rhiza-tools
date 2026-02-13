@@ -14,7 +14,7 @@ post-release:: ; @:
 bump: pre-bump ## bump version
 	@if [ -f "pyproject.toml" ]; then \
 		$(MAKE) install; \
-		${UVX_BIN} "rhiza[tools]>=0.8.6" tools bump; \
+		PATH="$(abspath ${VENV})/bin:$$PATH" ${UVX_BIN} "rhiza[tools]>=0.8.6" tools bump; \
 		printf "${BLUE}[INFO] Updating uv.lock file...${RESET}\n"; \
 		${UV_BIN} lock; \
 	else \
@@ -22,6 +22,6 @@ bump: pre-bump ## bump version
 	fi
 	@$(MAKE) post-bump
 
-release: pre-release install ## create tag and push to remote with prompts
-	@${UVX_BIN} "rhiza-tools>=0.2.3" release
+release: pre-release install-uv ## create tag and push to remote with prompts
+	@UV_BIN="${UV_BIN}" /bin/sh ".rhiza/scripts/release.sh"
 	@$(MAKE) post-release

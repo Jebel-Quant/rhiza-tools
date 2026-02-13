@@ -21,18 +21,40 @@ def test_version_flag():
 
 def test_bump_command(monkeypatch):
     """Test the bump command."""
+    from rhiza_tools.commands.bump import BumpOptions
+
     mock_bump_command = MagicMock()
     monkeypatch.setattr("rhiza_tools.cli.bump_command", mock_bump_command)
 
     result = runner.invoke(app, ["bump", "1.0.1", "--dry-run"])
     assert result.exit_code == 0
-    mock_bump_command.assert_called_once_with("1.0.1", True, False, False, False)
+    # bump_command should be called with a BumpOptions object
+    assert mock_bump_command.call_count == 1
+    options = mock_bump_command.call_args[0][0]
+    assert isinstance(options, BumpOptions)
+    assert options.version == "1.0.1"
+    assert options.dry_run is True
+    assert options.commit is False
+    assert options.push is False
+    assert options.branch is None
+    assert options.allow_dirty is False
+    assert options.verbose is False
 
     mock_bump_command.reset_mock()
 
     result = runner.invoke(app, ["bump", "patch", "--commit", "--allow-dirty", "--verbose"])
     assert result.exit_code == 0
-    mock_bump_command.assert_called_once_with("patch", False, True, True, True)
+    # bump_command should be called with a BumpOptions object
+    assert mock_bump_command.call_count == 1
+    options = mock_bump_command.call_args[0][0]
+    assert isinstance(options, BumpOptions)
+    assert options.version == "patch"
+    assert options.dry_run is False
+    assert options.commit is True
+    assert options.push is False
+    assert options.branch is None
+    assert options.allow_dirty is True
+    assert options.verbose is True
 
 
 def test_release_command(monkeypatch):
@@ -42,19 +64,29 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--dry-run"])
     assert result.exit_code == 0
-    mock_release_command.assert_called_once_with(True, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, False, True, False, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release"])
     assert result.exit_code == 0
-    mock_release_command.assert_called_once_with(False, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, False, False, False, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release", "--non-interactive"])
     assert result.exit_code == 0
-    mock_release_command.assert_called_once_with(False, True)
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, False, False, True, False)
+
+    mock_release_command.reset_mock()
+
+    result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
+    assert result.exit_code == 0
+    # release_command(bump, push, dry_run, non_interactive, with_bump)
+    mock_release_command.assert_called_once_with(None, True, True, False, True)
 
 
 def test_update_readme(monkeypatch):
