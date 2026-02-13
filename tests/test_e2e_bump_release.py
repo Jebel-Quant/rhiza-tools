@@ -823,26 +823,39 @@ class TestWithBumpFlag:
             version="0.2.0",
         )
 
+        # Map choices to expected bump types passed to bump_command
+        test_cases = [
+            ("Patch (0.1.0 -> 0.1.1)", "patch"),
+            ("Minor (0.1.0 -> 0.2.0)", "minor"),
+            ("Major (0.1.0 -> 1.0.0)", "major"),
+            ("Prerelease (0.1.0 -> 0.1.1-rc.1)", "prerelease"),
+            ("Alpha (0.1.0 -> 0.1.1-alpha.1)", "alpha"),
+            ("Beta (0.1.0 -> 0.1.1-beta.1)", "beta"),
+            ("RC (0.1.0 -> 0.1.1-rc.1)", "rc"),
+            ("Dev (0.1.0 -> 0.1.1-dev.1)", "dev"),
+            ("Build (0.1.0 -> 0.1.0+build.1)", "build"),
+        ]
+
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command"):
+            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
                 with patch("questionary.select") as mock_select:
-                    # Test with different bump types to verify they all work
-                    for choice in [
-                        "Patch (0.1.0 -> 0.1.1)",
-                        "Minor (0.1.0 -> 0.2.0)",
-                        "Major (0.1.0 -> 1.0.0)",
-                        "Prerelease (0.1.0 -> 0.1.1-rc.1)",
-                        "Alpha (0.1.0 -> 0.1.1-alpha.1)",
-                        "Beta (0.1.0 -> 0.1.1-beta.1)",
-                        "RC (0.1.0 -> 0.1.1-rc.1)",
-                        "Dev (0.1.0 -> 0.1.1-dev.1)",
-                        "Build (0.1.0 -> 0.1.0+build.1)",
-                    ]:
+                    for choice, expected_bump_type in test_cases:
                         mock_select.return_value.ask.return_value = choice
                         release_command(with_bump=True, push=True, dry_run=True)
-                        # Verify the call was made
-                        assert mock_select.called
+                        
+                        # Verify bump_command was called with the correct bump type
+                        assert mock_bump.called
+                        call_args = mock_bump.call_args[0]
+                        options = call_args[0]
+                        assert isinstance(options, BumpOptions)
+                        assert options.version == expected_bump_type, (
+                            f"Expected bump type '{expected_bump_type}' for choice '{choice}', "
+                            f"but got '{options.version}'"
+                        )
+                        
+                        # Reset for next iteration
                         mock_select.reset_mock()
+                        mock_bump.reset_mock()
 
 
 # ──────────────────────────────────────────────
