@@ -21,27 +21,6 @@ A concise reference for common Rhiza operations.
 | `make bump BUMP=major` | Bump major version directly |
 | `make release` | Create and push release tag |
 
-### CLI Options
-
-**Bump** (`rhiza-tools bump`):
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview version change without modifying files |
-| `--commit` | Create a git commit after bumping |
-| `--push` | Push commit to remote (implies `--commit`) |
-| `--branch TEXT` | Create and push from a new branch |
-| `--allow-dirty` | Allow bumping with uncommitted changes |
-| `--verbose` | Show detailed output |
-
-**Release** (`rhiza-tools release`):
-| Option | Description |
-|--------|-------------|
-| `--bump TYPE` | Bump version before release (PATCH/MINOR/MAJOR) |
-| `--with-bump` | Interactively select bump type before release |
-| `--push` | Push the release tag to remote |
-| `--dry-run` | Preview release without making changes |
-| `--non-interactive` | Skip confirmation prompts |
-
 ## Code Quality
 
 | Command | Description |

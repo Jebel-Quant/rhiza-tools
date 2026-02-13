@@ -90,6 +90,8 @@ docs/GLOSSARY.md
 docs/QUICK_REFERENCE.md
 docs/SECURITY.md
 docs/TESTS.md
+docs/index.md
+docs/mkdocs.yml
 pytest.ini
 renovate.json
 ruff.toml
