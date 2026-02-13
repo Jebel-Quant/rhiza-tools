@@ -48,7 +48,7 @@ def get_current_version() -> str:
         raise typer.Exit(code=1) from None
 
 
-def run_git_command(command: list[str], check: bool = True) -> subprocess.CompletedProcess:
+def run_git_command(command: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
     """Run a git command and return the result.
 
     Args:

@@ -19,6 +19,7 @@ Example:
         bump_command(None)
 """
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -213,7 +214,7 @@ def _get_bumped_version_from_type(current_version: semver.Version, version_type:
     Returns:
         The bumped version string.
     """
-    bump_mapping = {
+    bump_mapping: dict[str, Callable[[], semver.Version]] = {
         "patch": current_version.bump_patch,
         "minor": current_version.bump_minor,
         "major": current_version.bump_major,
