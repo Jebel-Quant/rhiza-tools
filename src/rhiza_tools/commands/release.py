@@ -162,7 +162,7 @@ def get_default_branch() -> str:
 
     for line in result.stdout.split("\n"):
         if "HEAD branch" in line:
-            return line.split()[-1]
+            return str(line.split()[-1])
 
     logger.error("Could not determine default branch from remote")
     raise typer.Exit(code=1)
