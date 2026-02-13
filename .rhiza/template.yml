@@ -7,3 +7,8 @@ templates:
   - tests
   - legal
   - book
+
+include:
+  - docs/index.md
+  - docs/mkdocs.yml
+
