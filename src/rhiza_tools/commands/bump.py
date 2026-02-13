@@ -340,6 +340,79 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         return config, config_path
 
 
+def _get_files_to_modify(config: Any) -> list[Path]:
+    """Get list of files that will be modified by bump-my-version.
+
+    Args:
+        config: The bumpversion configuration object.
+
+    Returns:
+        List of file paths that will be modified.
+    """
+    files = []
+    if hasattr(config, "files_to_modify"):
+        for file_config in config.files_to_modify:
+            if hasattr(file_config, "filename"):
+                files.append(Path(file_config.filename))
+    return files
+
+
+def _show_file_changes(file_path: Path, current_version: str, new_version: str) -> None:
+    """Show the changes that will be made to a file.
+
+    Args:
+        file_path: Path to the file to preview.
+        current_version: The current version string.
+        new_version: The new version string.
+    """
+    if not file_path.exists():
+        logger.warning(f"File not found: {file_path}")
+        return
+
+    try:
+        content = file_path.read_text()
+        lines_with_version = []
+
+        for i, line in enumerate(content.split("\n"), 1):
+            if current_version in line:
+                lines_with_version.append((i, line))
+
+        if lines_with_version:
+            logger.info(f"  Changes in {typer.style(str(file_path), fg=typer.colors.CYAN, bold=True)}:")
+            for line_num, old_line in lines_with_version:
+                new_line = old_line.replace(current_version, new_version)
+                logger.info(f"    Line {line_num}:")
+                logger.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
+                logger.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
+    except Exception as e:
+        logger.debug(f"Could not preview changes for {file_path}: {e}")
+
+
+def _preview_file_modifications(config: Any, current_version: str, new_version: str) -> None:
+    """Preview what changes will be made to files.
+
+    Args:
+        config: The bumpversion configuration object.
+        current_version: The current version string.
+        new_version: The new version string.
+    """
+    files = _get_files_to_modify(config)
+
+    if files:
+        logger.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
+        for file_path in files:
+            _show_file_changes(file_path, current_version, new_version)
+        logger.info("")  # Empty line for spacing
+    else:
+        # Fallback: check common files
+        common_files = [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]
+        logger.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
+        for file_path in common_files:
+            if file_path.exists():
+                _show_file_changes(file_path, current_version, new_version)
+        logger.info("")  # Empty line for spacing
+
+
 def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool) -> None:
     """Execute the bump operation using bump-my-version.
 
@@ -369,15 +442,41 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
         raise typer.Exit(code=1) from None
 
 
-def _log_bump_success(current_version_str: str) -> None:
+def _log_bump_success(current_version_str: str, config: Any) -> None:
     """Log successful version bump and post-bump instructions.
 
     Args:
         current_version_str: The original version string before the bump.
+        config: The bumpversion configuration object.
     """
     updated_version = get_current_version()
-    logger.success(f"Version bumped: {current_version_str} -> {updated_version}")
-    logger.info("Don't forget to run 'uv lock' to update the lockfile if needed.")
+    success_msg = (
+        f"\n{typer.style('✓', fg=typer.colors.GREEN, bold=True)} "
+        f"Version bumped: {current_version_str} -> {updated_version}"
+    )
+    logger.success(success_msg)
+
+    # Show which files were actually modified
+    files = _get_files_to_modify(config)
+    if files:
+        logger.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
+        for file_path in files:
+            if file_path.exists():
+                logger.info(f"  • {file_path}")
+    else:
+        # Show common files that typically get modified
+        logger.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
+        for file_path in [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]:
+            if file_path.exists():
+                # Check if file was actually modified by checking content
+                try:
+                    content = file_path.read_text()
+                    if updated_version in content:
+                        logger.info(f"  • {file_path}")
+                except Exception:  # nosec B110 - safe to ignore file read errors
+                    pass
+
+    logger.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
 
 
 def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
@@ -615,6 +714,9 @@ def bump_command(
 
     logger.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
 
+    # Show preview of file changes
+    _preview_file_modifications(config, current_version_str, new_version_str)
+
     # Interactive preview and confirmation (only in true interactive mode)
     if not version and not dry_run:
         if not _show_interactive_preview(current_version_str, new_version_str, current_git_branch, commit, push):
@@ -624,7 +726,7 @@ def bump_command(
     _execute_bump(new_version_str, config, config_path, dry_run, verbose)
 
     if not dry_run:
-        _log_bump_success(current_version_str)
+        _log_bump_success(current_version_str, config)
 
         # Handle push
         if push:

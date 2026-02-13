@@ -210,12 +210,27 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
     command = ["git", "push", "origin", f"refs/tags/{tag}"]
 
     if dry_run:
-        logger.info(f"[DRY-RUN] Would run: {' '.join(command)}")
-        logger.info(f"[DRY-RUN] Release tag {tag} would be pushed to remote")
+        dry_run_header = typer.style("[DRY-RUN] Would execute:", fg=typer.colors.YELLOW, bold=True)
+        logger.info(f"\n{dry_run_header} {' '.join(command)}")
+
+        tag_styled = typer.style(tag, fg=typer.colors.GREEN, bold=True)
+        logger.info(f"[DRY-RUN] Release tag {tag_styled} would be pushed to remote")
         logger.info("[DRY-RUN] This would trigger the release workflow")
+
+        # Show what would be pushed
+        result = run_git_command(["git", "show", "-s", "--format=%H %s", tag], check=False)
+        if result.returncode == 0 and result.stdout.strip():
+            logger.info(f"[DRY-RUN] Tag points to: {result.stdout.strip()}")
     else:
+        logger.info(f"\n{typer.style('Pushing tag to remote...', fg=typer.colors.CYAN, bold=True)}")
+        logger.info(f"Command: {' '.join(command)}")
         run_git_command(command)
-        logger.success(f"Release tag {tag} pushed to remote!")
+
+        tag_styled = typer.style(tag, fg=typer.colors.GREEN, bold=True)
+        success_msg = (
+            f"\n{typer.style('✓', fg=typer.colors.GREEN, bold=True)} Release tag {tag_styled} pushed to remote!"
+        )
+        logger.success(success_msg)
         logger.info("The release workflow will now be triggered automatically.")
 
     # Get repository URL for GitHub Actions link
@@ -335,6 +350,16 @@ def _validate_tag_state(tag: str, current_version: str) -> None:
         raise typer.Exit(code=1)
 
     logger.success(f"Tag '{tag}' found locally")
+
+    # Show tag details
+    result = run_git_command(["git", "show", "-s", "--format=%H|%ci|%s", tag], check=False)
+    if result.returncode == 0 and result.stdout.strip():
+        parts = result.stdout.strip().split("|")
+        if len(parts) == 3:
+            commit_hash, commit_date, commit_msg = parts
+            logger.info(f"  Commit: {commit_hash[:8]}")
+            logger.info(f"  Date: {commit_date}")
+            logger.info(f"  Message: {commit_msg}")
 
 
 def _show_commits_since_last_tag(tag: str) -> None:
