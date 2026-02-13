@@ -501,3 +501,108 @@ def test_bump_operation_failure(bump_project, monkeypatch):
     with pytest.raises(typer.Exit) as excinfo:
         bump_command(version="patch")
     assert excinfo.value.exit_code == 1
+
+
+def test_bump_with_push_flag(bump_project, monkeypatch):
+    """Test bump command with push flag."""
+    import subprocess
+    from unittest.mock import MagicMock
+
+    # Mock subprocess.run to capture git push command
+    original_run = subprocess.run
+    push_called = {"called": False}
+
+    def mock_run(cmd, **kwargs):
+        if isinstance(cmd, list) and "push" in cmd:
+            push_called["called"] = True
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = ""
+            result.stderr = ""
+            return result
+        return original_run(cmd, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", mock_run)
+
+    # Test with push=True and explicit version
+    bump_command(version="patch", push=True)
+    assert get_current_version() == "0.1.1"
+    assert push_called["called"], "Git push should have been called"
+
+
+def test_bump_with_branch_flag(bump_project, monkeypatch):
+    """Test bump command with branch flag."""
+    import subprocess
+
+    # Create a new branch
+    subprocess.run(["git", "checkout", "-b", "test-branch"], check=True, capture_output=True)
+    subprocess.run(["git", "checkout", "master"], check=True, capture_output=True)
+
+    # Mock subprocess.run to track branch checkout
+    original_run = subprocess.run
+    checkout_calls = []
+
+    def mock_run(cmd, **kwargs):
+        if isinstance(cmd, list) and "checkout" in cmd and len(cmd) == 3:
+            checkout_calls.append(cmd[2])
+        return original_run(cmd, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", mock_run)
+
+    # Test with branch flag
+    bump_command(version="patch", branch="test-branch")
+    assert get_current_version() == "0.1.1"
+    # Should have switched to test-branch and back to master
+    assert "test-branch" in checkout_calls
+
+
+def test_bump_push_flag_implies_commit(bump_project, monkeypatch):
+    """Test that push flag implies commit flag."""
+    import subprocess
+    from unittest.mock import MagicMock
+
+    # Mock subprocess.run
+    original_run = subprocess.run
+    push_called = {"called": False}
+
+    def mock_run(cmd, **kwargs):
+        if isinstance(cmd, list) and "push" in cmd:
+            push_called["called"] = True
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = ""
+            result.stderr = ""
+            return result
+        return original_run(cmd, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", mock_run)
+
+    # Call with push=True but commit=False - should still commit
+    bump_command(version="patch", push=True, commit=False)
+    assert get_current_version() == "0.1.1"
+    assert push_called["called"]
+
+
+def test_bump_with_push_failure(bump_project, monkeypatch):
+    """Test bump command when git push fails."""
+    import subprocess
+    from unittest.mock import MagicMock
+
+    # Mock subprocess.run to make push fail
+    original_run = subprocess.run
+
+    def mock_run(cmd, **kwargs):
+        if isinstance(cmd, list) and "push" in cmd:
+            result = MagicMock()
+            result.returncode = 1
+            result.stdout = ""
+            result.stderr = "error: failed to push"
+            return result
+        return original_run(cmd, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", mock_run)
+
+    # Should fail with exit code 1
+    with pytest.raises(typer.Exit) as excinfo:
+        bump_command(version="patch", push=True)
+    assert excinfo.value.exit_code == 1

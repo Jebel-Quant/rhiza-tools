@@ -273,14 +273,15 @@ def release_command(
         Non-interactive mode::
 
             release_command(non_interactive=True)
-        
+
         Bump and release::
 
             release_command(bump_type="MINOR", push=True)
     """
     import questionary as qs
+
     from rhiza_tools.commands.bump import bump_command
-    
+
     # Validate pyproject.toml exists
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
@@ -294,14 +295,14 @@ def release_command(
     # Interactive mode: ask if user wants to bump version
     should_bump = False
     selected_bump_type = bump_type
-    
+
     if not non_interactive and not bump_type and not dry_run:
         try:
             should_bump = qs.confirm(
                 "Would you like to bump the version before releasing?",
                 default=False,
             ).ask()
-            
+
             if should_bump:
                 # Ask for bump type
                 choices = ["PATCH", "MINOR", "MAJOR"]
@@ -315,19 +316,20 @@ def release_command(
     elif bump_type:
         should_bump = True
         selected_bump_type = bump_type.upper()
-    
+
     # Perform bump if requested
     if should_bump and selected_bump_type:
         logger.info(f"Bumping version with type: {selected_bump_type}")
-        
+
         # Validate bump type
         valid_types = ["MAJOR", "MINOR", "PATCH"]
         if selected_bump_type not in valid_types:
             logger.error(f"Invalid bump type: {selected_bump_type}. Must be one of {valid_types}")
             raise typer.Exit(code=1)
-        
+
         # Call bump_command
         from rhiza_tools.commands.bump import bump_command
+
         bump_command(
             version=selected_bump_type.lower(),
             dry_run=dry_run,
@@ -336,7 +338,7 @@ def release_command(
             allow_dirty=False,
             verbose=False,
         )
-        
+
         if dry_run:
             logger.info("[DRY-RUN] Version would be bumped before release")
 
@@ -383,7 +385,7 @@ def release_command(
         tags = [t.strip() for t in result.stdout.split("\n") if t.strip() and t.strip() != tag]
         if tags:
             last_tag = tags[0]  # Most recent tag (excluding current)
-            
+
             # Get commit list
             log_result = run_git_command(
                 ["git", "log", f"{last_tag}..{tag}", "--oneline", "--no-decorate"],

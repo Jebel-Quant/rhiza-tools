@@ -71,7 +71,9 @@ def bump(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     commit: bool = typer.Option(False, "--commit", help="Commit the changes to git."),
     push: bool = typer.Option(False, "--push", help="Push changes to remote after commit (implies --commit)."),
-    branch: str | None = typer.Option(None, "--branch", help="Branch to perform the bump on (default: current branch)."),
+    branch: str | None = typer.Option(
+        None, "--branch", help="Branch to perform the bump on (default: current branch)."
+    ),
     allow_dirty: bool = typer.Option(
         False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
     ),
@@ -110,7 +112,7 @@ def bump(
         Interactive version selection::
 
             $ rhiza-tools bump
-        
+
         Bump and push to remote::
 
             $ rhiza-tools bump minor --push
@@ -189,7 +191,7 @@ def release(
         Non-interactive mode (for CI/CD)::
 
             $ rhiza-tools release --non-interactive
-        
+
         Bump version and release::
 
             $ rhiza-tools release --bump MINOR --push
