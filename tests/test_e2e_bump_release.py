@@ -6,18 +6,15 @@ and the --with-bump release flag.
 """
 
 import subprocess
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import tomlkit
 import typer
 
 from rhiza_tools.commands.bump import bump_command, get_current_version
 from rhiza_tools.commands.release import (
     _calculate_new_version,
     _get_bump_type_interactively,
-    _perform_version_bump,
     release_command,
 )
 
@@ -233,9 +230,7 @@ class TestNonInteractiveBumpDryRun:
         """Dry-run should not leave any git changes."""
         bump_command(version="minor", dry_run=True)
 
-        result = subprocess.run(
-            [GIT, "status", "--porcelain"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)
         assert result.stdout.strip() == ""
 
 
@@ -335,9 +330,7 @@ class TestBumpDryRunPreview:
         assert get_current_version() == "0.1.0"
 
         # Verify no changes in git
-        result = subprocess.run(
-            [GIT, "diff", "pyproject.toml"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run([GIT, "diff", "pyproject.toml"], capture_output=True, text=True, check=True)
         assert result.stdout.strip() == ""
 
 
@@ -471,9 +464,7 @@ class TestNonInteractiveReleaseDryRun:
         assert get_current_version() == "0.1.0"
 
         # Git should be clean
-        result = subprocess.run(
-            [GIT, "status", "--porcelain"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)
         assert result.stdout.strip() == ""
 
 
@@ -924,9 +915,7 @@ class TestSequentialBumpRelease:
         assert get_current_version() == "0.1.1"
 
         # Step 2: Verify tag was created by bump-my-version
-        result = subprocess.run(
-            [GIT, "tag", "-l", "v0.1.1"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run([GIT, "tag", "-l", "v0.1.1"], capture_output=True, text=True, check=True)
         assert "v0.1.1" in result.stdout
 
         # Step 3: Release dry-run
@@ -944,9 +933,7 @@ class TestSequentialBumpRelease:
         assert get_current_version() == "0.2.0"
 
         # Verify tag
-        result = subprocess.run(
-            [GIT, "tag", "-l", "v0.2.0"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run([GIT, "tag", "-l", "v0.2.0"], capture_output=True, text=True, check=True)
         assert "v0.2.0" in result.stdout
 
     def test_multiple_bumps(self, e2e_project):
