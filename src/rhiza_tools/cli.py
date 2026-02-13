@@ -70,6 +70,8 @@ def bump(
     version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     commit: bool = typer.Option(False, "--commit", help="Commit the changes to git."),
+    push: bool = typer.Option(False, "--push", help="Push changes to remote after commit (implies --commit)."),
+    branch: str | None = typer.Option(None, "--branch", help="Branch to perform the bump on (default: current branch)."),
     allow_dirty: bool = typer.Option(
         False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
     ),
@@ -87,6 +89,8 @@ def bump(
             ("alpha", "beta", "rc", "dev"), or None for interactive selection.
         dry_run: If True, show what would change without actually changing anything.
         commit: If True, automatically commit the version change to git.
+        push: If True, push changes to remote after commit (implies --commit).
+        branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
         verbose: If True, show detailed output from the bump-my-version tool.
 
@@ -106,8 +110,12 @@ def bump(
         Interactive version selection::
 
             $ rhiza-tools bump
+        
+        Bump and push to remote::
+
+            $ rhiza-tools bump minor --push
     """
-    bump_command(version, dry_run, commit, allow_dirty, verbose)
+    bump_command(version, dry_run, commit, push, branch, allow_dirty, verbose)
 
 
 @app.command()
@@ -152,6 +160,8 @@ def generate_coverage_badge(
 
 @app.command()
 def release(
+    bump: str | None = typer.Option(None, "--bump", help="Bump type (MAJOR, MINOR, PATCH) before release."),
+    push: bool = typer.Option(False, "--push", help="Push changes to remote (default: prompt in interactive mode)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
 ) -> None:
@@ -159,11 +169,11 @@ def release(
 
     This command validates the repository state and pushes the git tag for the
     current version to the remote repository, which triggers the automated release
-    workflow.
-
-    Note: Tags are created by bump-my-version during 'make bump' or 'rhiza-tools bump'.
+    workflow. Optionally, it can bump the version before creating the release.
 
     Args:
+        bump: Bump type (MAJOR, MINOR, PATCH) to apply before release.
+        push: If True, push changes without prompting (implies non-interactive for push).
         dry_run: If True, show what would happen without actually pushing the tag.
         non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
 
@@ -179,8 +189,12 @@ def release(
         Non-interactive mode (for CI/CD)::
 
             $ rhiza-tools release --non-interactive
+        
+        Bump version and release::
+
+            $ rhiza-tools release --bump MINOR --push
     """
-    release_command(dry_run, non_interactive)
+    release_command(bump, push, dry_run, non_interactive)
 
 
 @app.command(name="update-readme")

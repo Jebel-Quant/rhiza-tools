@@ -236,19 +236,24 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
         logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
 
 
-def release_command(dry_run: bool = False, non_interactive: bool = False) -> None:
+def release_command(
+    bump_type: str | None = None,
+    push: bool = False,
+    dry_run: bool = False,
+    non_interactive: bool = False,
+) -> None:
     """Push a release tag to remote.
 
     This command performs the following steps:
-    1. Reads the current version from pyproject.toml
-    2. Validates the git repository state (clean working tree, up-to-date with remote)
-    3. Checks that a tag exists for the current version (created by bump-my-version)
-    4. Pushes the tag to remote, triggering the release workflow
-
-    Note: Tags should be created using 'make bump' or 'rhiza-tools bump' which runs
-    bump-my-version with tag creation enabled.
+    1. Optionally bumps the version if bump_type is provided
+    2. Reads the current version from pyproject.toml
+    3. Validates the git repository state (clean working tree, up-to-date with remote)
+    4. Checks that a tag exists for the current version (created by bump-my-version)
+    5. Pushes the tag to remote, triggering the release workflow
 
     Args:
+        bump_type: Optional bump type (MAJOR, MINOR, PATCH) to apply before release.
+        push: If True, push changes without prompting.
         dry_run: If True, show what would be done without making any changes.
         non_interactive: If True, skip all confirmation prompts.
 
@@ -268,11 +273,72 @@ def release_command(dry_run: bool = False, non_interactive: bool = False) -> Non
         Non-interactive mode::
 
             release_command(non_interactive=True)
+        
+        Bump and release::
+
+            release_command(bump_type="MINOR", push=True)
     """
+    import questionary as qs
+    from rhiza_tools.commands.bump import bump_command
+    
     # Validate pyproject.toml exists
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
+
+    # Get current branch early
+    result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    current_branch = result.stdout.strip()
+    logger.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
+
+    # Interactive mode: ask if user wants to bump version
+    should_bump = False
+    selected_bump_type = bump_type
+    
+    if not non_interactive and not bump_type and not dry_run:
+        try:
+            should_bump = qs.confirm(
+                "Would you like to bump the version before releasing?",
+                default=False,
+            ).ask()
+            
+            if should_bump:
+                # Ask for bump type
+                choices = ["PATCH", "MINOR", "MAJOR"]
+                selected_bump_type = qs.select(
+                    "Select bump type:",
+                    choices=choices,
+                ).ask()
+        except EOFError:
+            # In testing or non-interactive environment
+            logger.debug("Running in non-interactive environment")
+    elif bump_type:
+        should_bump = True
+        selected_bump_type = bump_type.upper()
+    
+    # Perform bump if requested
+    if should_bump and selected_bump_type:
+        logger.info(f"Bumping version with type: {selected_bump_type}")
+        
+        # Validate bump type
+        valid_types = ["MAJOR", "MINOR", "PATCH"]
+        if selected_bump_type not in valid_types:
+            logger.error(f"Invalid bump type: {selected_bump_type}. Must be one of {valid_types}")
+            raise typer.Exit(code=1)
+        
+        # Call bump_command
+        from rhiza_tools.commands.bump import bump_command
+        bump_command(
+            version=selected_bump_type.lower(),
+            dry_run=dry_run,
+            commit=True,
+            push=False,  # Don't push yet, we'll do it after tagging
+            allow_dirty=False,
+            verbose=False,
+        )
+        
+        if dry_run:
+            logger.info("[DRY-RUN] Version would be bumped before release")
 
     # Get current version
     current_version = get_current_version()
@@ -281,20 +347,10 @@ def release_command(dry_run: bool = False, non_interactive: bool = False) -> Non
     logger.info(f"Current version: {current_version}")
     logger.info(f"Expected tag: {tag}")
 
-    # Get current branch
-    result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-    current_branch = result.stdout.strip()
-
     # Check if on default branch
     default_branch = get_default_branch()
     if current_branch != default_branch:
-        logger.warning(f"You are on branch '{current_branch}' but the default branch is '{default_branch}'")
-        logger.warning("Releases are typically created from the default branch.")
-        if not dry_run and not non_interactive:
-            response = typer.confirm(f"Proceed with release from '{current_branch}'?")
-            if not response:
-                logger.info("Release cancelled by user")
-                raise typer.Exit(code=0)
+        logger.info(f"Note: You are on branch '{current_branch}' (default branch is '{default_branch}')")
 
     # Check for uncommitted changes
     check_clean_working_tree()
@@ -312,34 +368,45 @@ def release_command(dry_run: bool = False, non_interactive: bool = False) -> Non
 
     if not exists_locally:
         logger.error(f"Tag '{tag}' does not exist locally")
-        logger.error("Please run 'make bump' or 'rhiza-tools bump' to create a new version with tag")
+        logger.error("Please run 'rhiza-tools bump' to create a new version with tag")
         raise typer.Exit(code=1)
 
     logger.success(f"Tag '{tag}' found locally")
 
     # Push tag
-    logger.info("Pushing tag to remote...")
+    logger.info("Preparing to push tag to remote...")
     logger.info(f"Pushing tag '{tag}' to origin will trigger the release workflow.")
 
     # Show commits since last tag (if any)
-    # Try to find the previous tag by excluding the current tag
     result = run_git_command(["git", "tag", "--sort=-version:refname", "--merged", "HEAD"], check=False)
     if result.returncode == 0:
         tags = [t.strip() for t in result.stdout.split("\n") if t.strip() and t.strip() != tag]
         if tags:
             last_tag = tags[0]  # Most recent tag (excluding current)
-            count_result = run_git_command(["git", "rev-list", f"{last_tag}..{tag}", "--count"], check=False)
-            if count_result.returncode == 0:
-                commit_count = count_result.stdout.strip()
-                logger.info(f"Commits since {last_tag}: {commit_count}")
+            
+            # Get commit list
+            log_result = run_git_command(
+                ["git", "log", f"{last_tag}..{tag}", "--oneline", "--no-decorate"],
+                check=False,
+            )
+            if log_result.returncode == 0 and log_result.stdout.strip():
+                commits = log_result.stdout.strip().split("\n")
+                logger.info(f"\nCommits included in this release (since {last_tag}):")
+                for commit in commits[:10]:  # Show first 10
+                    logger.info(f"  • {commit}")
+                if len(commits) > 10:
+                    logger.info(f"  ... and {len(commits) - 10} more")
 
-    if not dry_run and not non_interactive:
-        response = typer.confirm("Push tag to remote and trigger release workflow?")
-        if not response:
+    # Determine if we should push based on flags and mode
+    should_push = push
+    if not dry_run and not non_interactive and not push:
+        should_push = typer.confirm("Push tag to remote and trigger release workflow?", default=True)
+        if not should_push:
             logger.info("Release cancelled by user")
             raise typer.Exit(code=0)
 
-    push_tag(tag, dry_run, non_interactive)
+    if should_push or dry_run:
+        push_tag(tag, dry_run, non_interactive or push)
 
     if dry_run:
         logger.info("[DRY-RUN] Release process completed (no changes made)")

@@ -353,6 +353,8 @@ def bump_command(
     version: str | None = None,
     dry_run: bool = False,
     commit: bool = False,
+    push: bool = False,
+    branch: str | None = None,
     allow_dirty: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -368,6 +370,8 @@ def bump_command(
             ("alpha", "beta", "rc", "dev"), or None for interactive selection.
         dry_run: If True, show what would change without actually changing anything.
         commit: If True, automatically commit the version change to git.
+        push: If True, push changes to remote after commit (implies commit=True).
+        branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
         verbose: If True, show detailed output from the bump-my-version tool.
 
@@ -387,12 +391,60 @@ def bump_command(
         Interactive bump with commit::
 
             bump_command(None, commit=True)
+        
+        Bump and push to remote::
+
+            bump_command("minor", push=True)
     """
+    import subprocess
+    import questionary as qs
+    
     _validate_pyproject_exists()
+    
+    # Handle branch checkout if specified
+    current_branch = None
+    if branch:
+        # Get current branch
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            current_branch = result.stdout.strip()
+            if current_branch != branch:
+                logger.info(f"Switching from {current_branch} to {branch}")
+                if not dry_run:
+                    result = subprocess.run(
+                        ["git", "checkout", branch],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if result.returncode != 0:
+                        logger.error(f"Failed to checkout branch {branch}: {result.stderr}")
+                        raise typer.Exit(code=1)
+                else:
+                    logger.info(f"[DRY-RUN] Would checkout branch {branch}")
+
+    # If push is True, commit must also be True
+    if push:
+        commit = True
 
     current_version_str = get_current_version()
     config, config_path = _build_configuration(current_version_str, allow_dirty, commit)
 
+    # Get current branch for display
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    current_git_branch = result.stdout.strip() if result.returncode == 0 else "unknown"
+    
+    logger.info(f"Current branch: {typer.style(current_git_branch, fg=typer.colors.CYAN, bold=True)}")
     logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
     # Determine new version string
@@ -401,9 +453,66 @@ def bump_command(
     else:
         new_version_str = _get_interactive_bump_type(config)
 
-    logger.info(f"New version will be: {new_version_str}")
+    logger.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
+    
+    # Interactive preview and confirmation (only in true interactive mode)
+    # Skip if version was provided as argument (non-interactive) or if in dry-run
+    if not version and not dry_run:
+        # Show preview
+        logger.info("\nPreview of changes:")
+        logger.info(f"  Version: {current_version_str} → {new_version_str}")
+        logger.info(f"  Branch: {current_git_branch}")
+        if commit:
+            logger.info(f"  Commit: Yes")
+        if push:
+            logger.info(f"  Push: Yes")
+        
+        # Confirm - wrap in try/except to handle testing scenarios
+        try:
+            if not qs.confirm("Proceed with version bump?", default=True, style=_COOL_STYLE).ask():
+                logger.info("Version bump cancelled by user")
+                raise typer.Exit(code=0)
+        except EOFError:
+            # In testing or non-interactive environment, proceed
+            logger.debug("Running in non-interactive environment, proceeding automatically")
 
     _execute_bump(new_version_str, config, config_path, dry_run, verbose)
 
     if not dry_run:
         _log_bump_success(current_version_str)
+        
+        # Handle push
+        if push:
+            # Interactive prompt if not in non-interactive mode and version was not specified
+            if not version:
+                try:
+                    if not qs.confirm("Push changes to remote?", default=True, style=_COOL_STYLE).ask():
+                        logger.info("Push cancelled by user")
+                        return
+                except EOFError:
+                    # In testing or non-interactive environment, proceed
+                    logger.debug("Running in non-interactive environment, proceeding with push")
+            
+            logger.info("Pushing changes to remote...")
+            result = subprocess.run(
+                ["git", "push"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                logger.success("Changes pushed to remote successfully!")
+            else:
+                logger.error(f"Failed to push changes: {result.stderr}")
+                logger.error("You can manually push with: git push")
+                raise typer.Exit(code=1)
+    
+    # Restore original branch if we switched
+    if branch and current_branch and current_branch != branch and not dry_run:
+        logger.info(f"Returning to original branch {current_branch}")
+        subprocess.run(
+            ["git", "checkout", current_branch],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
