@@ -4,10 +4,6 @@
 # - Pushes the tag to remote to trigger the release workflow
 # - Performs checks (branch, upstream status, clean working tree)
 #
-# DEPRECATION NOTICE: This script is deprecated in favor of the Python-based
-# 'rhiza-tools release' command. Please use 'make release' or 'rhiza-tools release'
-# instead. This script will be removed in a future version.
-#
 # This script is POSIX-sh compatible and follows the style of other scripts
 # in this repository. It uses uv to read the current version.
 
@@ -277,7 +273,4 @@ do_release() {
 }
 
 # Main execution logic
-printf "%b[WARN] DEPRECATION NOTICE: This script is deprecated.%b\n" "$YELLOW" "$RESET"
-printf "%b[WARN] Please use 'make release' or 'rhiza-tools release' instead.%b\n" "$YELLOW" "$RESET"
-printf "%b[WARN] This script will be removed in a future version.%b\n\n" "$YELLOW" "$RESET"
 do_release

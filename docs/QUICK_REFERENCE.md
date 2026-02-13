@@ -60,7 +60,7 @@ uv run pytest -v -s
 │   ├── 00-19*.mk     # Configuration
 │   ├── 20-79*.mk     # Task definitions
 │   └── 80-99*.mk     # Hook implementations
-├── scripts/          # Shell scripts (deprecated: use Python commands)
+├── scripts/          # Shell scripts (release.sh)
 ├── utils/            # Python utilities
 └── template.yml      # Sync configuration
 ```
