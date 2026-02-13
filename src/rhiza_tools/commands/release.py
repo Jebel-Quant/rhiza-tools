@@ -251,6 +251,64 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
         logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
 
 
+def _prompt_for_bump_type() -> str | None:
+    """Prompt user to select bump type.
+
+    Returns:
+        Selected bump type or None if cancelled.
+    """
+    import questionary as qs
+
+    try:
+        choices = ["PATCH", "MINOR", "MAJOR"]
+        return qs.select(
+            "Select bump type:",
+            choices=choices,
+        ).ask()
+    except EOFError:
+        logger.debug("Running in non-interactive environment")
+        return None
+
+
+def _handle_with_bump_mode(non_interactive: bool) -> tuple[bool, str | None]:
+    """Handle --with-bump flag logic.
+
+    Args:
+        non_interactive: If True, default to PATCH without prompting.
+
+    Returns:
+        Tuple of (should_bump, selected_bump_type).
+    """
+    if non_interactive:
+        logger.warning("--with-bump in non-interactive mode without --bump type, defaulting to PATCH")
+        return True, "PATCH"
+
+    selected_type = _prompt_for_bump_type()
+    return selected_type is not None, selected_type
+
+
+def _handle_default_interactive_bump() -> tuple[bool, str | None]:
+    """Handle default interactive bump selection.
+
+    Returns:
+        Tuple of (should_bump, selected_bump_type).
+    """
+    import questionary as qs
+
+    try:
+        should_bump = qs.confirm(
+            "Would you like to bump the version before releasing?",
+            default=False,
+        ).ask()
+
+        if should_bump:
+            return True, _prompt_for_bump_type()
+        return False, None
+    except EOFError:
+        logger.debug("Running in non-interactive environment")
+        return False, None
+
+
 def _get_bump_type_interactively(
     non_interactive: bool, bump_type: str | None, dry_run: bool, with_bump: bool = False
 ) -> tuple[bool, str | None]:
@@ -265,49 +323,19 @@ def _get_bump_type_interactively(
     Returns:
         Tuple of (should_bump, selected_bump_type).
     """
-    import questionary as qs
-
-    should_bump = False
-    selected_bump_type = bump_type
-
+    # Explicit bump type provided
     if bump_type:
-        # Explicit bump type provided
-        should_bump = True
-        selected_bump_type = bump_type.upper()
-    elif with_bump and not non_interactive:
-        # --with-bump flag: prompt for bump type (even in dry-run)
-        try:
-            choices = ["PATCH", "MINOR", "MAJOR"]
-            selected_bump_type = qs.select(
-                "Select bump type:",
-                choices=choices,
-            ).ask()
-            should_bump = selected_bump_type is not None
-        except EOFError:
-            logger.debug("Running in non-interactive environment")
-    elif with_bump and non_interactive:
-        # --with-bump in non-interactive mode without explicit type: default to PATCH
-        logger.warning("--with-bump in non-interactive mode without --bump type, defaulting to PATCH")
-        should_bump = True
-        selected_bump_type = "PATCH"
-    elif not non_interactive and not dry_run:
-        # Default interactive mode: ask if user wants to bump
-        try:
-            should_bump = qs.confirm(
-                "Would you like to bump the version before releasing?",
-                default=False,
-            ).ask()
+        return True, bump_type.upper()
 
-            if should_bump:
-                choices = ["PATCH", "MINOR", "MAJOR"]
-                selected_bump_type = qs.select(
-                    "Select bump type:",
-                    choices=choices,
-                ).ask()
-        except EOFError:
-            logger.debug("Running in non-interactive environment")
+    # --with-bump flag: prompt for bump type (even in dry-run)
+    if with_bump:
+        return _handle_with_bump_mode(non_interactive)
 
-    return should_bump, selected_bump_type
+    # Default interactive mode: ask if user wants to bump
+    if not non_interactive and not dry_run:
+        return _handle_default_interactive_bump()
+
+    return False, None
 
 
 def _calculate_new_version(selected_bump_type: str) -> str:
@@ -469,6 +497,70 @@ def _confirm_and_push_tag(tag: str, push: bool, dry_run: bool, non_interactive: 
         push_tag(tag, dry_run, non_interactive or push)
 
 
+def _get_release_version(dry_run: bool, bumped_new_version: str | None) -> tuple[str, str]:
+    """Get current version and tag for release.
+
+    Args:
+        dry_run: If True and version was bumped, use bumped version.
+        bumped_new_version: New version if bump was performed.
+
+    Returns:
+        Tuple of (current_version, tag).
+    """
+    if dry_run and bumped_new_version:
+        current_version = bumped_new_version
+    else:
+        current_version = get_current_version()
+
+    tag = f"v{current_version}"
+    logger.info(f"Current version: {current_version}")
+    logger.info(f"Expected tag: {tag}")
+
+    return current_version, tag
+
+
+def _check_repository_state(dry_run: bool, current_branch: str, default_branch: str) -> None:
+    """Check repository state before release.
+
+    Args:
+        dry_run: If True, skip some checks.
+        current_branch: Current git branch.
+        default_branch: Default git branch.
+    """
+    # Note if not on default branch
+    if current_branch != default_branch:
+        logger.info(f"Note: You are on branch '{current_branch}' (default branch is '{default_branch}')")
+
+    # Check for uncommitted changes (skip in dry-run mode)
+    if not dry_run:
+        check_clean_working_tree()
+        check_branch_status(current_branch)
+
+
+def _handle_tag_validation(dry_run: bool, bumped_new_version: str | None, tag: str, current_version: str) -> None:
+    """Validate tag state before release.
+
+    Args:
+        dry_run: If True and version was bumped, use relaxed validation.
+        bumped_new_version: New version if bump was performed.
+        tag: Tag name to validate.
+        current_version: Current version string.
+
+    Raises:
+        typer.Exit: If tag validation fails.
+    """
+    if dry_run and bumped_new_version:
+        # In dry-run with bump, the tag won't exist yet - just check it's not already on remote
+        _, exists_remotely = check_tag_exists(tag)
+        if exists_remotely:
+            logger.error(f"Tag '{tag}' already exists on remote")
+            logger.error(f"The release for version {current_version} has already been published.")
+            raise typer.Exit(code=1)
+        logger.info(f"[DRY-RUN] Tag '{tag}' would be created by the bump and release process")
+    else:
+        _validate_tag_state(tag, current_version)
+
+
 def release_command(
     bump_type: str | None = None,
     push: bool = False,
@@ -535,40 +627,15 @@ def release_command(
     if should_bump and selected_bump_type:
         bumped_new_version = _perform_version_bump(selected_bump_type, dry_run)
 
-    # Get current version - in dry-run mode with bump, use the calculated new version
-    if dry_run and bumped_new_version:
-        current_version = bumped_new_version
-    else:
-        current_version = get_current_version()
-    tag = f"v{current_version}"
+    # Get current version and tag
+    current_version, tag = _get_release_version(dry_run, bumped_new_version)
 
-    logger.info(f"Current version: {current_version}")
-    logger.info(f"Expected tag: {tag}")
-
-    # Check if on default branch
+    # Check repository state
     default_branch = get_default_branch()
-    if current_branch != default_branch:
-        logger.info(f"Note: You are on branch '{current_branch}' (default branch is '{default_branch}')")
+    _check_repository_state(dry_run, current_branch, default_branch)
 
-    # Check for uncommitted changes (skip in dry-run mode)
-    if not dry_run:
-        check_clean_working_tree()
-
-    # Check branch is up-to-date with remote (skip in dry-run mode)
-    if not dry_run:
-        check_branch_status(current_branch)
-
-    # Validate tag state (skip full validation in dry-run with bump since tag won't exist yet)
-    if dry_run and bumped_new_version:
-        # In dry-run with bump, the tag won't exist yet - just check it's not already on remote
-        _, exists_remotely = check_tag_exists(tag)
-        if exists_remotely:
-            logger.error(f"Tag '{tag}' already exists on remote")
-            logger.error(f"The release for version {current_version} has already been published.")
-            raise typer.Exit(code=1)
-        logger.info(f"[DRY-RUN] Tag '{tag}' would be created by the bump and release process")
-    else:
-        _validate_tag_state(tag, current_version)
+    # Validate tag state
+    _handle_tag_validation(dry_run, bumped_new_version, tag, current_version)
 
     # Push tag
     logger.info("Preparing to push tag to remote...")
