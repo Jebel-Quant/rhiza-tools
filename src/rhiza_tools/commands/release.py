@@ -328,8 +328,6 @@ def release_command(
             raise typer.Exit(code=1)
 
         # Call bump_command
-        from rhiza_tools.commands.bump import bump_command
-
         bump_command(
             version=selected_bump_type.lower(),
             dry_run=dry_run,
@@ -402,7 +400,7 @@ def release_command(
     # Determine if we should push based on flags and mode
     should_push = push
     if not dry_run and not non_interactive and not push:
-        should_push = typer.confirm("Push tag to remote and trigger release workflow?", default=True)
+        should_push = typer.confirm("Push tag to remote and trigger release workflow?", default=False)
         if not should_push:
             logger.info("Release cancelled by user")
             raise typer.Exit(code=0)

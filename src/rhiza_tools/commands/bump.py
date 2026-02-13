@@ -487,7 +487,7 @@ def bump_command(
             # Interactive prompt if not in non-interactive mode and version was not specified
             if not version:
                 try:
-                    if not qs.confirm("Push changes to remote?", default=True, style=_COOL_STYLE).ask():
+                    if not qs.confirm("Push changes to remote?", default=False, style=_COOL_STYLE).ask():
                         logger.info("Push cancelled by user")
                         return
                 except EOFError:
