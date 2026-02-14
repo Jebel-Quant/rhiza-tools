@@ -359,6 +359,8 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         config = get_configuration(config_file=config_path, **overrides)
     except Exception as e:
         logger.error(f"Failed to load bumpversion configuration: {e}")
+        logger.error(f"Check your bumpversion config at: {config_path}")
+        logger.error("Ensure the [tool.bumpversion] section is valid TOML with correct version patterns.")
         raise typer.Exit(code=1) from None
     else:
         return config, config_path
@@ -499,6 +501,12 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
         )
     except Exception as e:
         logger.error(f"bump-my-version failed: {e}")
+        if not dry_run:
+            logger.error("Files may have been partially modified. To recover:")
+            logger.error("  1. Check modified files: git diff")
+            logger.error("  2. Restore all changes:  git checkout -- .")
+            logger.error("  3. Remove untracked:     git clean -fd")
+            logger.error("Or to keep changes, fix the issue and retry.")
         raise typer.Exit(code=1) from None
 
 
@@ -581,6 +589,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
         )  # nosec
         if result.returncode != 0:
             logger.error(f"Failed to checkout branch {branch}: {result.stderr}")
+            logger.error(f"Ensure the branch '{branch}' exists: git branch -a")
             raise typer.Exit(code=1)
     else:
         logger.info(f"[DRY-RUN] Would checkout branch {branch}")
@@ -678,7 +687,10 @@ def _handle_push_to_remote(version: str | None) -> None:
         logger.success("Changes pushed to remote successfully!")
     else:
         logger.error(f"Failed to push changes: {result.stderr}")
-        logger.error("You can manually push with: git push")
+        logger.error("The version bump has been applied locally but could not be pushed.")
+        logger.error("To recover:")
+        logger.error("  Push manually:   git push")
+        logger.error("  Or undo bump:    git reset --hard HEAD~1")
         raise typer.Exit(code=1)
 
 

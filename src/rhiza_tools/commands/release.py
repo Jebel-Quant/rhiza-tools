@@ -93,6 +93,7 @@ def check_branch_status(current_branch: str) -> None:
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], check=False)
     if result.returncode != 0:
         logger.error(f"No upstream branch configured for {current_branch}")
+        logger.error(f"Set upstream with: git push -u origin {current_branch}")
         raise typer.Exit(code=1)
 
     upstream = result.stdout.strip()
@@ -105,7 +106,9 @@ def check_branch_status(current_branch: str) -> None:
     if local != remote:
         if local == base:
             # Local is behind remote (need to pull)
-            logger.error(f"Your branch is behind '{upstream}'. Please pull changes.")
+            logger.error(f"Your branch is behind '{upstream}'.")
+            logger.error("Pull the latest changes before releasing:")
+            logger.error(f"  git pull origin {current_branch}")
             raise typer.Exit(code=1)
         else:
             # Either local is ahead of remote OR branches have diverged
@@ -120,7 +123,11 @@ def check_branch_status(current_branch: str) -> None:
                 raise typer.Exit(code=1)
             else:
                 # Branches have diverged (need to merge or rebase)
-                logger.error(f"Your branch has diverged from '{upstream}'. Please reconcile.")
+                logger.error(f"Your branch has diverged from '{upstream}'.")
+                logger.error("To reconcile, choose one of:")
+                logger.error(f"  Rebase: git pull --rebase origin {current_branch}")
+                logger.error(f"  Merge:  git merge origin/{current_branch}")
+                logger.error("Then resolve any conflicts and retry.")
                 raise typer.Exit(code=1)
 
 
@@ -355,11 +362,16 @@ def _validate_tag_state(tag: str, current_version: str) -> None:
     if exists_remotely:
         logger.error(f"Tag '{tag}' already exists on remote")
         logger.error(f"The release for version {current_version} has already been published.")
+        logger.error("If this was unintentional, you can delete the remote tag and retry:")
+        logger.error(f"  git push origin :refs/tags/{tag}")
         raise typer.Exit(code=1)
 
     if not exists_locally:
         logger.error(f"Tag '{tag}' does not exist locally")
-        logger.error("Please run 'rhiza-tools bump' to create a new version with tag")
+        logger.error("Create the tag by bumping the version with commit enabled:")
+        logger.error("  rhiza-tools bump <version> --commit")
+        logger.error("Or use release with --bump to do both at once:")
+        logger.error("  rhiza-tools release --bump <PATCH|MINOR|MAJOR> --push")
         raise typer.Exit(code=1)
 
     logger.success(f"Tag '{tag}' found locally")
@@ -486,6 +498,8 @@ def _handle_tag_validation(dry_run: bool, bumped_new_version: str | None, tag: s
         if exists_remotely:
             logger.error(f"Tag '{tag}' already exists on remote")
             logger.error(f"The release for version {current_version} has already been published.")
+            logger.error("If this was unintentional, you can delete the remote tag and retry:")
+            logger.error(f"  git push origin :refs/tags/{tag}")
             raise typer.Exit(code=1)
         logger.info(f"[DRY-RUN] Tag '{tag}' would be created by the bump and release process")
     else:
@@ -564,7 +578,9 @@ def release_command(
         if exists_remotely:
             logger.error(f"Tag '{new_tag}' already exists on remote")
             logger.error(f"The release for version {new_version} has already been published.")
-            logger.error("No changes were made.")
+            logger.error("No changes were made. To resolve:")
+            logger.error(f"  Delete the remote tag:  git push origin :refs/tags/{new_tag}")
+            logger.error("  Or choose a different version to bump to.")
             raise typer.Exit(code=1)
         logger.success(f"Preflight: tag '{new_tag}' is available on remote")
 
