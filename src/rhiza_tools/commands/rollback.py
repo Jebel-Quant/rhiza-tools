@@ -126,7 +126,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
         raise typer.Exit(code=0)
 
     # Extract tag name from choice string "v1.2.3 (local, remote)"
-    return choice.split(" (")[0]
+    return str(choice).split(" (")[0]
 
 
 def _get_tag_commit(tag: str) -> str | None:

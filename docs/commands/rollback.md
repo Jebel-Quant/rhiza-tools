@@ -9,6 +9,34 @@ tags from local and remote repositories, and optionally reverting the version
 bump commit. It uses `git revert` (not `git reset`), making it safe even when
 changes have already been pushed to remote.
 
+## When to Use Rollback
+
+Rollback is designed for **pre-publication** scenarios — i.e., before the
+release workflow has completed and published artifacts. Common situations:
+
+- **Accidental tag push** — You pushed a release tag before the code was ready.
+  Deleting the remote tag stops the in-progress release workflow.
+- **Wrong version bump** — You bumped to the wrong version (e.g., major instead
+  of patch). Rollback reverts the bump commit and removes the tag so you can
+  re-bump correctly.
+- **Failed CI checks** — CI revealed issues after the tag was pushed but before
+  the release workflow finalised.
+
+### When Rollback Does Not Apply
+
+Once the release workflow **completes successfully**, the following artifacts
+exist and **cannot be reversed** by this command:
+
+- **GitHub Release** — A published (non-draft) release with release notes and
+  SBOM attachments.
+- **PyPI package** — The wheel/sdist is published and PyPI does not allow
+  re-uploading the same version. The version can only be
+  [yanked](https://peps.python.org/pep-0592/), not deleted.
+- **Devcontainer image** — The container image is pushed to the registry.
+
+If a published release is broken, the recommended approach is to **release a
+new patch version** with the fix rather than attempting to undo the release.
+
 ## Usage
 
 ```bash
@@ -102,9 +130,10 @@ Before executing, the command displays a rollback plan:
 
 ## Common Scenarios
 
-### Accidental Release
+### Accidental Tag Push (Release Not Yet Published)
 
-You pushed a release tag but the release was premature:
+You pushed a release tag but the release workflow is still running or hasn't
+started:
 
 ```bash
 # Remove the tag and stop the release workflow
@@ -114,9 +143,10 @@ rhiza-tools rollback v1.2.3
 rhiza-tools release
 ```
 
-### Wrong Version Bump
+### Wrong Version Bump (Before Release)
 
-You bumped to the wrong version and released:
+You bumped to the wrong version and tagged it, but the release workflow hasn't
+published yet:
 
 ```bash
 # Rollback both the tag and the bump commit
@@ -132,6 +162,17 @@ Automate rollback in a CI/CD pipeline:
 
 ```bash
 rhiza-tools rollback v1.2.3 --revert-bump -y
+```
+
+### Release Already Published
+
+If the release workflow has already completed and artifacts are published,
+rollback **will not** undo the published release or PyPI package. Instead,
+fix the issue and release a new version:
+
+```bash
+# Fix the issue, then bump and release a patch
+rhiza-tools release --with-bump --push
 ```
 
 ## Workflow
