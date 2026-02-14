@@ -29,6 +29,7 @@ pip install rhiza-tools
 |--------------------------|----------------------------------------------------------|
 | [bump](commands/bump.md) | Bump the project version using semantic versioning       |
 | [release](commands/release.md) | Push a release tag to trigger the release workflow |
+| [recover](commands/recover.md) | Recover (rollback) a release and/or version bump |
 | [update-readme](commands/update_readme.md) | Update README.md with `make help` output |
 | [generate-coverage-badge](commands/generate_coverage_badge.md) | Generate a coverage badge JSON file |
 | [version-matrix](commands/version_matrix.md) | Emit supported Python versions as JSON |
