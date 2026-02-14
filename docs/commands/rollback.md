@@ -1,10 +1,10 @@
-# Recover
+# Rollback
 
-Recover (rollback) a release and/or version bump safely.
+Rollback a release and/or version bump safely.
 
 ## Overview
 
-The `recover` command reverses release and bump operations by deleting release
+The `rollback` command reverses release and bump operations by deleting release
 tags from local and remote repositories, and optionally reverting the version
 bump commit. It uses `git revert` (not `git reset`), making it safe even when
 changes have already been pushed to remote.
@@ -12,32 +12,32 @@ changes have already been pushed to remote.
 ## Usage
 
 ```bash
-# Recover interactively (select from recent tags)
-rhiza-tools recover
+# Rollback interactively (select from recent tags)
+rhiza-tools rollback
 
-# Recover a specific release tag
-rhiza-tools recover v1.2.3
+# Rollback a specific release tag
+rhiza-tools rollback v1.2.3
 
 # Preview what would happen
-rhiza-tools recover v1.2.3 --dry-run
+rhiza-tools rollback v1.2.3 --dry-run
 
-# Recover and also revert the version bump commit
-rhiza-tools recover v1.2.3 --revert-bump
+# Rollback and also revert the version bump commit
+rhiza-tools rollback v1.2.3 --revert-bump
 
 # Non-interactive mode (for CI/CD)
-rhiza-tools recover v1.2.3 --revert-bump -y
+rhiza-tools rollback v1.2.3 --revert-bump -y
 ```
 
 ## Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `TAG` (argument) | *interactive* | Tag to recover (e.g., `v1.2.3`). Omit for interactive selection |
+| `TAG` (argument) | *interactive* | Tag to rollback (e.g., `v1.2.3`). Omit for interactive selection |
 | `--revert-bump` | `False` | Also revert the version bump commit |
 | `--dry-run` | `False` | Print what would happen without executing |
 | `--non-interactive` / `-y` | `False` | Skip all confirmation prompts |
 
-## What Gets Recovered
+## What Gets Rolled Back
 
 The command performs these steps in order:
 
@@ -59,7 +59,7 @@ The command performs these steps in order:
   skipped to prevent an inconsistent state.
 - **Bump detection** — Automatically detects whether the tagged commit is a
   version bump commit and offers to revert it.
-- **Dry-run support** — Preview the full recovery plan before executing.
+- **Dry-run support** — Preview the full rollback plan before executing.
 - **Interactive confirmation** — Requires explicit confirmation before making
   changes (unless `--non-interactive` is used).
 
@@ -69,22 +69,22 @@ When no tag argument is provided, the command shows a list of recent version
 tags with their local/remote status:
 
 ```
-? Select tag to recover (rollback):
+? Select tag to rollback:
 > v1.2.3 (local, remote)
   v1.2.2 (local, remote)
   v1.2.1 (local, remote)
 ```
 
-## Recovery Plan Preview
+## Rollback Plan Preview
 
-Before executing, the command displays a recovery plan:
+Before executing, the command displays a rollback plan:
 
 ```
 ──────────────────────────────────────────────────
-  Recovery Plan
+  Rollback Plan
 ──────────────────────────────────────────────────
 
-  Tag to recover: v1.2.3
+  Tag to rollback: v1.2.3
   Commit:  abc123de
   Date:    2025-01-15 10:30:00
   Message: Bump version: 1.2.2 → 1.2.3
@@ -108,7 +108,7 @@ You pushed a release tag but the release was premature:
 
 ```bash
 # Remove the tag and stop the release workflow
-rhiza-tools recover v1.2.3
+rhiza-tools rollback v1.2.3
 
 # Later, when ready to release again
 rhiza-tools release
@@ -120,7 +120,7 @@ You bumped to the wrong version and released:
 
 ```bash
 # Rollback both the tag and the bump commit
-rhiza-tools recover v1.2.3 --revert-bump
+rhiza-tools rollback v1.2.3 --revert-bump
 
 # Bump to the correct version and release
 rhiza-tools release --with-bump --push
@@ -131,7 +131,7 @@ rhiza-tools release --with-bump --push
 Automate rollback in a CI/CD pipeline:
 
 ```bash
-rhiza-tools recover v1.2.3 --revert-bump -y
+rhiza-tools rollback v1.2.3 --revert-bump -y
 ```
 
 ## Workflow

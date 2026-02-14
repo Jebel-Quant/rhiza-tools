@@ -1,22 +1,22 @@
-"""Command to recover (rollback) a release and/or version bump.
+"""Command to rollback a release and/or version bump.
 
-This module implements recovery functionality that safely reverses release
+This module implements rollback functionality that safely reverses release
 and bump operations. It can delete local and remote tags, revert bump commits,
 and restore the project to a previous version state.
 
 Example:
-    Recover the most recent release::
+    Rollback the most recent release::
 
-        from rhiza_tools.commands.recover import recover_command
-        recover_command()
+        from rhiza_tools.commands.rollback import rollback_command
+        rollback_command()
 
-    Recover a specific tag::
+    Rollback a specific tag::
 
-        recover_command(tag="v1.2.3")
+        rollback_command(tag="v1.2.3")
 
-    Dry run to preview recovery::
+    Dry run to preview rollback::
 
-        recover_command(dry_run=True)
+        rollback_command(dry_run=True)
 """
 
 from __future__ import annotations
@@ -48,11 +48,11 @@ _COOL_STYLE = qs.Style(
 
 
 @dataclass
-class RecoverOptions:
-    """Configuration options for the recover command.
+class RollbackOptions:
+    """Configuration options for the rollback command.
 
     Attributes:
-        tag: The tag to recover (e.g., "v1.2.3"). None for interactive selection.
+        tag: The tag to rollback (e.g., "v1.2.3"). None for interactive selection.
         revert_bump: If True, also revert the version bump commit.
         dry_run: If True, show what would change without actually changing anything.
         non_interactive: If True, skip all confirmation prompts.
@@ -85,7 +85,7 @@ def _get_recent_tags(limit: int = 10) -> list[str]:
 
 
 def _select_tag_interactively(tags: list[str]) -> str:
-    """Prompt the user to select a tag to recover.
+    """Prompt the user to select a tag to rollback.
 
     Args:
         tags: List of available tags.
@@ -98,7 +98,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
     """
     if not tags:
         logger.error("No version tags found in the repository.")
-        logger.error("Nothing to recover.")
+        logger.error("Nothing to rollback.")
         raise typer.Exit(code=1)
 
     # Annotate tags with local/remote info
@@ -115,7 +115,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
 
     try:
         choice = qs.select(
-            "Select tag to recover (rollback):",
+            "Select tag to rollback:",
             choices=choices,
             style=_COOL_STYLE,
         ).ask()
@@ -124,7 +124,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
         raise typer.Exit(code=1) from None
 
     if not choice:
-        logger.info("Recovery cancelled by user.")
+        logger.info("Rollback cancelled by user.")
         raise typer.Exit(code=0)
 
     # Extract tag name from choice string "v1.2.3 (local, remote)"
@@ -197,7 +197,7 @@ def _get_previous_version_from_tags(current_tag: str) -> str | None:
     """Find the previous version tag before the given tag.
 
     Args:
-        current_tag: The current tag being recovered.
+        current_tag: The current tag being rolled back.
 
     Returns:
         The previous tag name, or None if no previous tag exists.
@@ -358,7 +358,7 @@ def _push_revert(dry_run: bool, non_interactive: bool) -> bool:
         return False
 
 
-def _show_recovery_plan(
+def _show_rollback_plan(
     tag: str,
     exists_locally: bool,
     exists_remotely: bool,
@@ -367,10 +367,10 @@ def _show_recovery_plan(
     previous_tag: str | None,
     tag_details: dict[str, str],
 ) -> None:
-    """Display the recovery plan to the user.
+    """Display the rollback plan to the user.
 
     Args:
-        tag: Tag being recovered.
+        tag: Tag being rolled back.
         exists_locally: Whether the tag exists locally.
         exists_remotely: Whether the tag exists on remote.
         revert_bump: Whether to revert the bump commit.
@@ -378,13 +378,13 @@ def _show_recovery_plan(
         previous_tag: The previous version tag, if any.
         tag_details: Details about the tag (hash, date, message).
     """
-    header = typer.style("Recovery Plan", fg=typer.colors.YELLOW, bold=True)
+    header = typer.style("Rollback Plan", fg=typer.colors.YELLOW, bold=True)
     logger.info(f"\n{'─' * 50}")
     logger.info(f"  {header}")
     logger.info(f"{'─' * 50}")
 
     tag_styled = typer.style(tag, fg=typer.colors.RED, bold=True)
-    logger.info(f"\n  Tag to recover: {tag_styled}")
+    logger.info(f"\n  Tag to rollback: {tag_styled}")
 
     if tag_details:
         logger.info(f"  Commit:  {tag_details.get('hash', 'unknown')[:8]}")
@@ -415,8 +415,8 @@ def _show_recovery_plan(
     logger.info(f"\n{'─' * 50}")
 
 
-def _confirm_recovery(non_interactive: bool) -> bool:
-    """Confirm recovery with the user.
+def _confirm_rollback(non_interactive: bool) -> bool:
+    """Confirm rollback with the user.
 
     Args:
         non_interactive: If True, skip confirmation.
@@ -430,7 +430,7 @@ def _confirm_recovery(non_interactive: bool) -> bool:
     try:
         return bool(
             qs.confirm(
-                "Proceed with recovery? This action cannot be undone.",
+                "Proceed with rollback? This action cannot be undone.",
                 default=False,
                 style=_COOL_STYLE,
             ).ask()
@@ -440,8 +440,8 @@ def _confirm_recovery(non_interactive: bool) -> bool:
         return True
 
 
-def _validate_recovery_preconditions(tag: str) -> tuple[bool, bool]:
-    """Validate that the tag exists somewhere before attempting recovery.
+def _validate_rollback_preconditions(tag: str) -> tuple[bool, bool]:
+    """Validate that the tag exists somewhere before attempting rollback.
 
     Args:
         tag: The tag to validate.
@@ -456,14 +456,14 @@ def _validate_recovery_preconditions(tag: str) -> tuple[bool, bool]:
 
     if not exists_locally and not exists_remotely:
         logger.error(f"Tag '{tag}' does not exist locally or on remote.")
-        logger.error("Nothing to recover.")
+        logger.error("Nothing to rollback.")
         raise typer.Exit(code=1)
 
     return exists_locally, exists_remotely
 
 
-def recover_command(options: RecoverOptions) -> None:
-    """Recover (rollback) a release and/or version bump.
+def rollback_command(options: RollbackOptions) -> None:
+    """Rollback a release and/or version bump.
 
     This command safely reverses release and bump operations by:
 
@@ -476,28 +476,28 @@ def recover_command(options: RecoverOptions) -> None:
     revert commit, making it safe even when changes have been pushed to remote.
 
     Args:
-        options: Configuration options for the recovery.
+        options: Configuration options for the rollback.
 
     Raises:
         typer.Exit: If the tag doesn't exist, pyproject.toml is missing,
             or any git operations fail.
 
     Example:
-        Recover the most recent release::
+        Rollback the most recent release::
 
-            recover_command(RecoverOptions())
+            rollback_command(RollbackOptions())
 
-        Preview recovery::
+        Preview rollback::
 
-            recover_command(RecoverOptions(dry_run=True))
+            rollback_command(RollbackOptions(dry_run=True))
 
-        Recover a specific tag with bump revert::
+        Rollback a specific tag with bump revert::
 
-            recover_command(RecoverOptions(tag="v1.2.3", revert_bump=True))
+            rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True))
 
-        Non-interactive recovery::
+        Non-interactive rollback::
 
-            recover_command(RecoverOptions(
+            rollback_command(RollbackOptions(
                 tag="v1.2.3",
                 revert_bump=True,
                 non_interactive=True,
@@ -513,7 +513,7 @@ def recover_command(options: RecoverOptions) -> None:
     current_branch = result.stdout.strip()
     logger.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
-    # Determine which tag to recover
+    # Determine which tag to rollback
     tag = options.tag
     if not tag:
         if options.non_interactive:
@@ -523,7 +523,7 @@ def recover_command(options: RecoverOptions) -> None:
                 logger.error("No version tags found in the repository.")
                 raise typer.Exit(code=1)
             tag = recent_tags[0]
-            logger.info(f"Non-interactive mode: recovering most recent tag: {tag}")
+            logger.info(f"Non-interactive mode: rolling back most recent tag: {tag}")
         else:
             recent_tags = _get_recent_tags()
             tag = _select_tag_interactively(recent_tags)
@@ -533,9 +533,9 @@ def recover_command(options: RecoverOptions) -> None:
         tag = f"v{tag}"
 
     # Validate the tag exists somewhere
-    exists_locally, exists_remotely = _validate_recovery_preconditions(tag)
+    exists_locally, exists_remotely = _validate_rollback_preconditions(tag)
 
-    # Gather information for recovery plan
+    # Gather information for rollback plan
     tag_details = _get_tag_details(tag) if exists_locally else {}
     is_bump = _is_bump_commit(tag) if exists_locally else False
     previous_tag = _get_previous_version_from_tags(tag)
@@ -555,15 +555,15 @@ def recover_command(options: RecoverOptions) -> None:
             logger.debug("Running in non-interactive environment")
             revert_bump = False
 
-    # Show recovery plan
-    _show_recovery_plan(tag, exists_locally, exists_remotely, revert_bump, is_bump, previous_tag, tag_details)
+    # Show rollback plan
+    _show_rollback_plan(tag, exists_locally, exists_remotely, revert_bump, is_bump, previous_tag, tag_details)
 
     # Confirm with user
-    if not options.dry_run and not _confirm_recovery(options.non_interactive):
-        logger.info("Recovery cancelled by user.")
+    if not options.dry_run and not _confirm_rollback(options.non_interactive):
+        logger.info("Rollback cancelled by user.")
         raise typer.Exit(code=0)
 
-    # Execute recovery steps
+    # Execute rollback steps
     success = True
 
     # Step 1: Delete remote tag (do this first to stop any in-progress release)
@@ -597,10 +597,10 @@ def recover_command(options: RecoverOptions) -> None:
 
     # Summary
     if options.dry_run:
-        logger.info("\n[DRY-RUN] Recovery preview complete (no changes made)")
+        logger.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
     elif success:
         success_msg = typer.style("✓", fg=typer.colors.GREEN, bold=True)
-        logger.success(f"\n{success_msg} Recovery completed successfully!")
+        logger.success(f"\n{success_msg} Rollback completed successfully!")
 
         if previous_tag:
             version = previous_tag.lstrip("v")
@@ -614,4 +614,4 @@ def recover_command(options: RecoverOptions) -> None:
             logger.info("To set a new version:")
             logger.info("  rhiza-tools bump <version>")
     else:
-        logger.warning("\nRecovery completed with warnings. Review the output above.")
+        logger.warning("\nRollback completed with warnings. Review the output above.")

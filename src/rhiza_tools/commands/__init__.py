@@ -10,7 +10,7 @@ Available commands:
     - version_matrix_command: Python version matrix generation from pyproject.toml
     - analyze_benchmarks_command: Analyze and visualize pytest-benchmark results
     - release_command: Create and push release tags
-    - recover_command: Recover (rollback) a release and/or version bump
+    - rollback_command: Rollback a release and/or version bump
 
 Example:
     Import and use commands::
@@ -24,16 +24,16 @@ Example:
 
 from .analyze_benchmarks import analyze_benchmarks_command
 from .bump import bump_command
-from .recover import recover_command
 from .release import release_command
+from .rollback import rollback_command
 from .update_readme import update_readme_command
 from .version_matrix import version_matrix_command
 
 __all__ = [
     "analyze_benchmarks_command",
     "bump_command",
-    "recover_command",
     "release_command",
+    "rollback_command",
     "update_readme_command",
     "version_matrix_command",
 ]
