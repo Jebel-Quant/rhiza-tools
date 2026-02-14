@@ -359,6 +359,8 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
         config = get_configuration(config_file=config_path, **overrides)
     except Exception as e:
         logger.error(f"Failed to load bumpversion configuration: {e}")
+        logger.error(f"Check your bumpversion config at: {config_path}")
+        logger.error("Ensure the [tool.bumpversion] section is valid TOML with correct version patterns.")
         raise typer.Exit(code=1) from None
     else:
         return config, config_path
@@ -437,6 +439,42 @@ def _preview_file_modifications(config: Any, current_version: str, new_version: 
         logger.info("")  # Empty line for spacing
 
 
+def _preflight_bump(new_version_str: str, config: Any, config_path: Path, verbose: bool) -> None:
+    """Run a dry-run bump to validate the operation would succeed.
+
+    This preflight check ensures the bump operation will succeed before making
+    any actual changes. It catches configuration errors, file access issues,
+    and version format problems early, preventing partial failures that would
+    leave the repository in a state requiring manual recovery.
+
+    Args:
+        new_version_str: The new version string to validate.
+        config: The bumpversion configuration object.
+        config_path: Path to the bumpversion configuration file.
+        verbose: If True, show detailed output.
+
+    Raises:
+        typer.Exit: If the preflight validation fails.
+    """
+    logger.info("Running preflight validation (dry-run)...")
+    setup_logging(verbose=1 if verbose else 0)
+
+    try:
+        do_bump(
+            version_part=None,
+            new_version=new_version_str,
+            config=config,
+            config_file=config_path,
+            dry_run=True,
+        )
+    except Exception as e:
+        logger.error(f"Preflight validation failed: {e}")
+        logger.error("No changes were made.")
+        raise typer.Exit(code=1) from None
+
+    logger.success("Preflight validation passed")
+
+
 def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool) -> None:
     """Execute the bump operation using bump-my-version.
 
@@ -463,6 +501,12 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
         )
     except Exception as e:
         logger.error(f"bump-my-version failed: {e}")
+        if not dry_run:
+            logger.error("Files may have been partially modified. To recover:")
+            logger.error("  1. Check modified files: git diff")
+            logger.error("  2. Restore all changes:  git checkout -- .")
+            logger.error("  3. Remove untracked:     git clean -fd")
+            logger.error("Or to keep changes, fix the issue and retry.")
         raise typer.Exit(code=1) from None
 
 
@@ -545,6 +589,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
         )  # nosec
         if result.returncode != 0:
             logger.error(f"Failed to checkout branch {branch}: {result.stderr}")
+            logger.error(f"Ensure the branch '{branch}' exists: git branch -a")
             raise typer.Exit(code=1)
     else:
         logger.info(f"[DRY-RUN] Would checkout branch {branch}")
@@ -642,7 +687,10 @@ def _handle_push_to_remote(version: str | None) -> None:
         logger.success("Changes pushed to remote successfully!")
     else:
         logger.error(f"Failed to push changes: {result.stderr}")
-        logger.error("You can manually push with: git push")
+        logger.error("The version bump has been applied locally but could not be pushed.")
+        logger.error("To recover:")
+        logger.error("  Push manually:   git push")
+        logger.error("  Or undo bump:    git reset --hard HEAD~1")
         raise typer.Exit(code=1)
 
 
@@ -731,6 +779,12 @@ def bump_command(options: BumpOptions) -> None:
         ):
             logger.info("Version bump cancelled by user")
             raise typer.Exit(code=0)
+
+    # Preflight: validate bump would succeed before making any changes
+    if not options.dry_run:
+        _preflight_bump(new_version_str, config, config_path, options.verbose)
+        # Rebuild configuration to avoid stale state from dry-run
+        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
     _execute_bump(new_version_str, config, config_path, options.dry_run, options.verbose)
 

@@ -813,8 +813,12 @@ def _categorize_git_command(cmd, version=""):
     return "other"
 
 
-def test_release_with_bump_push_pushes_commit_before_branch_check(mock_pyproject, monkeypatch):
-    """Test that --push pushes the bump commit to remote before branch status check."""
+def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproject, monkeypatch):
+    """Test that branch status is checked BEFORE pushing the bump commit.
+
+    This ensures preflight validation catches problems (dirty tree, diverged branch)
+    before any commits or pushes happen, preventing states that need manual recovery.
+    """
     call_order = []
 
     def track_push(cmd, result):
@@ -840,13 +844,13 @@ def test_release_with_bump_push_pushes_commit_before_branch_check(mock_pyproject
         with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
             release_command(bump_type="PATCH", push=True, non_interactive=True)
 
-    # Bump commit must be pushed BEFORE git fetch (which is the first step of check_branch_status)
-    assert "push_bump_commit" in call_order, "Bump commit should be pushed to remote"
+    # Branch status check (fetch) must happen BEFORE bump commit push
     assert "fetch_for_branch_check" in call_order, "Branch status should be checked"
-    push_idx = call_order.index("push_bump_commit")
+    assert "push_bump_commit" in call_order, "Bump commit should be pushed to remote"
     fetch_idx = call_order.index("fetch_for_branch_check")
-    assert push_idx < fetch_idx, (
-        f"Bump commit push (index {push_idx}) should happen before branch status check (index {fetch_idx})"
+    push_idx = call_order.index("push_bump_commit")
+    assert fetch_idx < push_idx, (
+        f"Branch status check (index {fetch_idx}) should happen before bump commit push (index {push_idx})"
     )
 
 
@@ -1054,3 +1058,124 @@ def test_push_tag_with_non_github_url(monkeypatch):
     with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
         push_tag("v1.0.0", dry_run=False)
         # Should complete without showing GitHub Actions URL
+
+
+# ──────────────────────────────────────────────
+# Preflight Validation Tests
+# ──────────────────────────────────────────────
+
+
+class TestReleasePreflightValidation:
+    """Tests for preflight validation in release_command.
+
+    These tests verify that all validations (repo state, tag availability)
+    happen BEFORE any destructive operations (bump, commit, push).
+    """
+
+    def test_preflight_checks_repo_state_before_bump(self, mock_pyproject, monkeypatch):
+        """Repository state check should block release before any bump happens."""
+        bump_called = {"called": False}
+
+        def mock_bump_command(options):
+            bump_called["called"] = True
+
+        def mock_run_git_command(cmd, check=True):
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = ""
+
+            if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+                result.stdout = "main"
+            elif "remote" in cmd and "show" in cmd:
+                result.stdout = "* remote origin\n  HEAD branch: main\n"
+            elif "status" in cmd and "--porcelain" in cmd:
+                result.stdout = " M dirty-file.txt\n"  # Dirty working tree
+            elif "symbolic-full-name" in cmd:
+                result.stdout = "origin/main"
+            elif "rev-parse" in cmd:
+                result.stdout = "abc123"
+            elif "merge-base" in cmd:
+                result.stdout = "abc123"
+
+            return result
+
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+            with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
+                with pytest.raises(typer.Exit):
+                    release_command(bump_type="PATCH", push=True, non_interactive=True)
+
+        # Bump should NOT have been called since repo was dirty
+        assert not bump_called["called"], "Bump should not be called when repo state is dirty"
+
+    def test_preflight_checks_tag_availability_before_bump(self, mock_pyproject, monkeypatch):
+        """Tag conflict on remote should block release before any bump happens."""
+        bump_called = {"called": False}
+
+        def mock_bump_command(options):
+            bump_called["called"] = True
+
+        def mock_run_git_command(cmd, check=True):
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = ""
+
+            if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+                result.stdout = "main"
+            elif "remote" in cmd and "show" in cmd:
+                result.stdout = "* remote origin\n  HEAD branch: main\n"
+            elif "status" in cmd and "--porcelain" in cmd:
+                result.stdout = ""  # Clean tree
+            elif "symbolic-full-name" in cmd:
+                result.stdout = "origin/main"
+            elif "rev-parse" in cmd:
+                result.stdout = "abc123"
+            elif "merge-base" in cmd:
+                result.stdout = "abc123"
+            elif "ls-remote" in cmd and "--tags" in cmd:
+                result.returncode = 0  # Tag exists remotely (conflict!)
+
+            return result
+
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+            with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
+                with pytest.raises(typer.Exit):
+                    release_command(bump_type="PATCH", push=True, non_interactive=True)
+
+        # Bump should NOT have been called since tag already exists on remote
+        assert not bump_called["called"], "Bump should not be called when tag already exists on remote"
+
+    def test_preflight_tag_check_skipped_in_dry_run(self, mock_pyproject, monkeypatch):
+        """Tag preflight check is skipped in dry-run mode (no destructive ops)."""
+        mock_git = _make_mock_git_for_bump_release(
+            tag_exists_remotely=False,
+            previous_tags="",
+        )
+
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
+            with patch("rhiza_tools.commands.release.bump_command"):
+                # Should complete without error in dry-run
+                release_command(bump_type="PATCH", push=True, dry_run=True)
+
+    def test_preflight_allows_release_when_tag_available(self, mock_pyproject, monkeypatch):
+        """Release proceeds when preflight confirms tag is available on remote."""
+        bump_called = {"called": False}
+
+        def mock_bump_command(options):
+            bump_called["called"] = True
+            import tomlkit
+
+            with open("pyproject.toml") as f:
+                data = tomlkit.parse(f.read())
+            data["project"]["version"] = "1.2.4"
+            with open("pyproject.toml", "w") as f:
+                f.write(tomlkit.dumps(data))
+
+        mock_git = _make_mock_git_for_bump_release(
+            tag_exists_remotely=False,
+        )
+
+        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
+            with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
+                release_command(bump_type="PATCH", push=True, non_interactive=True)
+
+        assert bump_called["called"], "Bump should proceed when tag is available"
