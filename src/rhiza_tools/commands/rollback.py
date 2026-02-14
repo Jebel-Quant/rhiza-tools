@@ -22,28 +22,18 @@ Example:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
 import questionary as qs
 import typer
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands.release import check_tag_exists, run_git_command
-
-_COOL_STYLE = qs.Style(
-    [
-        ("separator", "fg:#cc5454"),
-        ("qmark", "fg:#2FA4A9 bold"),
-        ("question", ""),
-        ("selected", "fg:#2FA4A9 bold"),
-        ("pointer", "fg:#2FA4A9 bold"),
-        ("highlighted", "fg:#2FA4A9 bold"),
-        ("answer", "fg:#2FA4A9 bold"),
-        ("text", "fg:#ffffff"),
-        ("disabled", "fg:#858585 italic"),
-    ]
+from rhiza_tools.commands._shared import (
+    COOL_STYLE,
+    run_git_command,
+    validate_pyproject_exists,
 )
+from rhiza_tools.commands.release import check_tag_exists
 
 
 @dataclass
@@ -116,7 +106,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
         choice = qs.select(
             "Select tag to rollback:",
             choices=choices,
-            style=_COOL_STYLE,
+            style=COOL_STYLE,
         ).ask()
     except EOFError:
         logger.debug("Running in non-interactive environment")
@@ -335,7 +325,7 @@ def _push_revert(dry_run: bool, non_interactive: bool) -> bool:
             should_push = qs.confirm(
                 "Push revert commit to remote?",
                 default=True,
-                style=_COOL_STYLE,
+                style=COOL_STYLE,
             ).ask()
         except EOFError:
             logger.debug("Running in non-interactive environment, proceeding with push")
@@ -431,7 +421,7 @@ def _confirm_rollback(non_interactive: bool) -> bool:
             qs.confirm(
                 "Proceed with rollback? This action cannot be undone.",
                 default=False,
-                style=_COOL_STYLE,
+                style=COOL_STYLE,
             ).ask()
         )
     except EOFError:
@@ -517,7 +507,7 @@ def _should_revert_bump(options: RollbackOptions, exists_locally: bool, is_bump:
             qs.confirm(
                 "The tagged commit appears to be a version bump. Revert it too?",
                 default=True,
-                style=_COOL_STYLE,
+                style=COOL_STYLE,
             ).ask()
         )
     except EOFError:
@@ -656,9 +646,7 @@ def rollback_command(options: RollbackOptions) -> None:
                 non_interactive=True,
             ))
     """
-    if not Path("pyproject.toml").exists():
-        console.error("pyproject.toml not found in current directory")
-        raise typer.Exit(code=1)
+    validate_pyproject_exists()
 
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
     current_branch = result.stdout.strip()

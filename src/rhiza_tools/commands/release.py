@@ -15,46 +15,22 @@ Example:
         release_command(dry_run=True)
 """
 
-import subprocess  # nosec B404 - subprocess needed for git operations
-from pathlib import Path
-
 import semver
 import typer
 from loguru import logger
 
 from rhiza_tools import console
+from rhiza_tools.commands._shared import (
+    get_current_version,
+    run_git_command,
+    validate_pyproject_exists,
+)
 from rhiza_tools.commands.bump import (
     BumpOptions,
     bump_command,
     get_bumped_version_from_type,
-    get_current_version,
     get_interactive_bump_type,
 )
-
-
-def run_git_command(command: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
-    """Run a git command and return the result.
-
-    Args:
-        command: The git command to run as a list of arguments.
-        check: If True, raise an exception on non-zero exit code.
-
-    Returns:
-        CompletedProcess instance with stdout, stderr, and returncode.
-
-    Raises:
-        subprocess.CalledProcessError: If check=True and command fails.
-
-    Example:
-        >>> result = run_git_command(["git", "status", "--porcelain"])  # doctest: +SKIP
-        >>> print(result.stdout)  # doctest: +SKIP
-    """
-    result = subprocess.run(command, capture_output=True, text=True, check=False)  # nosec B603 - git commands are trusted
-    if check and result.returncode != 0:
-        console.error(f"Git command failed: {' '.join(command)}")
-        console.error(f"Error: {result.stderr}")
-        raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
-    return result
 
 
 def check_clean_working_tree() -> None:
@@ -262,11 +238,11 @@ def _get_bump_type_interactively(
     """
     # Explicit bump type provided
     if bump_type:
-        current = get_current_version()
+        current_version_str = get_current_version()
         try:
-            current_semver = semver.Version.parse(current)
+            current_semver = semver.Version.parse(current_version_str)
         except ValueError:
-            console.error(f"Invalid semantic version: {current}")
+            console.error(f"Invalid semantic version: {current_version_str}")
             raise typer.Exit(code=1) from None
         new_version = get_bumped_version_from_type(current_semver, bump_type.lower())
         if not new_version:
@@ -274,24 +250,9 @@ def _get_bump_type_interactively(
             raise typer.Exit(code=1)
         return True, new_version
 
-    # --with-bump flag: use bump's interactive selection (even in dry-run)
-    if with_bump:
-        if non_interactive:
-            console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-            current = get_current_version()
-            current_semver = semver.Version.parse(current)
-            return True, str(current_semver.bump_patch())
-
-        current_version_str = get_current_version()
-        try:
-            new_version = get_interactive_bump_type(current_version_str)
-        except (typer.Exit, EOFError):
-            return False, None
-        else:
-            return True, new_version
-
-    # Default interactive mode: ask if user wants to bump
-    if not non_interactive:
+    # Determine whether the user wants to bump
+    should_bump = with_bump
+    if not should_bump and not non_interactive:
         import questionary as qs
 
         try:
@@ -302,18 +263,24 @@ def _get_bump_type_interactively(
         except EOFError:
             logger.debug("Running in non-interactive environment")
             return False, None
-        else:
-            if should_bump:
-                current_version_str = get_current_version()
-                try:
-                    new_version = get_interactive_bump_type(current_version_str)
-                except (typer.Exit, EOFError):
-                    return False, None
-                else:
-                    return True, new_version
-            return False, None
 
-    return False, None
+    if not should_bump:
+        return False, None
+
+    # Non-interactive with --with-bump: default to patch
+    if non_interactive:
+        console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
+        current_version_str = get_current_version()
+        current_semver = semver.Version.parse(current_version_str)
+        return True, str(current_semver.bump_patch())
+
+    # Interactive version selection (shared by --with-bump and default interactive modes)
+    current_version_str = get_current_version()
+    try:
+        new_version = get_interactive_bump_type(current_version_str)
+    except (typer.Exit, EOFError):
+        return False, None
+    return True, new_version
 
 
 def _perform_version_bump(new_version: str, dry_run: bool) -> str:
@@ -575,9 +542,7 @@ def release_command(
             release_command(with_bump=True, push=True, dry_run=True)
     """
     # Validate pyproject.toml exists
-    if not Path("pyproject.toml").exists():
-        console.error("pyproject.toml not found in current directory")
-        raise typer.Exit(code=1)
+    validate_pyproject_exists()
 
     # Get current branch early
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])

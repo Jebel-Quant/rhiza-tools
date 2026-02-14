@@ -26,7 +26,6 @@ from typing import Any, cast
 
 import questionary as qs
 import semver
-import tomlkit
 import typer
 from bumpversion.bump import do_bump
 from bumpversion.config import get_configuration
@@ -34,21 +33,14 @@ from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.config import CONFIG_FILENAME
-
-_COOL_STYLE = qs.Style(
-    [
-        ("separator", "fg:#cc5454"),
-        ("qmark", "fg:#2FA4A9 bold"),
-        ("question", ""),
-        ("selected", "fg:#2FA4A9 bold"),
-        ("pointer", "fg:#2FA4A9 bold"),
-        ("highlighted", "fg:#2FA4A9 bold"),
-        ("answer", "fg:#2FA4A9 bold"),
-        ("text", "fg:#ffffff"),
-        ("disabled", "fg:#858585 italic"),
-    ]
+from rhiza_tools.commands._shared import (
+    COOL_STYLE,
+    get_current_git_branch,
+    get_current_version,
+    run_git_command,
+    validate_pyproject_exists,
 )
+from rhiza_tools.config import CONFIG_FILENAME
 
 # Valid bump type keywords
 _VALID_BUMP_TYPES = ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "rc", "dev"]
@@ -88,28 +80,8 @@ class BumpOptions:
     allow_dirty: bool = False
 
 
-def get_current_version() -> str:
-    """Read current version from pyproject.toml.
-
-    Returns:
-        The current version string from the project.version field.
-
-    Raises:
-        typer.Exit: If pyproject.toml cannot be read or parsed.
-
-    Example:
-        >>> version = get_current_version()  # doctest: +SKIP
-        >>> print(version)  # doctest: +SKIP
-        0.1.0
-    """
-    try:
-        with open("pyproject.toml") as f:
-            data = tomlkit.parse(f.read())
-            project = cast(dict[str, Any], data["project"])
-            return str(project["version"])
-    except Exception as e:
-        console.error(f"Failed to read version from pyproject.toml: {e}")
-        raise typer.Exit(code=1) from None
+# Re-export for backward compatibility — consumers import from here.
+get_current_version = get_current_version
 
 
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
@@ -213,7 +185,7 @@ def get_interactive_bump_type(current_version_str: str) -> str:
             f"Dev ({current_version_str} -> {next_dev})",
             f"Build ({current_version_str} -> {next_build})",
         ],
-        style=_COOL_STYLE,
+        style=COOL_STYLE,
     ).ask()
 
     if not choice:
@@ -320,17 +292,6 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
 
     # Otherwise, it's an explicit version - validate and return
     return _validate_explicit_version(version)
-
-
-def _validate_pyproject_exists() -> None:
-    """Validate that pyproject.toml exists in the current directory.
-
-    Raises:
-        typer.Exit: If pyproject.toml is not found.
-    """
-    if not Path("pyproject.toml").exists():
-        console.error("pyproject.toml not found in current directory")
-        raise typer.Exit(code=1)
 
 
 def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool) -> tuple[Any, Path]:
@@ -557,18 +518,11 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
     Raises:
         typer.Exit: If checkout fails.
     """
-    import subprocess  # nosec
-
     if not branch:
         return None
 
     # Get current branch
-    result = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )  # nosec
+    result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], check=False)
     if result.returncode != 0:
         return None
 
@@ -578,12 +532,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
 
     console.info(f"Switching from {current_branch} to {branch}")
     if not dry_run:
-        result = subprocess.run(
-            ["git", "checkout", branch],
-            capture_output=True,
-            text=True,
-            check=False,
-        )  # nosec
+        result = run_git_command(["git", "checkout", branch], check=False)
         if result.returncode != 0:
             console.error(f"Failed to checkout branch {branch}: {result.stderr}")
             console.error(f"Ensure the branch '{branch}' exists: git branch -a")
@@ -592,23 +541,6 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
         console.info(f"[DRY-RUN] Would checkout branch {branch}")
 
     return current_branch
-
-
-def _get_current_git_branch() -> str:
-    """Get the current git branch name.
-
-    Returns:
-        Current branch name or "unknown" if unable to determine.
-    """
-    import subprocess  # nosec
-
-    result = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )  # nosec
-    return result.stdout.strip() if result.returncode == 0 else "unknown"
 
 
 def _show_interactive_preview(
@@ -639,7 +571,7 @@ def _show_interactive_preview(
 
     # Confirm bump
     try:
-        proceed = cast(bool, qs.confirm("Proceed with version bump?", default=True, style=_COOL_STYLE).ask())
+        proceed = cast(bool, qs.confirm("Proceed with version bump?", default=True, style=COOL_STYLE).ask())
     except EOFError:
         logger.debug("Running in non-interactive environment, proceeding automatically")
         proceed = True
@@ -649,7 +581,7 @@ def _show_interactive_preview(
 
     # Ask about commit
     try:
-        commit = cast(bool, qs.confirm("Commit the changes?", default=True, style=_COOL_STYLE).ask())
+        commit = cast(bool, qs.confirm("Commit the changes?", default=True, style=COOL_STYLE).ask())
     except EOFError:
         logger.debug("Running in non-interactive environment, committing automatically")
         commit = True
@@ -658,7 +590,7 @@ def _show_interactive_preview(
     push = False
     if commit:
         try:
-            push = cast(bool, qs.confirm("Push changes to remote?", default=False, style=_COOL_STYLE).ask())
+            push = cast(bool, qs.confirm("Push changes to remote?", default=False, style=COOL_STYLE).ask())
         except EOFError:
             logger.debug("Running in non-interactive environment, skipping push")
             push = False
@@ -675,14 +607,10 @@ def _handle_push_to_remote(version: str | None) -> None:
     Raises:
         typer.Exit: If push fails.
     """
-    import subprocess  # nosec
-
-    import questionary as qs
-
     # Interactive prompt if not in non-interactive mode and version was not specified
     if not version:
         try:
-            if not qs.confirm("Push changes to remote?", default=False, style=_COOL_STYLE).ask():
+            if not qs.confirm("Push changes to remote?", default=False, style=COOL_STYLE).ask():
                 console.info("Push cancelled by user")
                 return
         except EOFError:
@@ -690,12 +618,7 @@ def _handle_push_to_remote(version: str | None) -> None:
             logger.debug("Running in non-interactive environment, proceeding with push")
 
     console.info("Pushing changes to remote...")
-    result = subprocess.run(
-        ["git", "push"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )  # nosec
+    result = run_git_command(["git", "push"], check=False)
     if result.returncode == 0:
         console.success("Changes pushed to remote successfully!")
     else:
@@ -714,16 +637,9 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
         original_branch: Original branch to restore, or None.
         dry_run: If True, don't actually restore.
     """
-    import subprocess  # nosec
-
     if original_branch and not dry_run:
         console.info(f"Returning to original branch {original_branch}")
-        subprocess.run(
-            ["git", "checkout", original_branch],
-            capture_output=True,
-            text=True,
-            check=False,
-        )  # nosec
+        run_git_command(["git", "checkout", original_branch], check=False)
 
 
 def bump_command(options: BumpOptions) -> None:
@@ -757,7 +673,7 @@ def bump_command(options: BumpOptions) -> None:
 
             bump_command(BumpOptions(version="minor", push=True))
     """
-    _validate_pyproject_exists()
+    validate_pyproject_exists()
 
     # Handle branch checkout if specified
     original_branch = _handle_branch_checkout(options.branch, options.dry_run)
@@ -773,7 +689,7 @@ def bump_command(options: BumpOptions) -> None:
     config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
     # Get current branch for display
-    current_git_branch = _get_current_git_branch()
+    current_git_branch = get_current_git_branch()
 
     console.info(f"Current branch: {typer.style(current_git_branch, fg=typer.colors.CYAN, bold=True)}")
     console.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
