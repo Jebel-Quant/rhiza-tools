@@ -7,7 +7,7 @@ Extra utilities and tools for the [Rhiza](https://github.com/Jebel-Quant/rhiza) 
 
 ## What is Rhiza Tools?
 
-`rhiza-tools` provides additional CLI commands for the Rhiza ecosystem, including version bumping, release management, benchmark analysis, and documentation helpers. It can be used as a plugin for `rhiza-cli` or as a standalone tool.
+`rhiza-tools` provides CLI commands for the Rhiza ecosystem, including version bumping, release management, benchmark analysis, and documentation helpers. It can be used as a plugin for `rhiza-cli` or as a standalone tool.
 
 ## Installation
 
@@ -44,17 +44,15 @@ make install
 make test
 
 # Bump version interactively
-make bump
+rhiza-tools bump
 
-# Build the documentation
-make mkdocs-build
+# Release
+rhiza-tools release --with-bump --push
 ```
 
-## Learn More
+## Further Reading
 
-- [Architecture](ARCHITECTURE.md) — visual diagrams of the system
-- [Quick Reference](QUICK_REFERENCE.md) — cheat sheet for common tasks
-- [Releasing](RELEASING.md) — how to release a new version
-- [Customization](CUSTOMIZATION.md) — hooks, extensions, and configuration
+- [Releasing](RELEASING.md) — bump and release workflow with flowcharts
 - [API Reference](api_reference.md) — module and function documentation
-- [Security](SECURITY.md) — security policy and vulnerability reporting
+- [Rhiza Framework Docs](https://github.com/Jebel-Quant/rhiza) — architecture, customization, glossary, and more
+

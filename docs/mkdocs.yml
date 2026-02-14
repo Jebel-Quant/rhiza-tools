@@ -64,9 +64,6 @@ markdown_extensions:
 # Navigation structure
 nav:
   - Home: index.md
-  - Architecture: ARCHITECTURE.md
-  - Quick Reference: QUICK_REFERENCE.md
-  - Customization: CUSTOMIZATION.md
   - Releasing: RELEASING.md
   - Commands:
     - bump: commands/bump.md
@@ -76,9 +73,4 @@ nav:
     - version-matrix: commands/version_matrix.md
     - analyze-benchmarks: commands/analyze_benchmarks.md
   - API Reference: api_reference.md
-  - Testing: TESTS.md
-  - Security: SECURITY.md
-  - Book: BOOK.md
-  - Demo: DEMO.md
-  - Glossary: GLOSSARY.md
 
