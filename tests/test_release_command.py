@@ -702,34 +702,12 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
     """Test release in non-interactive mode with bump."""
     git_push_calls = []
 
-    def mock_run_git_command(cmd, check=True):
-        result = MagicMock()
-        result.returncode = 0
-        result.stdout = ""
+    def track_push(cmd, result):
+        git_push_calls.append(cmd)
 
-        if "push" in cmd:
-            git_push_calls.append(cmd)
-        elif "rev-parse" in cmd and "--abbrev-ref" in cmd:
-            result.stdout = "main"
-        elif "symbolic-full-name" in cmd:
-            result.stdout = "origin/main"
-        elif "remote" in cmd and "show" in cmd:
-            result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
-            result.stdout = "abc123"
-            result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
-            result.stdout = "abc123"
-        elif "ls-remote" in cmd:
-            result.returncode = 1
-        elif "tag" in cmd and "--sort" in cmd:
-            result.stdout = "v1.2.3\nv1.2.2"
-        elif "remote" in cmd and "get-url" in cmd:
-            result.stdout = "https://github.com/user/repo.git"
-
-        return result
+    mock_git = _make_mock_git_for_bump_release(
+        callbacks={"push_branch": track_push, "push": track_push},
+    )
 
     # Mock bump_command
     bump_called = {"called": False}
@@ -745,7 +723,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
         with open("pyproject.toml", "w") as f:
             f.write(tomlkit.dumps(data))
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
         with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
             release_command(bump_type="MINOR", push=True, non_interactive=True)
 
