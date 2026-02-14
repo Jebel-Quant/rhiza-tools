@@ -6,12 +6,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from rhiza_tools.commands.bump import BumpOptions
+from rhiza_tools.commands.bump import BumpOptions, get_current_version
 from rhiza_tools.commands.release import (
     check_branch_status,
     check_clean_working_tree,
     check_tag_exists,
-    get_current_version,
     get_default_branch,
     push_tag,
     release_command,
@@ -647,12 +646,12 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
             f.write(tomlkit.dumps(data))
 
     with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
+        with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
             release_command(bump_type="PATCH", push=True, dry_run=True)
 
     assert bump_called["called"]
     assert isinstance(bump_called["options"], BumpOptions)
-    assert bump_called["options"].version == "patch"
+    assert bump_called["options"].version == "1.2.4"
 
 
 def test_release_with_push_flag(mock_pyproject, monkeypatch):
@@ -744,7 +743,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
             f.write(tomlkit.dumps(data))
 
     with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
+        with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
             release_command(bump_type="MINOR", push=True, non_interactive=True)
 
     assert bump_called["called"]
@@ -826,16 +825,6 @@ def test_get_bump_type_interactively_eoferror(monkeypatch):
         assert bump_type is None
 
 
-def test_perform_version_bump_invalid_type(mock_pyproject):
-    """Test _perform_version_bump with invalid bump type."""
-    from rhiza_tools.commands.release import _perform_version_bump
-
-    with pytest.raises(typer.Exit) as excinfo:
-        _perform_version_bump("INVALID", False)
-
-    assert excinfo.value.exit_code == 1
-
-
 def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
     """Test _perform_version_bump in dry-run mode returns new version."""
     from rhiza_tools.commands.release import _perform_version_bump
@@ -845,28 +834,11 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
     def mock_bump_command(options):
         bump_called["called"] = True
 
-    with patch("rhiza_tools.commands.bump.bump_command", side_effect=mock_bump_command):
-        new_version = _perform_version_bump("MINOR", dry_run=True)
+    with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
+        new_version = _perform_version_bump("1.3.0", dry_run=True)
 
     assert bump_called["called"]
-    assert new_version == "1.3.0"  # 1.2.3 -> 1.3.0
-
-
-def test_calculate_new_version(mock_pyproject):
-    """Test _calculate_new_version calculates correctly."""
-    from rhiza_tools.commands.release import _calculate_new_version
-
-    assert _calculate_new_version("PATCH") == "1.2.4"
-    assert _calculate_new_version("MINOR") == "1.3.0"
-    assert _calculate_new_version("MAJOR") == "2.0.0"
-
-
-def test_calculate_new_version_invalid_type(mock_pyproject):
-    """Test _calculate_new_version with invalid type."""
-    from rhiza_tools.commands.release import _calculate_new_version
-
-    with pytest.raises(typer.Exit):
-        _calculate_new_version("INVALID")
+    assert new_version == "1.3.0"
 
 
 def test_show_commits_since_last_tag_with_commits(monkeypatch):
