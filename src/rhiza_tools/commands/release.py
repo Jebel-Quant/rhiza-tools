@@ -25,6 +25,7 @@ from loguru import logger
 from rhiza_tools import console
 from rhiza_tools.commands.bump import (
     BumpOptions,
+    Language,
     bump_command,
     get_bumped_version_from_type,
     get_current_version,
@@ -262,7 +263,7 @@ def _get_bump_type_interactively(
     """
     # Explicit bump type provided
     if bump_type:
-        current = get_current_version()
+        current = get_current_version(Language.PYTHON)
         try:
             current_semver = semver.Version.parse(current)
         except ValueError:
@@ -278,11 +279,11 @@ def _get_bump_type_interactively(
     if with_bump:
         if non_interactive:
             console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-            current = get_current_version()
+            current = get_current_version(Language.PYTHON)
             current_semver = semver.Version.parse(current)
             return True, str(current_semver.bump_patch())
 
-        current_version_str = get_current_version()
+        current_version_str = get_current_version(Language.PYTHON)
         try:
             new_version = get_interactive_bump_type(current_version_str)
         except (typer.Exit, EOFError):
@@ -304,7 +305,7 @@ def _get_bump_type_interactively(
             return False, None
         else:
             if should_bump:
-                current_version_str = get_current_version()
+                current_version_str = get_current_version(Language.PYTHON)
                 try:
                     new_version = get_interactive_bump_type(current_version_str)
                 except (typer.Exit, EOFError):
@@ -473,7 +474,7 @@ def _get_release_version(dry_run: bool, bumped_new_version: str | None) -> tuple
     if dry_run and bumped_new_version:
         current_version = bumped_new_version
     else:
-        current_version = get_current_version()
+        current_version = get_current_version(Language.PYTHON)
 
     tag = f"v{current_version}"
     console.info(f"Current version: {current_version}")

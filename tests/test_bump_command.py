@@ -8,7 +8,7 @@ import typer
 
 from rhiza_tools.commands.bump import (
     BumpOptions,
-    _detect_project_language,
+    Language,
     bump_command,
     get_current_version,
 )
@@ -75,37 +75,37 @@ replace = 'version = "{new_version}"'
 def test_bump_patch(bump_project):
     """Test bumping the patch version."""
     bump_command(BumpOptions(version="patch"))
-    assert get_current_version() == "0.1.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1"
 
 
 def test_bump_minor(bump_project):
     """Test bumping the minor version."""
     bump_command(BumpOptions(version="minor"))
-    assert get_current_version() == "0.2.0"
+    assert get_current_version(Language.PYTHON) == "0.2.0"
 
 
 def test_bump_major(bump_project):
     """Test bumping the major version."""
     bump_command(BumpOptions(version="major"))
-    assert get_current_version() == "1.0.0"
+    assert get_current_version(Language.PYTHON) == "1.0.0"
 
 
 def test_bump_explicit_version(bump_project):
     """Test bumping to an explicit version."""
     bump_command(BumpOptions(version="1.2.3"))
-    assert get_current_version() == "1.2.3"
+    assert get_current_version(Language.PYTHON) == "1.2.3"
 
 
 def test_bump_explicit_version_with_v_prefix(bump_project):
     """Test bumping to an explicit version with 'v' prefix."""
     bump_command(BumpOptions(version="v1.2.3"))
-    assert get_current_version() == "1.2.3"
+    assert get_current_version(Language.PYTHON) == "1.2.3"
 
 
 def test_dry_run(bump_project):
     """Test dry run does not change the version."""
     bump_command(BumpOptions(version="patch", dry_run=True))
-    assert get_current_version() == "0.1.0"
+    assert get_current_version(Language.PYTHON) == "0.1.0"
 
 
 def test_invalid_version(bump_project):
@@ -125,22 +125,22 @@ def test_bump_prerelease(bump_project):
     """Test bumping prerelease."""
     # First bump to a prerelease version
     bump_command(BumpOptions(version="0.1.0-alpha.1"))
-    assert get_current_version() == "0.1.0-alpha.1"
+    assert get_current_version(Language.PYTHON) == "0.1.0-alpha.1"
 
     # Bump prerelease
     bump_command(BumpOptions(version="prerelease"))
-    assert get_current_version() == "0.1.0-alpha.2"
+    assert get_current_version(Language.PYTHON) == "0.1.0-alpha.2"
 
 
 def test_bump_build(bump_project):
     """Test bumping build."""
     # First bump to a build version
     bump_command(BumpOptions(version="0.1.0+build.1"))
-    assert get_current_version() == "0.1.0+build.1"
+    assert get_current_version(Language.PYTHON) == "0.1.0+build.1"
 
     # Bump build
     bump_command(BumpOptions(version="build"))
-    assert get_current_version() == "0.1.0+build.2"
+    assert get_current_version(Language.PYTHON) == "0.1.0+build.2"
 
 
 def test_bump_interactive_patch(bump_project, monkeypatch):
@@ -158,7 +158,7 @@ def test_bump_interactive_patch(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1"
 
 
 def test_bump_interactive_minor(bump_project, monkeypatch):
@@ -175,7 +175,7 @@ def test_bump_interactive_minor(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.2.0"
+    assert get_current_version(Language.PYTHON) == "0.2.0"
 
 
 def test_bump_interactive_cancel(bump_project, monkeypatch):
@@ -195,50 +195,50 @@ def test_bump_interactive_cancel(bump_project, monkeypatch):
         bump_command(BumpOptions(version=None))
 
     assert excinfo.value.exit_code == 0
-    assert get_current_version() == "0.1.0"
+    assert get_current_version(Language.PYTHON) == "0.1.0"
 
 
 def test_bump_alpha_argument(bump_project):
     """Test bumping alpha version via argument."""
     bump_command(BumpOptions(version="alpha"))
-    assert get_current_version() == "0.1.1-alpha.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-alpha.1"
 
     bump_command(BumpOptions(version="alpha"))
-    assert get_current_version() == "0.1.1-alpha.2"
+    assert get_current_version(Language.PYTHON) == "0.1.1-alpha.2"
 
 
 def test_bump_beta_argument(bump_project):
     """Test bumping beta version via argument."""
     bump_command(BumpOptions(version="beta"))
-    assert get_current_version() == "0.1.1-beta.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-beta.1"
 
 
 def test_bump_dev_argument(bump_project):
     """Test bumping dev version via argument."""
     bump_command(BumpOptions(version="dev"))
-    assert get_current_version() == "0.1.1-dev.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-dev.1"
 
 
 def test_bump_rc_argument(bump_project):
     """Test bumping rc version via argument."""
     bump_command(BumpOptions(version="rc"))
-    assert get_current_version() == "0.1.1-rc.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-rc.1"
 
 
 def test_bump_prerelease_transition(bump_project):
     """Test transitioning between prerelease types."""
     # Start with alpha
     bump_command(BumpOptions(version="alpha"))
-    assert get_current_version() == "0.1.1-alpha.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-alpha.1"
 
     # Switch to beta
     bump_command(BumpOptions(version="beta"))
-    assert get_current_version() == "0.1.1-beta.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-beta.1"
 
     # Switch back to alpha (should bump patch and start new alpha)
     # 0.1.1-beta.1 -> alpha -> 0.1.1-alpha.1
     bump_command(BumpOptions(version="alpha"))
-    assert get_current_version() == "0.1.1-alpha.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-alpha.1"
 
 
 def test_bump_interactive_rc(bump_project, monkeypatch):
@@ -255,7 +255,7 @@ def test_bump_interactive_rc(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.1-rc.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-rc.1"
 
 
 def test_bump_interactive_build(bump_project, monkeypatch):
@@ -272,7 +272,7 @@ def test_bump_interactive_build(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.0+build.1"
+    assert get_current_version(Language.PYTHON) == "0.1.0+build.1"
 
 
 def test_get_current_version_error_handling(bump_project, monkeypatch):
@@ -284,7 +284,7 @@ def test_get_current_version_error_handling(bump_project, monkeypatch):
     monkeypatch.setattr("builtins.open", mock_open_error)
 
     with pytest.raises(typer.Exit) as excinfo:
-        get_current_version()
+        get_current_version(Language.PYTHON)
     assert excinfo.value.exit_code == 1
 
 
@@ -318,7 +318,7 @@ def test_bump_interactive_alpha(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.1-alpha.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-alpha.1"
 
 
 def test_bump_interactive_beta(bump_project, monkeypatch):
@@ -335,7 +335,7 @@ def test_bump_interactive_beta(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.1-beta.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-beta.1"
 
 
 def test_bump_interactive_dev(bump_project, monkeypatch):
@@ -352,7 +352,7 @@ def test_bump_interactive_dev(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.1-dev.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1-dev.1"
 
 
 def test_bump_interactive_prerelease(bump_project, monkeypatch):
@@ -371,7 +371,7 @@ def test_bump_interactive_prerelease(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "0.1.0-alpha.2"
+    assert get_current_version(Language.PYTHON) == "0.1.0-alpha.2"
 
 
 def test_bump_interactive_major(bump_project, monkeypatch):
@@ -388,7 +388,7 @@ def test_bump_interactive_major(bump_project, monkeypatch):
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
-    assert get_current_version() == "1.0.0"
+    assert get_current_version(Language.PYTHON) == "1.0.0"
 
 
 def test_parse_version_argument_none():
@@ -531,7 +531,7 @@ def test_bump_with_push_flag(bump_project):
     with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
         bump_command(BumpOptions(version="patch", push=True))
 
-    assert get_current_version() == "0.1.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1"
     mock_push.assert_called_once()
 
 
@@ -547,7 +547,7 @@ def test_bump_with_branch_flag(bump_project):
         with patch("rhiza_tools.commands.bump._restore_original_branch", mock_restore):
             bump_command(BumpOptions(version="patch", branch="test-branch"))
 
-    assert get_current_version() == "0.1.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1"
     mock_checkout.assert_called_once_with("test-branch", False)
     mock_restore.assert_called_once_with("original-branch", False)
 
@@ -562,7 +562,7 @@ def test_bump_push_flag_implies_commit(bump_project):
         # Call with push=True but commit=False - push should still happen (implies commit)
         bump_command(BumpOptions(version="patch", push=True, commit=False))
 
-    assert get_current_version() == "0.1.1"
+    assert get_current_version(Language.PYTHON) == "0.1.1"
     mock_push.assert_called_once()
 
 
@@ -634,7 +634,7 @@ def test_log_bump_success_fallback(bump_project):
     mock_config.files_to_modify = []
 
     # This should fall back to checking common files
-    _log_bump_success("0.1.0", mock_config)
+    _log_bump_success("0.1.0", mock_config, Language.PYTHON)
     # Test passes if no exception is raised
 
 
@@ -663,7 +663,7 @@ def test_log_bump_success_with_file_read_exception(bump_project, monkeypatch):
     mock_config.files_to_modify = []
 
     # This should handle the exception gracefully
-    _log_bump_success("0.1.0", mock_config)
+    _log_bump_success("0.1.0", mock_config, Language.PYTHON)
     # Test passes if no exception is raised
 
 
@@ -850,7 +850,7 @@ class TestPreflightValidation:
 
         # Verify no file changes were made
         assert (bump_project / "pyproject.toml").read_text() == original_content
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_preflight_runs_before_actual_bump(self, bump_project):
         """Preflight dry-run runs before the actual bump for non-dry-run calls."""
@@ -872,7 +872,7 @@ class TestPreflightValidation:
         assert len(do_bump_calls) == 2
         assert do_bump_calls[0]["dry_run"] is True  # preflight
         assert do_bump_calls[1]["dry_run"] is False  # actual bump
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
     def test_preflight_skipped_for_dry_run(self, bump_project):
         """When dry_run=True, preflight is skipped (only actual dry-run runs)."""
@@ -892,7 +892,7 @@ class TestPreflightValidation:
         # Should have only one call (the actual dry-run), no preflight
         assert len(do_bump_calls) == 1
         assert do_bump_calls[0]["dry_run"] is True
-        assert get_current_version() == "0.1.0"  # unchanged
+        assert get_current_version(Language.PYTHON) == "0.1.0"  # unchanged
 
 
 # Tests for Go project support
@@ -989,26 +989,26 @@ filename = "VERSION"
 
 def test_go_project_bump_patch(go_project):
     """Test bumping the patch version in a Go project."""
-    bump_command(BumpOptions(version="patch"))
-    assert get_current_version() == "0.1.1"
+    bump_command(BumpOptions(version="patch", language=Language.GO))
+    assert get_current_version(Language.GO) == "0.1.1"
 
 
 def test_go_project_bump_minor(go_project):
     """Test bumping the minor version in a Go project."""
-    bump_command(BumpOptions(version="minor"))
-    assert get_current_version() == "0.2.0"
+    bump_command(BumpOptions(version="minor", language=Language.GO))
+    assert get_current_version(Language.GO) == "0.2.0"
 
 
 def test_go_project_bump_major(go_project):
     """Test bumping the major version in a Go project."""
-    bump_command(BumpOptions(version="major"))
-    assert get_current_version() == "1.0.0"
+    bump_command(BumpOptions(version="major", language=Language.GO))
+    assert get_current_version(Language.GO) == "1.0.0"
 
 
 def test_go_project_bump_explicit_version(go_project):
     """Test bumping to an explicit version in a Go project."""
-    bump_command(BumpOptions(version="2.3.4"))
-    assert get_current_version() == "2.3.4"
+    bump_command(BumpOptions(version="2.3.4", language=Language.GO))
+    assert get_current_version(Language.GO) == "2.3.4"
 
 
 def test_version_file_only_project(tmp_path, monkeypatch):
@@ -1053,33 +1053,28 @@ filename = "VERSION"
     subprocess.run([git, "add", "."], check=True, capture_output=True)
     subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
 
-    # Test bump
-    bump_command(BumpOptions(version="patch"))
-    assert get_current_version() == "1.0.1"
+    # Test bump - VERSION file only is not supported anymore, need to add go.mod
+    # Create go.mod to make it a Go project
+    gomod_path = tmp_path / "go.mod"
+    gomod_path.write_text("module example.com/test\n\ngo 1.23\n")
+    subprocess.run([git, "add", "go.mod"], check=True, capture_output=True)
+    subprocess.run([git, "commit", "-m", "Add go.mod"], check=True, capture_output=True)
+
+    bump_command(BumpOptions(version="patch", language=Language.GO))
+    assert get_current_version(Language.GO) == "1.0.1"
 
 
 def test_detect_project_language_python(temp_project):
     """Test language detection for Python projects."""
-    assert _detect_project_language() == "python"
+    assert Language.detect() == Language.PYTHON
 
 
 def test_detect_project_language_go(go_project):
     """Test language detection for Go projects."""
-    assert _detect_project_language() == "go"
+    assert Language.detect() == Language.GO
 
 
-def test_detect_project_language_version_file_only(tmp_path, monkeypatch):
-    """Test language detection for projects with only VERSION file."""
-    monkeypatch.chdir(tmp_path)
-
-    # Create VERSION file
-    version_path = tmp_path / "VERSION"
-    version_path.write_text("1.0.0\n")
-
-    assert _detect_project_language() == "unknown"
-
-
-def test_detect_project_language_unknown(tmp_path, monkeypatch):
+def test_detect_project_language_none(tmp_path, monkeypatch):
     """Test language detection when no supported files exist."""
     monkeypatch.chdir(tmp_path)
-    assert _detect_project_language() == "unknown"
+    assert Language.detect() is None
