@@ -1,7 +1,6 @@
 """Parametrized tests for bump command demonstrating multi-language support."""
 
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -136,12 +135,12 @@ class TestLanguageDetection:
 
     def test_detect_python(self, python_project):
         """Test Python project detection."""
-        _project_path, language = python_project
+        _project_path, _language = python_project
         assert Language.detect() == Language.PYTHON
 
     def test_detect_go(self, go_project):
         """Test Go project detection."""
-        _project_path, language = go_project
+        _project_path, _language = go_project
         assert Language.detect() == Language.GO
 
     def test_detect_none(self, tmp_path, monkeypatch):
