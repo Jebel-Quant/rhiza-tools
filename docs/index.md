@@ -52,6 +52,7 @@ rhiza-tools release --with-bump --push
 
 ## Further Reading
 
+- [Configuration](configuration.md) — `.rhiza/.cfg.toml` reference and customization
 - [Releasing](RELEASING.md) — bump and release workflow with flowcharts
 - [API Reference](api_reference.md) — module and function documentation
 - [Rhiza Framework Docs](https://github.com/Jebel-Quant/rhiza) — architecture, customization, glossary, and more
