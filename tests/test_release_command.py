@@ -288,7 +288,8 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
         return result
 
     with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        release_command(dry_run=True)  # Should complete without errors
+        with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
+            release_command(dry_run=True)  # Should complete without errors
 
 
 def test_release_command_tag_missing(mock_pyproject, monkeypatch):

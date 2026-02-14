@@ -154,6 +154,7 @@ def test_bump_interactive_patch(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1"
@@ -170,6 +171,7 @@ def test_bump_interactive_minor(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.2.0"
@@ -249,6 +251,7 @@ def test_bump_interactive_rc(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-rc.1"
@@ -265,6 +268,7 @@ def test_bump_interactive_build(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.0+build.1"
@@ -310,6 +314,7 @@ def test_bump_interactive_alpha(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-alpha.1"
@@ -326,6 +331,7 @@ def test_bump_interactive_beta(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-beta.1"
@@ -342,6 +348,7 @@ def test_bump_interactive_dev(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.1-dev.1"
@@ -360,6 +367,7 @@ def test_bump_interactive_prerelease(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "0.1.0-alpha.2"
@@ -376,6 +384,7 @@ def test_bump_interactive_major(bump_project, monkeypatch):
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
     assert get_current_version() == "1.0.0"
