@@ -32,6 +32,7 @@ from typing import Annotated
 import typer
 
 from rhiza_tools import __version__
+from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.bump import bump_command
@@ -51,6 +52,15 @@ def version_callback(value: bool) -> None:
 
 app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
+# Shared option so --verbose / -v works both before and after the subcommand.
+VERBOSE_OPTION = typer.Option(False, "--verbose", "-v", help="Show verbose debug output.")
+
+
+def _apply_verbose(verbose: bool) -> None:
+    """Enable verbose output if the flag was passed on the subcommand."""
+    if verbose:
+        configure_console(verbose=True)
+
 
 @app.callback()
 def main(
@@ -61,9 +71,10 @@ def main(
         callback=version_callback,
         is_eager=True,
     ),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Rhiza Tools - Extra utilities for Rhiza."""
-    pass
+    configure_console(verbose=verbose)
 
 
 @app.command()
@@ -78,7 +89,7 @@ def bump(
     allow_dirty: bool = typer.Option(
         False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
     ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output from bump-my-version."),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Bump the version of the project.
 
@@ -95,7 +106,6 @@ def bump(
         push: If True, push changes to remote after commit (implies --commit).
         branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
-        verbose: If True, show detailed output from the bump-my-version tool.
 
     Example:
         Bump to a specific version::
@@ -118,6 +128,7 @@ def bump(
 
             $ rhiza-tools bump minor --push
     """
+    _apply_verbose(verbose)
     from rhiza_tools.commands.bump import BumpOptions
 
     options = BumpOptions(
@@ -127,7 +138,6 @@ def bump(
         push=push,
         branch=branch,
         allow_dirty=allow_dirty,
-        verbose=verbose,
     )
     bump_command(options)
 
@@ -147,6 +157,7 @@ def generate_coverage_badge(
             help="Path to output badge JSON",
         ),
     ] = Path("_book/tests/coverage-badge.json"),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Generate a coverage badge for the project.
 
@@ -169,6 +180,7 @@ def generate_coverage_badge(
                 --coverage-json tests/coverage.json \
                 --output assets/badge.json
     """
+    _apply_verbose(verbose)
     generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
 
 
@@ -183,6 +195,7 @@ def release(
     push: bool = typer.Option(False, "--push", help="Push changes to remote (default: prompt in interactive mode)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Push a release tag to remote to trigger the release workflow.
 
@@ -218,6 +231,7 @@ def release(
 
             $ rhiza-tools release --with-bump --push --dry-run
     """
+    _apply_verbose(verbose)
     release_command(bump, push, dry_run, non_interactive, with_bump)
 
 
@@ -227,6 +241,7 @@ def rollback(
     revert_bump: bool = typer.Option(False, "--revert-bump", help="Also revert the version bump commit."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Rollback a release and/or version bump.
 
@@ -262,6 +277,7 @@ def rollback(
 
             $ rhiza-tools rollback v1.2.3 --revert-bump -y
     """
+    _apply_verbose(verbose)
     from rhiza_tools.commands.rollback import RollbackOptions
 
     options = RollbackOptions(
@@ -276,6 +292,7 @@ def rollback(
 @app.command(name="update-readme")
 def update_readme(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Update README.md with the current output from `make help`.
 
@@ -295,6 +312,7 @@ def update_readme(
 
             $ rhiza-tools update-readme --dry-run
     """
+    _apply_verbose(verbose)
     update_readme_command(dry_run)
 
 
@@ -314,6 +332,7 @@ def version_matrix(
             help="Comma-separated list of candidate Python versions (e.g., '3.11,3.12,3.13')",
         ),
     ] = None,
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Emit supported Python versions from pyproject.toml as JSON.
 
@@ -340,6 +359,7 @@ def version_matrix(
 
             $ rhiza-tools version-matrix --candidates "3.10,3.11,3.12"
     """
+    _apply_verbose(verbose)
     candidates_list = None
     if candidates:
         candidates_list = [v.strip() for v in candidates.split(",")]
@@ -363,6 +383,7 @@ def analyze_benchmarks(
             help="Path to save HTML visualization",
         ),
     ] = Path("_benchmarks/benchmarks.html"),
+    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Analyze pytest-benchmark results and visualize them.
 
@@ -388,4 +409,5 @@ def analyze_benchmarks(
                 --benchmarks-json tests/benchmarks.json \
                 --output-html reports/benchmarks.html
     """
+    _apply_verbose(verbose)
     analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html)

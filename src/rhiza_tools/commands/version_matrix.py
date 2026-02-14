@@ -22,6 +22,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from rhiza_tools import console
+
 
 class RhizaError(Exception):
     """Base exception for Rhiza-related errors."""
@@ -251,5 +253,5 @@ def version_matrix_command(
         # Output as JSON array (matches the behavior of the original script)
         print(json.dumps(versions))
     except (PyProjectError, VersionSpecifierError) as e:
-        print(f"[ERROR] {e}", file=sys.stderr)
+        console.error(str(e))
         sys.exit(1)

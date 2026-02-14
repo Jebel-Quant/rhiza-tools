@@ -346,7 +346,6 @@ requires-python = ">=3.10,<3.12"
 
         # Check error message
         captured = capsys.readouterr()
-        assert "[ERROR]" in captured.err
         assert "not found" in captured.err
 
     def test_execution_with_invalid_specifier(self, tmp_path, monkeypatch, capsys):
@@ -366,7 +365,6 @@ requires-python = "~=3.11"
         assert exc_info.value.code == 1
 
         captured = capsys.readouterr()
-        assert "[ERROR]" in captured.err
         assert "Invalid specifier" in captured.err
 
     def test_execution_with_no_matching_versions(self, tmp_path, monkeypatch, capsys):
@@ -386,5 +384,4 @@ requires-python = ">=4.0"
         assert exc_info.value.code == 1
 
         captured = capsys.readouterr()
-        assert "[ERROR]" in captured.err
         assert "no supported Python versions match" in captured.err

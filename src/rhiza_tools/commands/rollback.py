@@ -28,6 +28,7 @@ import questionary as qs
 import typer
 from loguru import logger
 
+from rhiza_tools import console
 from rhiza_tools.commands.release import check_tag_exists, run_git_command
 
 _COOL_STYLE = qs.Style(
@@ -95,8 +96,8 @@ def _select_tag_interactively(tags: list[str]) -> str:
         typer.Exit: If user cancels selection or no tags are available.
     """
     if not tags:
-        logger.error("No version tags found in the repository.")
-        logger.error("Nothing to rollback.")
+        console.error("No version tags found in the repository.")
+        console.error("Nothing to rollback.")
         raise typer.Exit(code=1)
 
     # Annotate tags with local/remote info
@@ -122,7 +123,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
         raise typer.Exit(code=1) from None
 
     if not choice:
-        logger.info("Rollback cancelled by user.")
+        console.info("Rollback cancelled by user.")
         raise typer.Exit(code=0)
 
     # Extract tag name from choice string "v1.2.3 (local, remote)"
@@ -230,16 +231,16 @@ def _delete_local_tag(tag: str, dry_run: bool) -> bool:
         True if deletion succeeded (or would succeed in dry-run).
     """
     if dry_run:
-        logger.info(f"[DRY-RUN] Would delete local tag: {tag}")
+        console.info(f"[DRY-RUN] Would delete local tag: {tag}")
         return True
 
     result = run_git_command(["git", "tag", "-d", tag], check=False)
     if result.returncode == 0:
-        logger.success(f"Deleted local tag: {tag}")
+        console.success(f"Deleted local tag: {tag}")
         return True
     else:
-        logger.error(f"Failed to delete local tag: {tag}")
-        logger.error(f"Error: {result.stderr}")
+        console.error(f"Failed to delete local tag: {tag}")
+        console.error(f"Error: {result.stderr}")
         return False
 
 
@@ -254,20 +255,20 @@ def _delete_remote_tag(tag: str, dry_run: bool) -> bool:
         True if deletion succeeded (or would succeed in dry-run).
     """
     if dry_run:
-        logger.info(f"[DRY-RUN] Would delete remote tag: {tag}")
+        console.info(f"[DRY-RUN] Would delete remote tag: {tag}")
         return True
 
-    logger.info(f"Deleting remote tag: {tag}...")
+    console.info(f"Deleting remote tag: {tag}...")
     result = run_git_command(
         ["git", "push", "origin", f":refs/tags/{tag}"],
         check=False,
     )
     if result.returncode == 0:
-        logger.success(f"Deleted remote tag: {tag}")
+        console.success(f"Deleted remote tag: {tag}")
         return True
     else:
-        logger.error(f"Failed to delete remote tag: {tag}")
-        logger.error(f"Error: {result.stderr}")
+        console.error(f"Failed to delete remote tag: {tag}")
+        console.error(f"Error: {result.stderr}")
         return False
 
 
@@ -286,7 +287,7 @@ def _revert_bump_commit(tag: str, dry_run: bool) -> bool:
     """
     tag_commit = _get_tag_commit(tag)
     if not tag_commit:
-        logger.error(f"Could not find commit for tag: {tag}")
+        console.error(f"Could not find commit for tag: {tag}")
         return False
 
     if dry_run:
@@ -295,22 +296,22 @@ def _revert_bump_commit(tag: str, dry_run: bool) -> bool:
             check=False,
         )
         commit_msg = result.stdout.strip() if result.returncode == 0 else "unknown"
-        logger.info(f"[DRY-RUN] Would revert commit {tag_commit[:8]}: {commit_msg}")
+        console.info(f"[DRY-RUN] Would revert commit {tag_commit[:8]}: {commit_msg}")
         return True
 
-    logger.info(f"Reverting bump commit {tag_commit[:8]}...")
+    console.info(f"Reverting bump commit {tag_commit[:8]}...")
     result = run_git_command(
         ["git", "revert", "--no-edit", tag_commit],
         check=False,
     )
     if result.returncode == 0:
-        logger.success(f"Reverted bump commit: {tag_commit[:8]}")
+        console.success(f"Reverted bump commit: {tag_commit[:8]}")
         return True
     else:
-        logger.error(f"Failed to revert commit {tag_commit[:8]}")
-        logger.error(f"Error: {result.stderr}")
-        logger.error("You may need to resolve conflicts manually:")
-        logger.error(f"  git revert {tag_commit[:8]}")
+        console.error(f"Failed to revert commit {tag_commit[:8]}")
+        console.error(f"Error: {result.stderr}")
+        console.error("You may need to resolve conflicts manually:")
+        console.error(f"  git revert {tag_commit[:8]}")
         return False
 
 
@@ -325,7 +326,7 @@ def _push_revert(dry_run: bool, non_interactive: bool) -> bool:
         True if push succeeded (or would succeed in dry-run).
     """
     if dry_run:
-        logger.info("[DRY-RUN] Would push revert commit to remote")
+        console.info("[DRY-RUN] Would push revert commit to remote")
         return True
 
     should_push = non_interactive
@@ -341,18 +342,18 @@ def _push_revert(dry_run: bool, non_interactive: bool) -> bool:
             should_push = True
 
     if not should_push:
-        logger.info("Revert commit created locally but not pushed.")
-        logger.info("Push manually when ready: git push")
+        console.info("Revert commit created locally but not pushed.")
+        console.info("Push manually when ready: git push")
         return True
 
     result = run_git_command(["git", "push"], check=False)
     if result.returncode == 0:
-        logger.success("Revert commit pushed to remote.")
+        console.success("Revert commit pushed to remote.")
         return True
     else:
-        logger.error("Failed to push revert commit.")
-        logger.error(f"Error: {result.stderr}")
-        logger.error("Push manually: git push")
+        console.error("Failed to push revert commit.")
+        console.error(f"Error: {result.stderr}")
+        console.error("Push manually: git push")
         return False
 
 
@@ -377,40 +378,40 @@ def _show_rollback_plan(
         tag_details: Details about the tag (hash, date, message).
     """
     header = typer.style("Rollback Plan", fg=typer.colors.YELLOW, bold=True)
-    logger.info(f"\n{'─' * 50}")
-    logger.info(f"  {header}")
-    logger.info(f"{'─' * 50}")
+    console.info(f"\n{'─' * 50}")
+    console.info(f"  {header}")
+    console.info(f"{'─' * 50}")
 
     tag_styled = typer.style(tag, fg=typer.colors.RED, bold=True)
-    logger.info(f"\n  Tag to rollback: {tag_styled}")
+    console.info(f"\n  Tag to rollback: {tag_styled}")
 
     if tag_details:
-        logger.info(f"  Commit:  {tag_details.get('hash', 'unknown')[:8]}")
-        logger.info(f"  Date:    {tag_details.get('date', 'unknown')}")
-        logger.info(f"  Message: {tag_details.get('message', 'unknown')}")
+        console.info(f"  Commit:  {tag_details.get('hash', 'unknown')[:8]}")
+        console.info(f"  Date:    {tag_details.get('date', 'unknown')}")
+        console.info(f"  Message: {tag_details.get('message', 'unknown')}")
 
-    logger.info(f"\n  {typer.style('Actions:', fg=typer.colors.CYAN, bold=True)}")
+    console.info(f"\n  {typer.style('Actions:', fg=typer.colors.CYAN, bold=True)}")
 
     step = 1
     if exists_remotely:
-        logger.info(f"  {step}. Delete remote tag: git push origin :refs/tags/{tag}")
+        console.info(f"  {step}. Delete remote tag: git push origin :refs/tags/{tag}")
         step += 1
     if exists_locally:
-        logger.info(f"  {step}. Delete local tag:  git tag -d {tag}")
+        console.info(f"  {step}. Delete local tag:  git tag -d {tag}")
         step += 1
     if revert_bump and is_bump:
-        logger.info(f"  {step}. Revert bump commit (creates a new revert commit)")
+        console.info(f"  {step}. Revert bump commit (creates a new revert commit)")
         step += 1
-        logger.info(f"  {step}. Push revert commit to remote")
+        console.info(f"  {step}. Push revert commit to remote")
         step += 1
 
     if previous_tag:
         prev_styled = typer.style(previous_tag, fg=typer.colors.GREEN, bold=True)
-        logger.info(f"\n  Previous version: {prev_styled}")
+        console.info(f"\n  Previous version: {prev_styled}")
     else:
-        logger.info("\n  No previous version tag found.")
+        console.info("\n  No previous version tag found.")
 
-    logger.info(f"\n{'─' * 50}")
+    console.info(f"\n{'─' * 50}")
 
 
 def _confirm_rollback(non_interactive: bool) -> bool:
@@ -453,8 +454,8 @@ def _validate_rollback_preconditions(tag: str) -> tuple[bool, bool]:
     exists_locally, exists_remotely = check_tag_exists(tag)
 
     if not exists_locally and not exists_remotely:
-        logger.error(f"Tag '{tag}' does not exist locally or on remote.")
-        logger.error("Nothing to rollback.")
+        console.error(f"Tag '{tag}' does not exist locally or on remote.")
+        console.error("Nothing to rollback.")
         raise typer.Exit(code=1)
 
     return exists_locally, exists_remotely
@@ -477,10 +478,10 @@ def _resolve_tag(options: RollbackOptions) -> str:
         if options.non_interactive:
             recent_tags = _get_recent_tags(limit=1)
             if not recent_tags:
-                logger.error("No version tags found in the repository.")
+                console.error("No version tags found in the repository.")
                 raise typer.Exit(code=1)
             tag = recent_tags[0]
-            logger.info(f"Non-interactive mode: rolling back most recent tag: {tag}")
+            console.info(f"Non-interactive mode: rolling back most recent tag: {tag}")
         else:
             recent_tags = _get_recent_tags()
             tag = _select_tag_interactively(recent_tags)
@@ -557,9 +558,9 @@ def _execute_rollback(
         if not _delete_remote_tag(tag, dry_run):
             success = False
             if not dry_run:
-                logger.error("Failed to delete remote tag. Aborting remaining steps.")
-                logger.error("You can retry or manually delete with:")
-                logger.error(f"  git push origin :refs/tags/{tag}")
+                console.error("Failed to delete remote tag. Aborting remaining steps.")
+                console.error("You can retry or manually delete with:")
+                console.error(f"  git push origin :refs/tags/{tag}")
                 raise typer.Exit(code=1)
 
     # Delete local tag
@@ -567,15 +568,15 @@ def _execute_rollback(
         if not _delete_local_tag(tag, dry_run):
             success = False
             if not dry_run:
-                logger.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
+                console.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
 
     # Revert bump commit and push (if requested)
     if revert_bump and is_bump and exists_locally:
         if not _revert_bump_commit(tag, dry_run):
             success = False
             if not dry_run:
-                logger.warning("Bump revert failed. Tags were still deleted.")
-                logger.warning("You may need to manually revert the bump commit.")
+                console.warning("Bump revert failed. Tags were still deleted.")
+                console.warning("You may need to manually revert the bump commit.")
         else:
             if not _push_revert(dry_run, non_interactive):
                 success = False
@@ -592,26 +593,26 @@ def _print_rollback_summary(dry_run: bool, success: bool, previous_tag: str | No
         previous_tag: The previous version tag, if any.
     """
     if dry_run:
-        logger.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
+        console.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
         return
 
     if not success:
-        logger.warning("\nRollback completed with warnings. Review the output above.")
+        console.warning("\nRollback completed with warnings. Review the output above.")
         return
 
     success_msg = typer.style("✓", fg=typer.colors.GREEN, bold=True)
-    logger.success(f"\n{success_msg} Rollback completed successfully!")
+    console.success(f"\n{success_msg} Rollback completed successfully!")
 
     if previous_tag:
-        logger.info(f"Previous version was: {previous_tag}")
-        logger.info("To re-release at the previous version, run:")
-        logger.info("  rhiza-tools release")
-        logger.info("To bump to a new version instead:")
-        logger.info("  rhiza-tools bump")
+        console.info(f"Previous version was: {previous_tag}")
+        console.info("To re-release at the previous version, run:")
+        console.info("  rhiza-tools release")
+        console.info("To bump to a new version instead:")
+        console.info("  rhiza-tools bump")
     else:
-        logger.info("No previous version tag found.")
-        logger.info("To set a new version:")
-        logger.info("  rhiza-tools bump <version>")
+        console.info("No previous version tag found.")
+        console.info("To set a new version:")
+        console.info("  rhiza-tools bump <version>")
 
 
 def rollback_command(options: RollbackOptions) -> None:
@@ -656,12 +657,12 @@ def rollback_command(options: RollbackOptions) -> None:
             ))
     """
     if not Path("pyproject.toml").exists():
-        logger.error("pyproject.toml not found in current directory")
+        console.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
 
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
     current_branch = result.stdout.strip()
-    logger.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
+    console.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
     tag = _resolve_tag(options)
     exists_locally, exists_remotely = _validate_rollback_preconditions(tag)
@@ -674,7 +675,7 @@ def rollback_command(options: RollbackOptions) -> None:
     _show_rollback_plan(tag, exists_locally, exists_remotely, revert_bump, is_bump, previous_tag, tag_details)
 
     if not options.dry_run and not _confirm_rollback(options.non_interactive):
-        logger.info("Rollback cancelled by user.")
+        console.info("Rollback cancelled by user.")
         raise typer.Exit(code=0)
 
     success = _execute_rollback(

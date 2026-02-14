@@ -22,6 +22,7 @@ import semver
 import typer
 from loguru import logger
 
+from rhiza_tools import console
 from rhiza_tools.commands.bump import (
     BumpOptions,
     bump_command,
@@ -50,8 +51,8 @@ def run_git_command(command: list[str], check: bool = True) -> subprocess.Comple
     """
     result = subprocess.run(command, capture_output=True, text=True, check=False)  # nosec B603 - git commands are trusted
     if check and result.returncode != 0:
-        logger.error(f"Git command failed: {' '.join(command)}")
-        logger.error(f"Error: {result.stderr}")
+        console.error(f"Git command failed: {' '.join(command)}")
+        console.error(f"Error: {result.stderr}")
         raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
     return result
 
@@ -67,9 +68,9 @@ def check_clean_working_tree() -> None:
     """
     result = run_git_command(["git", "status", "--porcelain"])
     if result.stdout.strip():
-        logger.error("You have uncommitted changes:")
-        logger.error(result.stdout)
-        logger.error("Please commit or stash your changes before releasing.")
+        console.error("You have uncommitted changes:")
+        console.error(result.stdout)
+        console.error("Please commit or stash your changes before releasing.")
         raise typer.Exit(code=1)
 
 
@@ -86,14 +87,14 @@ def check_branch_status(current_branch: str) -> None:
         >>> check_branch_status("main")  # doctest: +SKIP
     """
     # Fetch latest from remote
-    logger.info("Checking remote status...")
+    console.info("Checking remote status...")
     run_git_command(["git", "fetch", "origin"])
 
     # Get upstream tracking branch
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], check=False)
     if result.returncode != 0:
-        logger.error(f"No upstream branch configured for {current_branch}")
-        logger.error(f"Set upstream with: git push -u origin {current_branch}")
+        console.error(f"No upstream branch configured for {current_branch}")
+        console.error(f"Set upstream with: git push -u origin {current_branch}")
         raise typer.Exit(code=1)
 
     upstream = result.stdout.strip()
@@ -106,28 +107,28 @@ def check_branch_status(current_branch: str) -> None:
     if local != remote:
         if local == base:
             # Local is behind remote (need to pull)
-            logger.error(f"Your branch is behind '{upstream}'.")
-            logger.error("Pull the latest changes before releasing:")
-            logger.error(f"  git pull origin {current_branch}")
+            console.error(f"Your branch is behind '{upstream}'.")
+            console.error("Pull the latest changes before releasing:")
+            console.error(f"  git pull origin {current_branch}")
             raise typer.Exit(code=1)
         else:
             # Either local is ahead of remote OR branches have diverged
             # Check if remote == base to distinguish between the two cases
             if remote == base:
                 # Local is ahead of remote (need to push)
-                logger.warning(f"Your branch is ahead of '{upstream}'.")
-                logger.info("Unpushed commits:")
+                console.warning(f"Your branch is ahead of '{upstream}'.")
+                console.info("Unpushed commits:")
                 result = run_git_command(["git", "log", "--oneline", "--graph", "--decorate", f"{upstream}..HEAD"])
-                logger.info(result.stdout)
-                logger.warning("Please push changes to remote before releasing.")
+                console.info(result.stdout)
+                console.warning("Please push changes to remote before releasing.")
                 raise typer.Exit(code=1)
             else:
                 # Branches have diverged (need to merge or rebase)
-                logger.error(f"Your branch has diverged from '{upstream}'.")
-                logger.error("To reconcile, choose one of:")
-                logger.error(f"  Rebase: git pull --rebase origin {current_branch}")
-                logger.error(f"  Merge:  git merge origin/{current_branch}")
-                logger.error("Then resolve any conflicts and retry.")
+                console.error(f"Your branch has diverged from '{upstream}'.")
+                console.error("To reconcile, choose one of:")
+                console.error(f"  Rebase: git pull --rebase origin {current_branch}")
+                console.error(f"  Merge:  git merge origin/{current_branch}")
+                console.error("Then resolve any conflicts and retry.")
                 raise typer.Exit(code=1)
 
 
@@ -147,14 +148,14 @@ def get_default_branch() -> str:
     """
     result = run_git_command(["git", "remote", "show", "origin"], check=False)
     if result.returncode != 0:
-        logger.error("Could not determine default branch from remote")
+        console.error("Could not determine default branch from remote")
         raise typer.Exit(code=1)
 
     for line in result.stdout.split("\n"):
         if "HEAD branch" in line:
             return str(line.split()[-1])
 
-    logger.error("Could not determine default branch from remote")
+    console.error("Could not determine default branch from remote")
     raise typer.Exit(code=1)
 
 
@@ -201,27 +202,27 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
 
     if dry_run:
         dry_run_header = typer.style("[DRY-RUN] Would execute:", fg=typer.colors.YELLOW, bold=True)
-        logger.info(f"\n{dry_run_header} {' '.join(command)}")
+        console.info(f"\n{dry_run_header} {' '.join(command)}")
 
         tag_styled = typer.style(tag, fg=typer.colors.GREEN, bold=True)
-        logger.info(f"[DRY-RUN] Release tag {tag_styled} would be pushed to remote")
-        logger.info("[DRY-RUN] This would trigger the release workflow")
+        console.info(f"[DRY-RUN] Release tag {tag_styled} would be pushed to remote")
+        console.info("[DRY-RUN] This would trigger the release workflow")
 
         # Show what would be pushed
         result = run_git_command(["git", "show", "-s", "--format=%H %s", tag], check=False)
         if result.returncode == 0 and result.stdout.strip():
-            logger.info(f"[DRY-RUN] Tag points to: {result.stdout.strip()}")
+            console.info(f"[DRY-RUN] Tag points to: {result.stdout.strip()}")
     else:
-        logger.info(f"\n{typer.style('Pushing tag to remote...', fg=typer.colors.CYAN, bold=True)}")
-        logger.info(f"Command: {' '.join(command)}")
+        console.info(f"\n{typer.style('Pushing tag to remote...', fg=typer.colors.CYAN, bold=True)}")
+        console.info(f"Command: {' '.join(command)}")
         run_git_command(command)
 
         tag_styled = typer.style(tag, fg=typer.colors.GREEN, bold=True)
         success_msg = (
             f"\n{typer.style('✓', fg=typer.colors.GREEN, bold=True)} Release tag {tag_styled} pushed to remote!"
         )
-        logger.success(success_msg)
-        logger.info("The release workflow will now be triggered automatically.")
+        console.success(success_msg)
+        console.info("The release workflow will now be triggered automatically.")
 
     # Get repository URL for GitHub Actions link
     result = run_git_command(["git", "remote", "get-url", "origin"])
@@ -238,7 +239,7 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
         repo_path = repo_url[len("https://github.com/") :].rstrip(".git")
 
     if repo_path:
-        logger.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
+        console.info(f"Monitor progress at: https://github.com/{repo_path}/actions")
 
 
 def _get_bump_type_interactively(
@@ -265,18 +266,18 @@ def _get_bump_type_interactively(
         try:
             current_semver = semver.Version.parse(current)
         except ValueError:
-            logger.error(f"Invalid semantic version: {current}")
+            console.error(f"Invalid semantic version: {current}")
             raise typer.Exit(code=1) from None
         new_version = get_bumped_version_from_type(current_semver, bump_type.lower())
         if not new_version:
-            logger.error(f"Invalid bump type: {bump_type}")
+            console.error(f"Invalid bump type: {bump_type}")
             raise typer.Exit(code=1)
         return True, new_version
 
     # --with-bump flag: use bump's interactive selection (even in dry-run)
     if with_bump:
         if non_interactive:
-            logger.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
+            console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
             current = get_current_version()
             current_semver = semver.Version.parse(current)
             return True, str(current_semver.bump_patch())
@@ -328,7 +329,7 @@ def _perform_version_bump(new_version: str, dry_run: bool) -> str:
     Raises:
         typer.Exit: If the bump operation fails.
     """
-    logger.info(f"Bumping version to: {new_version}")
+    console.info(f"Bumping version to: {new_version}")
 
     bump_command(
         BumpOptions(
@@ -337,12 +338,11 @@ def _perform_version_bump(new_version: str, dry_run: bool) -> str:
             commit=True,
             push=False,  # Don't push yet, we'll do it after tagging
             allow_dirty=False,
-            verbose=False,
         )
     )
 
     if dry_run:
-        logger.info("[DRY-RUN] Version would be bumped before release")
+        console.info("[DRY-RUN] Version would be bumped before release")
 
     return new_version
 
@@ -360,21 +360,21 @@ def _validate_tag_state(tag: str, current_version: str) -> None:
     exists_locally, exists_remotely = check_tag_exists(tag)
 
     if exists_remotely:
-        logger.error(f"Tag '{tag}' already exists on remote")
-        logger.error(f"The release for version {current_version} has already been published.")
-        logger.error("If this was unintentional, you can delete the remote tag and retry:")
-        logger.error(f"  git push origin :refs/tags/{tag}")
+        console.error(f"Tag '{tag}' already exists on remote")
+        console.error(f"The release for version {current_version} has already been published.")
+        console.error("If this was unintentional, you can delete the remote tag and retry:")
+        console.error(f"  git push origin :refs/tags/{tag}")
         raise typer.Exit(code=1)
 
     if not exists_locally:
-        logger.error(f"Tag '{tag}' does not exist locally")
-        logger.error("Create the tag by bumping the version with commit enabled:")
-        logger.error("  rhiza-tools bump <version> --commit")
-        logger.error("Or use release with --bump to do both at once:")
-        logger.error("  rhiza-tools release --bump <PATCH|MINOR|MAJOR> --push")
+        console.error(f"Tag '{tag}' does not exist locally")
+        console.error("Create the tag by bumping the version with commit enabled:")
+        console.error("  rhiza-tools bump <version> --commit")
+        console.error("Or use release with --bump to do both at once:")
+        console.error("  rhiza-tools release --bump <PATCH|MINOR|MAJOR> --push")
         raise typer.Exit(code=1)
 
-    logger.success(f"Tag '{tag}' found locally")
+    console.success(f"Tag '{tag}' found locally")
 
     # Show tag details
     result = run_git_command(["git", "show", "-s", "--format=%H|%ci|%s", tag], check=False)
@@ -382,9 +382,9 @@ def _validate_tag_state(tag: str, current_version: str) -> None:
         parts = result.stdout.strip().split("|")
         if len(parts) == 3:
             commit_hash, commit_date, commit_msg = parts
-            logger.info(f"  Commit: {commit_hash[:8]}")
-            logger.info(f"  Date: {commit_date}")
-            logger.info(f"  Message: {commit_msg}")
+            console.info(f"  Commit: {commit_hash[:8]}")
+            console.info(f"  Date: {commit_date}")
+            console.info(f"  Message: {commit_msg}")
 
 
 def _show_commits_since_last_tag(tag: str) -> None:
@@ -410,11 +410,11 @@ def _show_commits_since_last_tag(tag: str) -> None:
     )
     if log_result.returncode == 0 and log_result.stdout.strip():
         commits = log_result.stdout.strip().split("\n")
-        logger.info(f"\nCommits included in this release (since {last_tag}):")
+        console.info(f"\nCommits included in this release (since {last_tag}):")
         for commit in commits[:10]:  # Show first 10
-            logger.info(f"  • {commit}")
+            console.info(f"  • {commit}")
         if len(commits) > 10:
-            logger.info(f"  ... and {len(commits) - 10} more")
+            console.info(f"  ... and {len(commits) - 10} more")
 
 
 def _confirm_and_push_tag(tag: str, push: bool, dry_run: bool, non_interactive: bool) -> None:
@@ -433,7 +433,7 @@ def _confirm_and_push_tag(tag: str, push: bool, dry_run: bool, non_interactive: 
     if not dry_run and not non_interactive and not push:
         should_push = typer.confirm("Push tag to remote and trigger release workflow?", default=False)
         if not should_push:
-            logger.info("Release cancelled by user")
+            console.info("Release cancelled by user")
             raise typer.Exit(code=0)
 
     if should_push or dry_run:
@@ -456,8 +456,8 @@ def _get_release_version(dry_run: bool, bumped_new_version: str | None) -> tuple
         current_version = get_current_version()
 
     tag = f"v{current_version}"
-    logger.info(f"Current version: {current_version}")
-    logger.info(f"Expected tag: {tag}")
+    console.info(f"Current version: {current_version}")
+    console.info(f"Expected tag: {tag}")
 
     return current_version, tag
 
@@ -472,7 +472,7 @@ def _check_repository_state(dry_run: bool, current_branch: str, default_branch: 
     """
     # Note if not on default branch
     if current_branch != default_branch:
-        logger.info(f"Note: You are on branch '{current_branch}' (default branch is '{default_branch}')")
+        console.info(f"Note: You are on branch '{current_branch}' (default branch is '{default_branch}')")
 
     # Check for uncommitted changes (skip in dry-run mode)
     if not dry_run:
@@ -496,12 +496,12 @@ def _handle_tag_validation(dry_run: bool, bumped_new_version: str | None, tag: s
         # In dry-run with bump, the tag won't exist yet - just check it's not already on remote
         _, exists_remotely = check_tag_exists(tag)
         if exists_remotely:
-            logger.error(f"Tag '{tag}' already exists on remote")
-            logger.error(f"The release for version {current_version} has already been published.")
-            logger.error("If this was unintentional, you can delete the remote tag and retry:")
-            logger.error(f"  git push origin :refs/tags/{tag}")
+            console.error(f"Tag '{tag}' already exists on remote")
+            console.error(f"The release for version {current_version} has already been published.")
+            console.error("If this was unintentional, you can delete the remote tag and retry:")
+            console.error(f"  git push origin :refs/tags/{tag}")
             raise typer.Exit(code=1)
-        logger.info(f"[DRY-RUN] Tag '{tag}' would be created by the bump and release process")
+        console.info(f"[DRY-RUN] Tag '{tag}' would be created by the bump and release process")
     else:
         _validate_tag_state(tag, current_version)
 
@@ -556,13 +556,13 @@ def release_command(
     """
     # Validate pyproject.toml exists
     if not Path("pyproject.toml").exists():
-        logger.error("pyproject.toml not found in current directory")
+        console.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
 
     # Get current branch early
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
     current_branch = result.stdout.strip()
-    logger.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
+    console.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
     # Interactive mode: ask if user wants to bump version
     should_bump, new_version = _get_bump_type_interactively(non_interactive, bump_type, dry_run, with_bump)
@@ -576,13 +576,13 @@ def release_command(
         new_tag = f"v{new_version}"
         _, exists_remotely = check_tag_exists(new_tag)
         if exists_remotely:
-            logger.error(f"Tag '{new_tag}' already exists on remote")
-            logger.error(f"The release for version {new_version} has already been published.")
-            logger.error("No changes were made. To resolve:")
-            logger.error(f"  Delete the remote tag:  git push origin :refs/tags/{new_tag}")
-            logger.error("  Or choose a different version to bump to.")
+            console.error(f"Tag '{new_tag}' already exists on remote")
+            console.error(f"The release for version {new_version} has already been published.")
+            console.error("No changes were made. To resolve:")
+            console.error(f"  Delete the remote tag:  git push origin :refs/tags/{new_tag}")
+            console.error("  Or choose a different version to bump to.")
             raise typer.Exit(code=1)
-        logger.success(f"Preflight: tag '{new_tag}' is available on remote")
+        console.success(f"Preflight: tag '{new_tag}' is available on remote")
 
     # ── Execute: all preflight checks passed, safe to make changes ──
 
@@ -593,7 +593,7 @@ def release_command(
 
         # Push the bump commit to remote
         if push and not dry_run:
-            logger.info("Pushing bump commit to remote...")
+            console.info("Pushing bump commit to remote...")
             run_git_command(["git", "push", "origin", current_branch])
 
     # Get current version and tag
@@ -603,8 +603,8 @@ def release_command(
     _handle_tag_validation(dry_run, bumped_new_version, tag, current_version)
 
     # Push tag
-    logger.info("Preparing to push tag to remote...")
-    logger.info(f"Pushing tag '{tag}' to origin will trigger the release workflow.")
+    console.info("Preparing to push tag to remote...")
+    console.info(f"Pushing tag '{tag}' to origin will trigger the release workflow.")
 
     # Show commits since last tag (if any)
     _show_commits_since_last_tag(tag)
@@ -613,6 +613,6 @@ def release_command(
     _confirm_and_push_tag(tag, push, dry_run, non_interactive)
 
     if dry_run:
-        logger.info("[DRY-RUN] Release process completed (no changes made)")
+        console.info("[DRY-RUN] Release process completed (no changes made)")
     else:
-        logger.success("Release process completed successfully!")
+        console.success("Release process completed successfully!")

@@ -206,7 +206,7 @@ class TestGenerateCoverageBadgeCLI:
 
         # Verify informational output
         assert result.exit_code == 0
-        assert "[INFO]" in result.stdout or "[INFO]" in result.stderr
+        assert "Generating coverage badge" in result.output or "Coverage badge JSON generated" in result.output
 
     def test_cli_handles_permission_error(self, tmp_path, monkeypatch):
         """Test CLI handles permission errors gracefully."""

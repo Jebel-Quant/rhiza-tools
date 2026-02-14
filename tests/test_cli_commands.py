@@ -38,11 +38,10 @@ def test_bump_command(monkeypatch):
     assert options.push is False
     assert options.branch is None
     assert options.allow_dirty is False
-    assert options.verbose is False
 
     mock_bump_command.reset_mock()
 
-    result = runner.invoke(app, ["bump", "patch", "--commit", "--allow-dirty", "--verbose"])
+    result = runner.invoke(app, ["bump", "patch", "--commit", "--allow-dirty"])
     assert result.exit_code == 0
     # bump_command should be called with a BumpOptions object
     assert mock_bump_command.call_count == 1
@@ -54,7 +53,6 @@ def test_bump_command(monkeypatch):
     assert options.push is False
     assert options.branch is None
     assert options.allow_dirty is True
-    assert options.verbose is True
 
 
 def test_release_command(monkeypatch):
