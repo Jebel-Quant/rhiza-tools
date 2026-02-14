@@ -37,6 +37,7 @@ from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.bump import bump_command
 from .commands.generate_badge import generate_coverage_badge_command
 from .commands.release import release_command
+from .commands.rollback import rollback_command
 from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
 
@@ -218,6 +219,58 @@ def release(
             $ rhiza-tools release --with-bump --push --dry-run
     """
     release_command(bump, push, dry_run, non_interactive, with_bump)
+
+
+@app.command()
+def rollback(
+    tag: str | None = typer.Argument(None, help="Tag to rollback (e.g., v1.2.3). Interactive if omitted."),
+    revert_bump: bool = typer.Option(False, "--revert-bump", help="Also revert the version bump commit."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
+    non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
+) -> None:
+    """Rollback a release and/or version bump.
+
+    This command safely reverses release and bump operations by deleting
+    the release tag from local and remote repositories, and optionally
+    reverting the version bump commit.
+
+    It uses ``git revert`` rather than ``git reset``, making it safe
+    even when changes have already been pushed to remote.
+
+    Args:
+        tag: The tag to rollback (e.g., "v1.2.3"). If omitted, an interactive
+            menu shows recent tags to choose from.
+        revert_bump: If True, also revert the version bump commit associated
+            with the tag.
+        dry_run: If True, show what would happen without actually making changes.
+        non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
+
+    Example:
+        Rollback the most recent release interactively::
+
+            $ rhiza-tools rollback
+
+        Preview rollback of a specific tag::
+
+            $ rhiza-tools rollback v1.2.3 --dry-run
+
+        Fully rollback including the bump commit::
+
+            $ rhiza-tools rollback v1.2.3 --revert-bump
+
+        Non-interactive rollback (for CI/CD)::
+
+            $ rhiza-tools rollback v1.2.3 --revert-bump -y
+    """
+    from rhiza_tools.commands.rollback import RollbackOptions
+
+    options = RollbackOptions(
+        tag=tag,
+        revert_bump=revert_bump,
+        dry_run=dry_run,
+        non_interactive=non_interactive,
+    )
+    rollback_command(options)
 
 
 @app.command(name="update-readme")
