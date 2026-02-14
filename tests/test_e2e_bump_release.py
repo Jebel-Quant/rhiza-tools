@@ -13,7 +13,6 @@ import typer
 
 from rhiza_tools.commands.bump import BumpOptions, bump_command, get_current_version
 from rhiza_tools.commands.release import (
-    _calculate_new_version,
     _get_bump_type_interactively,
     release_command,
 )
@@ -435,16 +434,16 @@ class TestInteractiveReleaseWithBump:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 release_command(bump_type="MINOR", push=True, dry_run=True)
 
-        # bump_command should be called with BumpOptions containing 'minor'
+        # bump_command should be called with BumpOptions containing the explicit version
         mock_bump.assert_called_once()
         call_args = mock_bump.call_args[0]
         assert len(call_args) == 1
         options = call_args[0]
         assert isinstance(options, BumpOptions)
-        assert options.version == "minor"
+        assert options.version == "0.2.0"
 
         # Version should be unchanged (dry-run)
         assert get_current_version() == "0.1.0"
@@ -491,7 +490,7 @@ class TestNonInteractiveReleaseBumpPush:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 release_command(bump_type="MINOR", push=True, dry_run=True)
 
         mock_bump.assert_called_once()
@@ -505,7 +504,7 @@ class TestNonInteractiveReleaseBumpPush:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 release_command(bump_type="PATCH", push=True, dry_run=True)
 
         mock_bump.assert_called_once()
@@ -519,7 +518,7 @@ class TestNonInteractiveReleaseBumpPush:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 release_command(bump_type="MAJOR", push=True, dry_run=True)
 
         mock_bump.assert_called_once()
@@ -664,27 +663,12 @@ class TestDryRunVersionCalculation:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command"):
+            with patch("rhiza_tools.commands.release.bump_command"):
                 # This should succeed - it should look for tag v0.2.0, not v0.1.0
                 release_command(bump_type="MINOR", push=True, dry_run=True)
 
         # Original version should be unchanged
         assert get_current_version() == "0.1.0"
-
-    def test_calculate_new_version_patch(self, e2e_project):
-        """_calculate_new_version should calculate patch correctly."""
-        version = _calculate_new_version("PATCH")
-        assert version == "0.1.1"
-
-    def test_calculate_new_version_minor(self, e2e_project):
-        """_calculate_new_version should calculate minor correctly."""
-        version = _calculate_new_version("MINOR")
-        assert version == "0.2.0"
-
-    def test_calculate_new_version_major(self, e2e_project):
-        """_calculate_new_version should calculate major correctly."""
-        version = _calculate_new_version("MAJOR")
-        assert version == "1.0.0"
 
     def test_dry_run_skips_clean_working_tree_check(self, e2e_project):
         """Dry-run should not fail due to dirty working tree."""
@@ -709,7 +693,7 @@ class TestDryRunVersionCalculation:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command"):
+            with patch("rhiza_tools.commands.release.bump_command"):
                 # Should succeed: tag v0.2.0 doesn't exist yet, but that's OK in dry-run
                 release_command(bump_type="MINOR", push=True, dry_run=True)
 
@@ -723,7 +707,7 @@ class TestWithBumpFlag:
     """Tests for the --with-bump interactive release flag."""
 
     def test_with_bump_prompts_for_type(self, e2e_project):
-        """--with-bump should prompt user for bump type."""
+        """--with-bump should prompt user for bump type (same as bump command)."""
         mock_git = _make_mock_git_for_release(
             tag_exists_locally=False,
             tag_exists_remotely=False,
@@ -731,9 +715,9 @@ class TestWithBumpFlag:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command"):
+            with patch("rhiza_tools.commands.release.bump_command"):
                 with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = "MINOR"
+                    mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
                     release_command(with_bump=True, push=True, dry_run=True)
 
         mock_select.assert_called_once()
@@ -747,9 +731,9 @@ class TestWithBumpFlag:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = "MINOR"
+                    mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
                     release_command(with_bump=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
@@ -763,15 +747,15 @@ class TestWithBumpFlag:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 release_command(with_bump=True, non_interactive=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
-        # Should have been called with BumpOptions containing 'patch' (lowercased PATCH)
+        # Should have been called with BumpOptions containing the explicit version string
         call_args = mock_bump.call_args[0]
         options = call_args[0]
         assert isinstance(options, BumpOptions)
-        assert options.version == "patch"
+        assert options.version == "0.1.1"
 
     def test_with_bump_user_cancels_selection(self, e2e_project):
         """--with-bump: user cancels bump type selection."""
@@ -792,16 +776,16 @@ class TestWithBumpFlag:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command") as mock_bump:
+            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
                 # --bump MAJOR should take priority, --with-bump should not trigger prompt
                 release_command(bump_type="MAJOR", with_bump=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
-        # Should have been called with BumpOptions containing 'major'
+        # Should have been called with BumpOptions containing the explicit version string
         call_args = mock_bump.call_args[0]
         options = call_args[0]
         assert isinstance(options, BumpOptions)
-        assert options.version == "major"
+        assert options.version == "1.0.0"
 
     def test_with_bump_eoferror_handled(self, e2e_project):
         """--with-bump should handle EOFError gracefully (non-tty)."""
@@ -822,21 +806,21 @@ class TestWithBumpFlag:
 class TestGetBumpTypeInteractively:
     """Tests for _get_bump_type_interactively with with_bump parameter."""
 
-    def test_explicit_bump_type_takes_priority(self):
-        """Explicit bump_type should be selected regardless of other flags."""
-        should_bump, bump_type = _get_bump_type_interactively(
+    def test_explicit_bump_type_takes_priority(self, e2e_project):
+        """Explicit bump_type should be converted to version string."""
+        should_bump, new_version = _get_bump_type_interactively(
             non_interactive=False, bump_type="MINOR", dry_run=False, with_bump=False
         )
         assert should_bump is True
-        assert bump_type == "MINOR"
+        assert new_version == "0.2.0"
 
-    def test_with_bump_non_interactive_defaults_patch(self):
-        """with_bump + non_interactive should default to PATCH."""
-        should_bump, bump_type = _get_bump_type_interactively(
+    def test_with_bump_non_interactive_defaults_patch(self, e2e_project):
+        """with_bump + non_interactive should default to patch version."""
+        should_bump, new_version = _get_bump_type_interactively(
             non_interactive=True, bump_type=None, dry_run=True, with_bump=True
         )
         assert should_bump is True
-        assert bump_type == "PATCH"
+        assert new_version == "0.1.1"
 
     def test_dry_run_without_with_bump_skips_prompts(self):
         """dry_run without with_bump should not prompt."""
@@ -846,15 +830,15 @@ class TestGetBumpTypeInteractively:
         assert should_bump is False
         assert bump_type is None
 
-    def test_with_bump_prompts_interactively(self):
-        """with_bump should prompt for type selection."""
+    def test_with_bump_prompts_interactively(self, e2e_project):
+        """with_bump should use bump's interactive selection."""
         with patch("questionary.select") as mock_select:
-            mock_select.return_value.ask.return_value = "MINOR"
-            should_bump, bump_type = _get_bump_type_interactively(
+            mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
+            should_bump, new_version = _get_bump_type_interactively(
                 non_interactive=False, bump_type=None, dry_run=True, with_bump=True
             )
         assert should_bump is True
-        assert bump_type == "MINOR"
+        assert new_version == "0.2.0"
 
 
 # ──────────────────────────────────────────────
@@ -1015,5 +999,5 @@ class TestNonDefaultBranchRelease:
         )
 
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.bump.bump_command"):
+            with patch("rhiza_tools.commands.release.bump_command"):
                 release_command(bump_type="MINOR", push=True, dry_run=True)

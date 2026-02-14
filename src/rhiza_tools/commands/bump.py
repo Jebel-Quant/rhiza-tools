@@ -159,14 +159,14 @@ def _determine_bump_type_from_choice(choice: str) -> str:
     return ""
 
 
-def _get_interactive_bump_type(config: Any) -> str:
+def get_interactive_bump_type(current_version_str: str) -> str:
     """Get bump type from user through interactive prompt.
 
     Displays an interactive menu with all available bump types and their
     resulting versions. Returns the selected new version string.
 
     Args:
-        config: The bumpversion configuration object containing current_version.
+        current_version_str: The current version string (semver-compatible).
 
     Returns:
         The new version string selected by the user.
@@ -183,7 +183,6 @@ def _get_interactive_bump_type(config: Any) -> str:
               Major (1.0.0 -> 2.0.0)
               ...
     """
-    current_version_str = config.current_version
     try:
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
@@ -228,7 +227,7 @@ def _get_interactive_bump_type(config: Any) -> str:
     return new_version
 
 
-def _get_bumped_version_from_type(current_version: semver.Version, version_type: str) -> str:
+def get_bumped_version_from_type(current_version: semver.Version, version_type: str) -> str:
     """Get bumped version string from version type keyword.
 
     Args:
@@ -316,7 +315,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
         raise typer.Exit(code=1) from None
 
     # Try to get bumped version from type keyword
-    bumped_version = _get_bumped_version_from_type(current_version, version)
+    bumped_version = get_bumped_version_from_type(current_version, version)
     if bumped_version:
         return bumped_version
 
@@ -718,7 +717,7 @@ def bump_command(options: BumpOptions) -> None:
     if options.version:
         new_version_str = _parse_version_argument(options.version, current_version_str)
     else:
-        new_version_str = _get_interactive_bump_type(config)
+        new_version_str = get_interactive_bump_type(current_version_str)
 
     logger.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
 

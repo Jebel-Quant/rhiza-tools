@@ -1,5 +1,5 @@
 repository: "jebel-quant/rhiza"
-ref: "v0.7.5"
+ref: main
 
 templates:
   - github
@@ -8,6 +8,3 @@ templates:
   - legal
   - book
 
-include:
-  - docs/index.md
-  - docs/mkdocs.yml
