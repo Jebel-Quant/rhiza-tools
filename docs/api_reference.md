@@ -3,6 +3,8 @@
 Full API documentation is generated automatically from source code docstrings
 using [pdoc](https://pdoc.dev/).
 
+**[View the full API reference →](https://jebel-quant.github.io/rhiza-tools/pdoc/rhiza_tools.html)**
+
 ## Generating API Docs
 
 ```bash
