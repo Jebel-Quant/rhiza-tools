@@ -21,12 +21,10 @@ Example:
 
 from __future__ import annotations
 
-import subprocess  # nosec B404 - subprocess needed for git operations
 from dataclasses import dataclass
 from pathlib import Path
 
 import questionary as qs
-import semver
 import typer
 from loguru import logger
 
@@ -462,6 +460,160 @@ def _validate_rollback_preconditions(tag: str) -> tuple[bool, bool]:
     return exists_locally, exists_remotely
 
 
+def _resolve_tag(options: RollbackOptions) -> str:
+    """Determine which tag to rollback from options or interactively.
+
+    Args:
+        options: Rollback configuration options.
+
+    Returns:
+        The resolved tag name with 'v' prefix.
+
+    Raises:
+        typer.Exit: If no tags are found in non-interactive mode.
+    """
+    tag = options.tag
+    if not tag:
+        if options.non_interactive:
+            recent_tags = _get_recent_tags(limit=1)
+            if not recent_tags:
+                logger.error("No version tags found in the repository.")
+                raise typer.Exit(code=1)
+            tag = recent_tags[0]
+            logger.info(f"Non-interactive mode: rolling back most recent tag: {tag}")
+        else:
+            recent_tags = _get_recent_tags()
+            tag = _select_tag_interactively(recent_tags)
+
+    if not tag.startswith("v"):
+        tag = f"v{tag}"
+
+    return tag
+
+
+def _should_revert_bump(options: RollbackOptions, exists_locally: bool, is_bump: bool) -> bool:
+    """Determine whether the bump commit should be reverted.
+
+    If ``--revert-bump`` was passed, returns True immediately. Otherwise,
+    prompts the user interactively when the tagged commit looks like a bump.
+
+    Args:
+        options: Rollback configuration options.
+        exists_locally: Whether the tag exists locally.
+        is_bump: Whether the tagged commit is a bump commit.
+
+    Returns:
+        True if the bump commit should be reverted.
+    """
+    if options.revert_bump:
+        return True
+
+    if options.non_interactive or options.dry_run or not exists_locally or not is_bump:
+        return False
+
+    try:
+        return bool(
+            qs.confirm(
+                "The tagged commit appears to be a version bump. Revert it too?",
+                default=True,
+                style=_COOL_STYLE,
+            ).ask()
+        )
+    except EOFError:
+        logger.debug("Running in non-interactive environment")
+        return False
+
+
+def _execute_rollback(
+    tag: str,
+    exists_locally: bool,
+    exists_remotely: bool,
+    revert_bump: bool,
+    is_bump: bool,
+    dry_run: bool,
+    non_interactive: bool,
+) -> bool:
+    """Execute the rollback steps: delete tags, revert bump, push.
+
+    Args:
+        tag: The tag to rollback.
+        exists_locally: Whether the tag exists locally.
+        exists_remotely: Whether the tag exists on remote.
+        revert_bump: Whether to revert the bump commit.
+        is_bump: Whether the tagged commit is a bump commit.
+        dry_run: If True, only simulate changes.
+        non_interactive: If True, skip confirmation prompts.
+
+    Returns:
+        True if all steps succeeded.
+
+    Raises:
+        typer.Exit: If the remote tag deletion fails (non-dry-run).
+    """
+    success = True
+
+    # Delete remote tag first to stop any in-progress release
+    if exists_remotely:
+        if not _delete_remote_tag(tag, dry_run):
+            success = False
+            if not dry_run:
+                logger.error("Failed to delete remote tag. Aborting remaining steps.")
+                logger.error("You can retry or manually delete with:")
+                logger.error(f"  git push origin :refs/tags/{tag}")
+                raise typer.Exit(code=1)
+
+    # Delete local tag
+    if exists_locally:
+        if not _delete_local_tag(tag, dry_run):
+            success = False
+            if not dry_run:
+                logger.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
+
+    # Revert bump commit and push (if requested)
+    if revert_bump and is_bump and exists_locally:
+        if not _revert_bump_commit(tag, dry_run):
+            success = False
+            if not dry_run:
+                logger.warning("Bump revert failed. Tags were still deleted.")
+                logger.warning("You may need to manually revert the bump commit.")
+        else:
+            if not _push_revert(dry_run, non_interactive):
+                success = False
+
+    return success
+
+
+def _print_rollback_summary(dry_run: bool, success: bool, previous_tag: str | None) -> None:
+    """Print a summary after rollback execution.
+
+    Args:
+        dry_run: Whether this was a dry run.
+        success: Whether all rollback steps succeeded.
+        previous_tag: The previous version tag, if any.
+    """
+    if dry_run:
+        logger.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
+        return
+
+    if not success:
+        logger.warning("\nRollback completed with warnings. Review the output above.")
+        return
+
+    success_msg = typer.style("✓", fg=typer.colors.GREEN, bold=True)
+    logger.success(f"\n{success_msg} Rollback completed successfully!")
+
+    if previous_tag:
+        logger.info(f"Previous version was: {previous_tag}")
+        logger.info("To re-release at the previous version, run:")
+        logger.info("  rhiza-tools release")
+        logger.info("To bump to a new version instead:")
+        logger.info("  rhiza-tools bump")
+    else:
+        logger.info("No previous version tag found.")
+        logger.info("To set a new version:")
+        logger.info("  rhiza-tools bump <version>")
+
+
 def rollback_command(options: RollbackOptions) -> None:
     """Rollback a release and/or version bump.
 
@@ -503,115 +655,29 @@ def rollback_command(options: RollbackOptions) -> None:
                 non_interactive=True,
             ))
     """
-    # Validate pyproject.toml exists
     if not Path("pyproject.toml").exists():
         logger.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
 
-    # Get current branch for display
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
     current_branch = result.stdout.strip()
     logger.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
-    # Determine which tag to rollback
-    tag = options.tag
-    if not tag:
-        if options.non_interactive:
-            # In non-interactive mode without a tag, use the most recent tag
-            recent_tags = _get_recent_tags(limit=1)
-            if not recent_tags:
-                logger.error("No version tags found in the repository.")
-                raise typer.Exit(code=1)
-            tag = recent_tags[0]
-            logger.info(f"Non-interactive mode: rolling back most recent tag: {tag}")
-        else:
-            recent_tags = _get_recent_tags()
-            tag = _select_tag_interactively(recent_tags)
-
-    # Ensure tag has 'v' prefix
-    if not tag.startswith("v"):
-        tag = f"v{tag}"
-
-    # Validate the tag exists somewhere
+    tag = _resolve_tag(options)
     exists_locally, exists_remotely = _validate_rollback_preconditions(tag)
 
-    # Gather information for rollback plan
     tag_details = _get_tag_details(tag) if exists_locally else {}
     is_bump = _is_bump_commit(tag) if exists_locally else False
     previous_tag = _get_previous_version_from_tags(tag)
+    revert_bump = _should_revert_bump(options, exists_locally, is_bump)
 
-    # Determine if we should revert the bump
-    revert_bump = options.revert_bump
-    if not revert_bump and not options.non_interactive and not options.dry_run and exists_locally and is_bump:
-        try:
-            revert_bump = bool(
-                qs.confirm(
-                    "The tagged commit appears to be a version bump. Revert it too?",
-                    default=True,
-                    style=_COOL_STYLE,
-                ).ask()
-            )
-        except EOFError:
-            logger.debug("Running in non-interactive environment")
-            revert_bump = False
-
-    # Show rollback plan
     _show_rollback_plan(tag, exists_locally, exists_remotely, revert_bump, is_bump, previous_tag, tag_details)
 
-    # Confirm with user
     if not options.dry_run and not _confirm_rollback(options.non_interactive):
         logger.info("Rollback cancelled by user.")
         raise typer.Exit(code=0)
 
-    # Execute rollback steps
-    success = True
-
-    # Step 1: Delete remote tag (do this first to stop any in-progress release)
-    if exists_remotely:
-        if not _delete_remote_tag(tag, options.dry_run):
-            success = False
-            if not options.dry_run:
-                logger.error("Failed to delete remote tag. Aborting remaining steps.")
-                logger.error("You can retry or manually delete with:")
-                logger.error(f"  git push origin :refs/tags/{tag}")
-                raise typer.Exit(code=1)
-
-    # Step 2: Delete local tag
-    if exists_locally:
-        if not _delete_local_tag(tag, options.dry_run):
-            success = False
-            if not options.dry_run:
-                logger.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
-
-    # Step 3: Revert bump commit (if requested)
-    if revert_bump and is_bump and exists_locally:
-        if not _revert_bump_commit(tag, options.dry_run):
-            success = False
-            if not options.dry_run:
-                logger.warning("Bump revert failed. Tags were still deleted.")
-                logger.warning("You may need to manually revert the bump commit.")
-        else:
-            # Step 4: Push revert commit
-            if not _push_revert(options.dry_run, options.non_interactive):
-                success = False
-
-    # Summary
-    if options.dry_run:
-        logger.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
-    elif success:
-        success_msg = typer.style("✓", fg=typer.colors.GREEN, bold=True)
-        logger.success(f"\n{success_msg} Rollback completed successfully!")
-
-        if previous_tag:
-            version = previous_tag.lstrip("v")
-            logger.info(f"Previous version was: {previous_tag}")
-            logger.info(f"To re-release at the previous version, run:")
-            logger.info(f"  rhiza-tools release")
-            logger.info(f"To bump to a new version instead:")
-            logger.info(f"  rhiza-tools bump")
-        else:
-            logger.info("No previous version tag found.")
-            logger.info("To set a new version:")
-            logger.info("  rhiza-tools bump <version>")
-    else:
-        logger.warning("\nRollback completed with warnings. Review the output above.")
+    success = _execute_rollback(
+        tag, exists_locally, exists_remotely, revert_bump, is_bump, options.dry_run, options.non_interactive
+    )
+    _print_rollback_summary(options.dry_run, success, previous_tag)

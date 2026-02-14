@@ -695,9 +695,7 @@ class TestRollbackCommand:
 
         with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
             with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                rollback_command(
-                    RollbackOptions(tag="v1.2.3", revert_bump=True, dry_run=True, non_interactive=True)
-                )
+                rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, dry_run=True, non_interactive=True))
 
     def test_non_interactive_rollback(self, mock_pyproject):
         """Should rollback without prompts in non-interactive mode."""
@@ -887,9 +885,7 @@ class TestRollbackCommand:
 
         with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
             with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                rollback_command(
-                    RollbackOptions(tag="v1.2.3", revert_bump=True, non_interactive=True)
-                )
+                rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, non_interactive=True))
 
 
 # ──────────────────────────────────────────────
