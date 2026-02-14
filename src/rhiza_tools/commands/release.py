@@ -553,12 +553,29 @@ def release_command(
     # Interactive mode: ask if user wants to bump version
     should_bump, new_version = _get_bump_type_interactively(non_interactive, bump_type, dry_run, with_bump)
 
-    # Perform bump if requested
+    # ── Preflight validation: check everything BEFORE making any changes ──
+    default_branch = get_default_branch()
+    _check_repository_state(dry_run, current_branch, default_branch)
+
+    # If bumping, pre-validate that the new tag won't conflict with remote
+    if should_bump and new_version and not dry_run:
+        new_tag = f"v{new_version}"
+        _, exists_remotely = check_tag_exists(new_tag)
+        if exists_remotely:
+            logger.error(f"Tag '{new_tag}' already exists on remote")
+            logger.error(f"The release for version {new_version} has already been published.")
+            logger.error("No changes were made.")
+            raise typer.Exit(code=1)
+        logger.success(f"Preflight: tag '{new_tag}' is available on remote")
+
+    # ── Execute: all preflight checks passed, safe to make changes ──
+
+    # Perform bump if requested (bump_command runs its own internal preflight)
     bumped_new_version: str | None = None
     if should_bump and new_version:
         bumped_new_version = _perform_version_bump(new_version, dry_run)
 
-        # Push the bump commit to remote before branch status checks
+        # Push the bump commit to remote
         if push and not dry_run:
             logger.info("Pushing bump commit to remote...")
             run_git_command(["git", "push", "origin", current_branch])
@@ -566,11 +583,7 @@ def release_command(
     # Get current version and tag
     current_version, tag = _get_release_version(dry_run, bumped_new_version)
 
-    # Check repository state
-    default_branch = get_default_branch()
-    _check_repository_state(dry_run, current_branch, default_branch)
-
-    # Validate tag state
+    # Validate tag state (for non-bump cases, ensures local tag exists)
     _handle_tag_validation(dry_run, bumped_new_version, tag, current_version)
 
     # Push tag

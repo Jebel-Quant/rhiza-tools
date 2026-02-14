@@ -437,6 +437,42 @@ def _preview_file_modifications(config: Any, current_version: str, new_version: 
         logger.info("")  # Empty line for spacing
 
 
+def _preflight_bump(new_version_str: str, config: Any, config_path: Path, verbose: bool) -> None:
+    """Run a dry-run bump to validate the operation would succeed.
+
+    This preflight check ensures the bump operation will succeed before making
+    any actual changes. It catches configuration errors, file access issues,
+    and version format problems early, preventing partial failures that would
+    leave the repository in a state requiring manual recovery.
+
+    Args:
+        new_version_str: The new version string to validate.
+        config: The bumpversion configuration object.
+        config_path: Path to the bumpversion configuration file.
+        verbose: If True, show detailed output.
+
+    Raises:
+        typer.Exit: If the preflight validation fails.
+    """
+    logger.info("Running preflight validation (dry-run)...")
+    setup_logging(verbose=1 if verbose else 0)
+
+    try:
+        do_bump(
+            version_part=None,
+            new_version=new_version_str,
+            config=config,
+            config_file=config_path,
+            dry_run=True,
+        )
+    except Exception as e:
+        logger.error(f"Preflight validation failed: {e}")
+        logger.error("No changes were made.")
+        raise typer.Exit(code=1) from None
+
+    logger.success("Preflight validation passed")
+
+
 def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool) -> None:
     """Execute the bump operation using bump-my-version.
 
@@ -731,6 +767,12 @@ def bump_command(options: BumpOptions) -> None:
         ):
             logger.info("Version bump cancelled by user")
             raise typer.Exit(code=0)
+
+    # Preflight: validate bump would succeed before making any changes
+    if not options.dry_run:
+        _preflight_bump(new_version_str, config, config_path, options.verbose)
+        # Rebuild configuration to avoid stale state from dry-run
+        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
     _execute_bump(new_version_str, config, config_path, options.dry_run, options.verbose)
 

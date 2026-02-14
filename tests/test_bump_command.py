@@ -810,3 +810,76 @@ def test_restore_original_branch_none(bump_project):
     # Verify branch unchanged
     after = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
     assert before.stdout == after.stdout
+
+
+# ──────────────────────────────────────────────
+# Preflight Validation Tests
+# ──────────────────────────────────────────────
+
+
+class TestPreflightValidation:
+    """Tests for the preflight dry-run validation in bump_command."""
+
+    def test_preflight_catches_error_before_file_changes(self, bump_project):
+        """Preflight failure should leave all files unchanged."""
+        from unittest.mock import patch
+
+        original_content = (bump_project / "pyproject.toml").read_text()
+
+        def mock_do_bump(*args, **kwargs):
+            # Fail on the preflight (dry_run=True) call
+            if kwargs.get("dry_run", False):
+                raise Exception("Simulated preflight failure")  # noqa: TRY002, TRY003
+            # Should never reach the real call
+            raise AssertionError("Real bump should not be called after preflight failure")  # noqa: TRY003
+
+        with patch("rhiza_tools.commands.bump.do_bump", side_effect=mock_do_bump):
+            with pytest.raises(typer.Exit) as excinfo:
+                bump_command(BumpOptions(version="patch"))
+            assert excinfo.value.exit_code == 1
+
+        # Verify no file changes were made
+        assert (bump_project / "pyproject.toml").read_text() == original_content
+        assert get_current_version() == "0.1.0"
+
+    def test_preflight_runs_before_actual_bump(self, bump_project):
+        """Preflight dry-run runs before the actual bump for non-dry-run calls."""
+        from unittest.mock import patch
+
+        do_bump_calls = []
+
+        def tracking_do_bump(*args, **kwargs):
+            do_bump_calls.append({"dry_run": kwargs.get("dry_run", False)})
+            # Call through to the real do_bump
+            from bumpversion.bump import do_bump as real_do_bump
+
+            return real_do_bump(*args, **kwargs)
+
+        with patch("rhiza_tools.commands.bump.do_bump", side_effect=tracking_do_bump):
+            bump_command(BumpOptions(version="patch"))
+
+        # Should have two calls: first dry-run (preflight), then real
+        assert len(do_bump_calls) == 2
+        assert do_bump_calls[0]["dry_run"] is True  # preflight
+        assert do_bump_calls[1]["dry_run"] is False  # actual bump
+        assert get_current_version() == "0.1.1"
+
+    def test_preflight_skipped_for_dry_run(self, bump_project):
+        """When dry_run=True, preflight is skipped (only actual dry-run runs)."""
+        from unittest.mock import patch
+
+        do_bump_calls = []
+
+        def tracking_do_bump(*args, **kwargs):
+            do_bump_calls.append({"dry_run": kwargs.get("dry_run", False)})
+            from bumpversion.bump import do_bump as real_do_bump
+
+            return real_do_bump(*args, **kwargs)
+
+        with patch("rhiza_tools.commands.bump.do_bump", side_effect=tracking_do_bump):
+            bump_command(BumpOptions(version="patch", dry_run=True))
+
+        # Should have only one call (the actual dry-run), no preflight
+        assert len(do_bump_calls) == 1
+        assert do_bump_calls[0]["dry_run"] is True
+        assert get_current_version() == "0.1.0"  # unchanged
