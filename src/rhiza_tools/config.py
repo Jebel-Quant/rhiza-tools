@@ -27,6 +27,8 @@ from typing import Any
 import tomlkit
 from loguru import logger
 
+from rhiza_tools import console
+
 CONFIG_FILENAME = ".rhiza/.cfg.toml"
 
 
@@ -84,7 +86,7 @@ class RhizaConfig:
             with open(self.config_path) as f:
                 self._data = tomlkit.parse(f.read())
         except Exception as e:
-            logger.error(f"Failed to parse configuration file {self.config_path}: {e}")
+            console.error(f"Failed to parse configuration file {self.config_path}: {e}")
             raise
 
     @property

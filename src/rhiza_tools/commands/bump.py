@@ -33,6 +33,7 @@ from bumpversion.config import get_configuration
 from bumpversion.ui import setup_logging
 from loguru import logger
 
+from rhiza_tools import console
 from rhiza_tools.config import CONFIG_FILENAME
 
 _COOL_STYLE = qs.Style(
@@ -77,7 +78,6 @@ class BumpOptions:
         push: If True, push changes to remote after commit (implies commit=True).
         branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
-        verbose: If True, show detailed output from the bump-my-version tool.
     """
 
     version: str | None = None
@@ -86,7 +86,6 @@ class BumpOptions:
     push: bool = False
     branch: str | None = None
     allow_dirty: bool = False
-    verbose: bool = False
 
 
 def get_current_version() -> str:
@@ -109,7 +108,7 @@ def get_current_version() -> str:
             project = cast(dict[str, Any], data["project"])
             return str(project["version"])
     except Exception as e:
-        logger.error(f"Failed to read version from pyproject.toml: {e}")
+        console.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None
 
 
@@ -186,7 +185,7 @@ def get_interactive_bump_type(current_version_str: str) -> str:
     try:
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
-        logger.error(f"Invalid semantic version in configuration: {current_version_str}")
+        console.error(f"Invalid semantic version in configuration: {current_version_str}")
         raise typer.Exit(code=1) from None
 
     next_patch = current_version.bump_patch()
@@ -272,8 +271,8 @@ def _validate_explicit_version(version: str) -> str:
     try:
         semver.Version.parse(cleaned_version)
     except ValueError:
-        logger.error(f"Invalid version format: {version}")
-        logger.error("Please use a valid semantic version.")
+        console.error(f"Invalid version format: {version}")
+        console.error("Please use a valid semantic version.")
         raise typer.Exit(code=1) from None
 
     return cleaned_version
@@ -311,7 +310,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     try:
         current_version = semver.Version.parse(current_version_str)
     except ValueError:
-        logger.error(f"Invalid semantic version: {current_version_str}")
+        console.error(f"Invalid semantic version: {current_version_str}")
         raise typer.Exit(code=1) from None
 
     # Try to get bumped version from type keyword
@@ -330,7 +329,7 @@ def _validate_pyproject_exists() -> None:
         typer.Exit: If pyproject.toml is not found.
     """
     if not Path("pyproject.toml").exists():
-        logger.error("pyproject.toml not found in current directory")
+        console.error("pyproject.toml not found in current directory")
         raise typer.Exit(code=1)
 
 
@@ -358,9 +357,9 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
     try:
         config = get_configuration(config_file=config_path, **overrides)
     except Exception as e:
-        logger.error(f"Failed to load bumpversion configuration: {e}")
-        logger.error(f"Check your bumpversion config at: {config_path}")
-        logger.error("Ensure the [tool.bumpversion] section is valid TOML with correct version patterns.")
+        console.error(f"Failed to load bumpversion configuration: {e}")
+        console.error(f"Check your bumpversion config at: {config_path}")
+        console.error("Ensure the [tool.bumpversion] section is valid TOML with correct version patterns.")
         raise typer.Exit(code=1) from None
     else:
         return config, config_path
@@ -392,7 +391,7 @@ def _show_file_changes(file_path: Path, current_version: str, new_version: str) 
         new_version: The new version string.
     """
     if not file_path.exists():
-        logger.warning(f"File not found: {file_path}")
+        console.warning(f"File not found: {file_path}")
         return
 
     try:
@@ -404,12 +403,12 @@ def _show_file_changes(file_path: Path, current_version: str, new_version: str) 
                 lines_with_version.append((i, line))
 
         if lines_with_version:
-            logger.info(f"  Changes in {typer.style(str(file_path), fg=typer.colors.CYAN, bold=True)}:")
+            console.info(f"  Changes in {typer.style(str(file_path), fg=typer.colors.CYAN, bold=True)}:")
             for line_num, old_line in lines_with_version:
                 new_line = old_line.replace(current_version, new_version)
-                logger.info(f"    Line {line_num}:")
-                logger.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
-                logger.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
+                console.info(f"    Line {line_num}:")
+                console.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
+                console.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
     except Exception as e:
         logger.debug(f"Could not preview changes for {file_path}: {e}")
 
@@ -425,21 +424,21 @@ def _preview_file_modifications(config: Any, current_version: str, new_version: 
     files = _get_files_to_modify(config)
 
     if files:
-        logger.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
+        console.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
         for file_path in files:
             _show_file_changes(file_path, current_version, new_version)
-        logger.info("")  # Empty line for spacing
+        console.info("")  # Empty line for spacing
     else:
         # Fallback: check common files
         common_files = [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]
-        logger.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
+        console.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
         for file_path in common_files:
             if file_path.exists():
                 _show_file_changes(file_path, current_version, new_version)
-        logger.info("")  # Empty line for spacing
+        console.info("")  # Empty line for spacing
 
 
-def _preflight_bump(new_version_str: str, config: Any, config_path: Path, verbose: bool) -> None:
+def _preflight_bump(new_version_str: str, config: Any, config_path: Path) -> None:
     """Run a dry-run bump to validate the operation would succeed.
 
     This preflight check ensures the bump operation will succeed before making
@@ -451,13 +450,12 @@ def _preflight_bump(new_version_str: str, config: Any, config_path: Path, verbos
         new_version_str: The new version string to validate.
         config: The bumpversion configuration object.
         config_path: Path to the bumpversion configuration file.
-        verbose: If True, show detailed output.
 
     Raises:
         typer.Exit: If the preflight validation fails.
     """
-    logger.info("Running preflight validation (dry-run)...")
-    setup_logging(verbose=1 if verbose else 0)
+    console.info("Running preflight validation (dry-run)...")
+    setup_logging(verbose=1 if console.is_verbose() else 0)
 
     try:
         do_bump(
@@ -468,14 +466,14 @@ def _preflight_bump(new_version_str: str, config: Any, config_path: Path, verbos
             dry_run=True,
         )
     except Exception as e:
-        logger.error(f"Preflight validation failed: {e}")
-        logger.error("No changes were made.")
+        console.error(f"Preflight validation failed: {e}")
+        console.error("No changes were made.")
         raise typer.Exit(code=1) from None
 
-    logger.success("Preflight validation passed")
+    console.success("Preflight validation passed")
 
 
-def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool, verbose: bool) -> None:
+def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool) -> None:
     """Execute the bump operation using bump-my-version.
 
     Args:
@@ -483,13 +481,12 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
         config: The bumpversion configuration object.
         config_path: Path to the bumpversion configuration file.
         dry_run: If True, show what would change without actually changing anything.
-        verbose: If True, show detailed output from the bump-my-version tool.
 
     Raises:
         typer.Exit: If the bump operation fails.
     """
-    logger.info("Running bump-my-version...")
-    setup_logging(verbose=1 if verbose else 0)
+    console.info("Running bump-my-version...")
+    setup_logging(verbose=1 if console.is_verbose() else 0)
 
     try:
         do_bump(
@@ -500,13 +497,13 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
             dry_run=dry_run,
         )
     except Exception as e:
-        logger.error(f"bump-my-version failed: {e}")
+        console.error(f"bump-my-version failed: {e}")
         if not dry_run:
-            logger.error("Files may have been partially modified. To recover:")
-            logger.error("  1. Check modified files: git diff")
-            logger.error("  2. Restore all changes:  git checkout -- .")
-            logger.error("  3. Remove untracked:     git clean -fd")
-            logger.error("Or to keep changes, fix the issue and retry.")
+            console.error("Files may have been partially modified. To recover:")
+            console.error("  1. Check modified files: git diff")
+            console.error("  2. Restore all changes:  git checkout -- .")
+            console.error("  3. Remove untracked:     git clean -fd")
+            console.error("Or to keep changes, fix the issue and retry.")
         raise typer.Exit(code=1) from None
 
 
@@ -522,29 +519,29 @@ def _log_bump_success(current_version_str: str, config: Any) -> None:
         f"\n{typer.style('✓', fg=typer.colors.GREEN, bold=True)} "
         f"Version bumped: {current_version_str} -> {updated_version}"
     )
-    logger.success(success_msg)
+    console.success(success_msg)
 
     # Show which files were actually modified
     files = _get_files_to_modify(config)
     if files:
-        logger.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
+        console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
         for file_path in files:
             if file_path.exists():
-                logger.info(f"  • {file_path}")
+                console.info(f"  • {file_path}")
     else:
         # Show common files that typically get modified
-        logger.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
+        console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
         for file_path in [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]:
             if file_path.exists():
                 # Check if file was actually modified by checking content
                 try:
                     content = file_path.read_text()
                     if updated_version in content:
-                        logger.info(f"  • {file_path}")
+                        console.info(f"  • {file_path}")
                 except Exception:  # nosec B110 - safe to ignore file read errors
                     pass
 
-    logger.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
+    console.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
 
 
 def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
@@ -579,7 +576,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
     if current_branch == branch:
         return None
 
-    logger.info(f"Switching from {current_branch} to {branch}")
+    console.info(f"Switching from {current_branch} to {branch}")
     if not dry_run:
         result = subprocess.run(
             ["git", "checkout", branch],
@@ -588,11 +585,11 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
             check=False,
         )  # nosec
         if result.returncode != 0:
-            logger.error(f"Failed to checkout branch {branch}: {result.stderr}")
-            logger.error(f"Ensure the branch '{branch}' exists: git branch -a")
+            console.error(f"Failed to checkout branch {branch}: {result.stderr}")
+            console.error(f"Ensure the branch '{branch}' exists: git branch -a")
             raise typer.Exit(code=1)
     else:
-        logger.info(f"[DRY-RUN] Would checkout branch {branch}")
+        console.info(f"[DRY-RUN] Would checkout branch {branch}")
 
     return current_branch
 
@@ -636,13 +633,13 @@ def _show_interactive_preview(
     import questionary as qs
 
     # Show preview
-    logger.info("\nPreview of changes:")
-    logger.info(f"  Version: {current_version_str} → {new_version_str}")
-    logger.info(f"  Branch: {current_git_branch}")
+    console.info("\nPreview of changes:")
+    console.info(f"  Version: {current_version_str} → {new_version_str}")
+    console.info(f"  Branch: {current_git_branch}")
     if commit:
-        logger.info("  Commit: Yes")
+        console.info("  Commit: Yes")
     if push:
-        logger.info("  Push: Yes")
+        console.info("  Push: Yes")
 
     # Confirm - wrap in try/except to handle testing scenarios
     try:
@@ -670,13 +667,13 @@ def _handle_push_to_remote(version: str | None) -> None:
     if not version:
         try:
             if not qs.confirm("Push changes to remote?", default=False, style=_COOL_STYLE).ask():
-                logger.info("Push cancelled by user")
+                console.info("Push cancelled by user")
                 return
         except EOFError:
             # In testing or non-interactive environment, proceed
             logger.debug("Running in non-interactive environment, proceeding with push")
 
-    logger.info("Pushing changes to remote...")
+    console.info("Pushing changes to remote...")
     result = subprocess.run(
         ["git", "push"],
         capture_output=True,
@@ -684,13 +681,13 @@ def _handle_push_to_remote(version: str | None) -> None:
         check=False,
     )  # nosec
     if result.returncode == 0:
-        logger.success("Changes pushed to remote successfully!")
+        console.success("Changes pushed to remote successfully!")
     else:
-        logger.error(f"Failed to push changes: {result.stderr}")
-        logger.error("The version bump has been applied locally but could not be pushed.")
-        logger.error("To recover:")
-        logger.error("  Push manually:   git push")
-        logger.error("  Or undo bump:    git reset --hard HEAD~1")
+        console.error(f"Failed to push changes: {result.stderr}")
+        console.error("The version bump has been applied locally but could not be pushed.")
+        console.error("To recover:")
+        console.error("  Push manually:   git push")
+        console.error("  Or undo bump:    git reset --hard HEAD~1")
         raise typer.Exit(code=1)
 
 
@@ -704,7 +701,7 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
     import subprocess  # nosec
 
     if original_branch and not dry_run:
-        logger.info(f"Returning to original branch {original_branch}")
+        console.info(f"Returning to original branch {original_branch}")
         subprocess.run(
             ["git", "checkout", original_branch],
             capture_output=True,
@@ -758,8 +755,8 @@ def bump_command(options: BumpOptions) -> None:
     # Get current branch for display
     current_git_branch = _get_current_git_branch()
 
-    logger.info(f"Current branch: {typer.style(current_git_branch, fg=typer.colors.CYAN, bold=True)}")
-    logger.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
+    console.info(f"Current branch: {typer.style(current_git_branch, fg=typer.colors.CYAN, bold=True)}")
+    console.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
     # Determine new version string
     if options.version:
@@ -767,7 +764,7 @@ def bump_command(options: BumpOptions) -> None:
     else:
         new_version_str = get_interactive_bump_type(current_version_str)
 
-    logger.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
+    console.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
 
     # Show preview of file changes
     _preview_file_modifications(config, current_version_str, new_version_str)
@@ -777,16 +774,16 @@ def bump_command(options: BumpOptions) -> None:
         if not _show_interactive_preview(
             current_version_str, new_version_str, current_git_branch, commit, options.push
         ):
-            logger.info("Version bump cancelled by user")
+            console.info("Version bump cancelled by user")
             raise typer.Exit(code=0)
 
     # Preflight: validate bump would succeed before making any changes
     if not options.dry_run:
-        _preflight_bump(new_version_str, config, config_path, options.verbose)
+        _preflight_bump(new_version_str, config, config_path)
         # Rebuild configuration to avoid stale state from dry-run
         config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
-    _execute_bump(new_version_str, config, config_path, options.dry_run, options.verbose)
+    _execute_bump(new_version_str, config, config_path, options.dry_run)
 
     if not options.dry_run:
         _log_bump_success(current_version_str, config)

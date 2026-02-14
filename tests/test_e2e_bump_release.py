@@ -889,7 +889,7 @@ class TestCLIIntegration:
 
         result = runner.invoke(
             app,
-            ["bump", "minor", "--dry-run", "--commit", "--push", "--allow-dirty", "--verbose"],
+            ["bump", "minor", "--dry-run", "--commit", "--push", "--allow-dirty"],
         )
         assert result.exit_code == 0
         # bump_command should be called with a BumpOptions object
@@ -902,7 +902,6 @@ class TestCLIIntegration:
         assert options.push is True
         assert options.branch is None
         assert options.allow_dirty is True
-        assert options.verbose is True
 
 
 # ──────────────────────────────────────────────

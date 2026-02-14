@@ -99,9 +99,9 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify console output
         captured = capsys.readouterr()
-        assert "[INFO] Generating coverage badge" in captured.out
-        assert "[INFO] Coverage: 86%" in captured.out
-        assert "[INFO] Coverage badge JSON generated" in captured.out
+        assert "Generating coverage badge" in captured.out
+        assert "Coverage: 86%" in captured.out
+        assert "Coverage badge JSON generated" in captured.out
 
     def test_missing_coverage_json_file(self, tmp_path, capsys):
         """Test that missing coverage.json file prints warning and returns without error."""
@@ -114,7 +114,7 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify warning was printed
         captured = capsys.readouterr()
-        assert "[WARN] Coverage JSON file not found" in captured.err
+        assert "Coverage JSON file not found" in captured.err
         assert "skipping badge generation" in captured.err
 
         # Verify no output file was created
@@ -137,7 +137,7 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify error message
         captured = capsys.readouterr()
-        assert "[ERROR] Failed to parse coverage JSON" in captured.err
+        assert "Failed to parse coverage JSON" in captured.err
 
     def test_missing_totals_key(self, tmp_path, capsys):
         """Test that missing 'totals' key causes SystemExit."""
@@ -156,7 +156,7 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify error message
         captured = capsys.readouterr()
-        assert "[ERROR] Missing expected key in coverage JSON" in captured.err
+        assert "Missing expected key in coverage JSON" in captured.err
         assert "totals" in captured.err
 
     def test_missing_percent_covered_key(self, tmp_path, capsys):
@@ -176,7 +176,7 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify error message
         captured = capsys.readouterr()
-        assert "[ERROR] Missing expected key in coverage JSON" in captured.err
+        assert "Missing expected key in coverage JSON" in captured.err
         assert "percent_covered" in captured.err
 
     def test_coverage_value_below_zero(self, tmp_path, capsys):
@@ -196,7 +196,7 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify error message
         captured = capsys.readouterr()
-        assert "[ERROR] Coverage percentage -5 is out of valid range 0-100" in captured.err
+        assert "Coverage percentage -5 is out of valid range 0-100" in captured.err
 
     def test_coverage_value_above_100(self, tmp_path, capsys):
         """Test that coverage value > 100 causes SystemExit."""
@@ -215,7 +215,7 @@ class TestGenerateCoverageBadgeCommand:
 
         # Verify error message
         captured = capsys.readouterr()
-        assert "[ERROR] Coverage percentage 150 is out of valid range 0-100" in captured.err
+        assert "Coverage percentage 150 is out of valid range 0-100" in captured.err
 
     def test_output_directory_creation(self, tmp_path):
         """Test that output directory is created if it doesn't exist."""

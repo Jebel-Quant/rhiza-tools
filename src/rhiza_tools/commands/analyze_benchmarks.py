@@ -30,7 +30,7 @@ import json
 import sys
 from pathlib import Path
 
-from loguru import logger
+from rhiza_tools import console
 
 
 class BenchmarkError(Exception):
@@ -71,7 +71,7 @@ def analyze_benchmarks_command(
         import pandas as pd
         import plotly.express as px
     except ImportError:
-        logger.error(
+        console.error(
             "pandas and plotly are required for this command. "
             "Install them with: uv pip install -e '.[dev]' or pip install 'rhiza-tools[dev]'"
         )
@@ -86,7 +86,7 @@ def analyze_benchmarks_command(
 
     # Check if the file exists
     if not benchmarks_json.exists():
-        logger.warning(f"benchmarks.json not found at {benchmarks_json}; skipping analysis and exiting successfully.")
+        console.warning(f"benchmarks.json not found at {benchmarks_json}; skipping analysis and exiting successfully.")
         sys.exit(0)
 
     # Load pytest-benchmark JSON
@@ -94,14 +94,14 @@ def analyze_benchmarks_command(
         with benchmarks_json.open() as f:
             data = json.load(f)
     except json.JSONDecodeError:
-        logger.warning(
+        console.warning(
             f"benchmarks.json at {benchmarks_json} is invalid or empty; skipping analysis and exiting successfully."
         )
         sys.exit(0)
 
     # Validate structure: require a 'benchmarks' list
     if not isinstance(data, dict) or "benchmarks" not in data or not isinstance(data["benchmarks"], list):
-        logger.warning(
+        console.warning(
             f"benchmarks.json at {benchmarks_json} missing valid 'benchmarks' list; "
             "skipping analysis and exiting successfully."
         )
@@ -109,7 +109,7 @@ def analyze_benchmarks_command(
 
     # Check if benchmarks list is empty
     if not data["benchmarks"]:
-        logger.warning(
+        console.warning(
             f"benchmarks.json at {benchmarks_json} contains no benchmarks; skipping analysis and exiting successfully."
         )
         sys.exit(0)
@@ -131,7 +131,7 @@ def analyze_benchmarks_command(
     df = df.sort_values("Mean_ms")
 
     # Display reduced table
-    logger.info("Benchmark Results:")
+    console.info("Benchmark Results:")
     print(df[["Benchmark", "Mean_ms", "OPS"]].to_string(index=False, float_format="%.3f"))
 
     # Create interactive Plotly bar chart
@@ -159,7 +159,7 @@ def analyze_benchmarks_command(
 
     # Save HTML visualization
     fig.write_html(output_html)
-    logger.success(f"Visualization saved to {output_html}")
+    console.success(f"Visualization saved to {output_html}")
 
     # Show interactive plot in browser
     fig.show()

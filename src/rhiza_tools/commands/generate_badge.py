@@ -9,6 +9,8 @@ import json
 import sys
 from pathlib import Path
 
+from rhiza_tools import console
+
 
 def get_badge_color(coverage: int) -> str:
     """Determine badge color based on coverage percentage.
@@ -75,37 +77,36 @@ def generate_coverage_badge_command(
     """
     # Check if coverage.json exists
     if not coverage_json_path.exists():
-        print(
-            f"[WARN] Coverage JSON file not found at {coverage_json_path}, skipping badge generation",
-            file=sys.stderr,
+        console.warning(
+            f"Coverage JSON file not found at {coverage_json_path}, skipping badge generation",
         )
         return
 
-    print(f"[INFO] Generating coverage badge from {coverage_json_path}...")
+    console.info(f"Generating coverage badge from {coverage_json_path}...")
 
     # Read and parse coverage data
     try:
         with coverage_json_path.open("r") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"[ERROR] Failed to parse coverage JSON: {e}", file=sys.stderr)
+        console.error(f"Failed to parse coverage JSON: {e}")
         sys.exit(1)
 
     # Extract coverage percentage
     try:
         percent = data["totals"]["percent_covered"]
     except KeyError as e:
-        print(f"[ERROR] Missing expected key in coverage JSON: {e}", file=sys.stderr)
+        console.error(f"Missing expected key in coverage JSON: {e}")
         sys.exit(1)
 
     # Round to nearest integer
     coverage = round(percent)
 
     if not 0 <= coverage <= 100:
-        print(f"[ERROR] Coverage percentage {coverage} is out of valid range 0-100", file=sys.stderr)
+        console.error(f"Coverage percentage {coverage} is out of valid range 0-100")
         sys.exit(1)
 
-    print(f"[INFO] Coverage: {coverage}%")
+    console.info(f"Coverage: {coverage}%")
 
     # Determine badge color
     color = get_badge_color(coverage)
@@ -125,4 +126,4 @@ def generate_coverage_badge_command(
         json.dump(badge_data, f, indent=2)
         f.write("\n")  # Add trailing newline
 
-    print(f"[INFO] Coverage badge JSON generated at {output_path}")
+    console.info(f"Coverage badge JSON generated at {output_path}")

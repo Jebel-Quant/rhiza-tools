@@ -19,7 +19,8 @@ import subprocess  # nosec B404
 from pathlib import Path
 
 import typer
-from loguru import logger
+
+from rhiza_tools import console
 
 
 def _get_make_help_output() -> str:
@@ -69,10 +70,10 @@ def _get_make_help_output() -> str:
         return "\n".join(filtered_lines)
 
     except FileNotFoundError:
-        logger.error("make command not found")
+        console.error("make command not found")
         raise typer.Exit(code=1) from None
     except Exception as e:
-        logger.error(f"Failed to run 'make help': {e}")
+        console.error(f"Failed to run 'make help': {e}")
         raise typer.Exit(code=1) from None
 
 
@@ -91,10 +92,10 @@ def _read_readme_content(readme_path: Path) -> str:
     try:
         return readme_path.read_text()
     except FileNotFoundError:
-        logger.error(f"README file not found: {readme_path}")
+        console.error(f"README file not found: {readme_path}")
         raise typer.Exit(code=1) from None
     except Exception as e:
-        logger.error(f"Failed to read README: {e}")
+        console.error(f"Failed to read README: {e}")
         raise typer.Exit(code=1) from None
 
 
@@ -111,7 +112,7 @@ def _write_readme_content(readme_path: Path, content: str) -> None:
     try:
         readme_path.write_text(content)
     except Exception as e:
-        logger.error(f"Failed to write README: {e}")
+        console.error(f"Failed to write README: {e}")
         raise typer.Exit(code=1) from None
 
 
@@ -186,7 +187,7 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
     marker = "Run `make help` to see all available targets:"
 
     if marker not in content:
-        logger.info("No help section marker found in README.md - skipping update")
+        console.info("No help section marker found in README.md - skipping update")
         return False
 
     lines = content.split("\n")
@@ -207,13 +208,13 @@ def _update_readme_with_help(readme_path: Path, help_output: str) -> bool:
                 i = new_idx
                 pattern_found = True
             else:
-                logger.warning("Help section marker found but no code fence follows - skipping update")
+                console.warning("Help section marker found but no code fence follows - skipping update")
         else:
             new_lines.append(line)
             i += 1
 
     if not pattern_found:
-        logger.info("Help section not properly formatted in README.md - skipping update")
+        console.info("Help section not properly formatted in README.md - skipping update")
         return False
 
     _write_readme_content(readme_path, "\n".join(new_lines))
@@ -244,25 +245,25 @@ def update_readme_command(dry_run: bool = False) -> None:
     readme_path = Path("README.md")
 
     if not readme_path.exists():
-        logger.error("README.md not found in current directory")
+        console.error("README.md not found in current directory")
         raise typer.Exit(code=1)
 
     # Get the help output
-    logger.info("Generating help output from Makefile...")
+    console.info("Generating help output from Makefile...")
     help_output = _get_make_help_output()
 
     if dry_run:
-        logger.info("DRY RUN: Would update README.md with the following content:")
-        logger.info("-" * 50)
-        logger.info(help_output)
-        logger.info("-" * 50)
+        console.info("DRY RUN: Would update README.md with the following content:")
+        console.info("-" * 50)
+        console.info(help_output)
+        console.info("-" * 50)
         return
 
     # Update the README
-    logger.info("Updating README.md...")
+    console.info("Updating README.md...")
     updated = _update_readme_with_help(readme_path, help_output)
 
     if updated:
-        logger.success("README.md updated with current 'make help' output")
+        console.success("README.md updated with current 'make help' output")
     else:
-        logger.info("README.md was not modified (no marker found)")
+        console.info("README.md was not modified (no marker found)")
