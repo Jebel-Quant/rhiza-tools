@@ -417,14 +417,25 @@ def _show_commits_since_last_tag(tag: str) -> None:
             console.info(f"  ... and {len(commits) - 10} more")
 
 
-def _confirm_and_push_tag(tag: str, push: bool, dry_run: bool, non_interactive: bool) -> None:
+def _confirm_and_push_tag(
+    tag: str,
+    push: bool,
+    dry_run: bool,
+    non_interactive: bool,
+    bump_branch: str | None = None,
+) -> None:
     """Confirm with user and push tag to remote.
+
+    When *bump_branch* is provided the bump commit is pushed to the remote
+    **before** the tag so that the tag references a commit that exists on
+    the remote.
 
     Args:
         tag: Tag to push.
         push: If True, push without confirmation.
         dry_run: If True, only simulate push.
         non_interactive: If True, skip confirmation.
+        bump_branch: If set, push this branch first (bump commit).
 
     Raises:
         typer.Exit: If user declines to push.
@@ -437,6 +448,10 @@ def _confirm_and_push_tag(tag: str, push: bool, dry_run: bool, non_interactive: 
             raise typer.Exit(code=0)
 
     if should_push or dry_run:
+        # Push the bump commit first so the tag references a known commit
+        if bump_branch and not dry_run:
+            console.info("Pushing bump commit to remote...")
+            run_git_command(["git", "push", "origin", bump_branch])
         push_tag(tag, dry_run, non_interactive or push)
 
 
@@ -591,11 +606,6 @@ def release_command(
     if should_bump and new_version:
         bumped_new_version = _perform_version_bump(new_version, dry_run)
 
-        # Push the bump commit to remote
-        if push and not dry_run:
-            console.info("Pushing bump commit to remote...")
-            run_git_command(["git", "push", "origin", current_branch])
-
     # Get current version and tag
     current_version, tag = _get_release_version(dry_run, bumped_new_version)
 
@@ -609,8 +619,10 @@ def release_command(
     # Show commits since last tag (if any)
     _show_commits_since_last_tag(tag)
 
-    # Confirm and push
-    _confirm_and_push_tag(tag, push, dry_run, non_interactive)
+    # Confirm and push (bump commit + tag together)
+    _confirm_and_push_tag(
+        tag, push, dry_run, non_interactive, bump_branch=current_branch if bumped_new_version else None
+    )
 
     if dry_run:
         console.info("[DRY-RUN] Release process completed (no changes made)")
