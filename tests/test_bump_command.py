@@ -941,6 +941,8 @@ go 1.23
     rhiza_dir = tmp_path / ".rhiza"
     rhiza_dir.mkdir(exist_ok=True)
 
+    # Note: Quadruple backslashes are correct here:
+    # Python string -> TOML file (\\\\d becomes \\d) -> regex pattern (\d)
     config_content = """
 [tool.bumpversion]
 parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
