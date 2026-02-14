@@ -1,3 +1,60 @@
-# Rhiza Documentation
+# Rhiza Tools Documentation
 
-Browse the documentation sections using the navigation above.
+Extra utilities and tools for the [Rhiza](https://github.com/Jebel-Quant/rhiza) ecosystem.
+
+[![PyPI version](https://img.shields.io/pypi/v/rhiza-tools.svg)](https://pypi.org/project/rhiza-tools/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## What is Rhiza Tools?
+
+`rhiza-tools` provides additional CLI commands for the Rhiza ecosystem, including version bumping, release management, benchmark analysis, and documentation helpers. It can be used as a plugin for `rhiza-cli` or as a standalone tool.
+
+## Installation
+
+### As a Rhiza Plugin (Recommended)
+
+```bash
+uvx "rhiza[tools]" tools --help
+```
+
+### Standalone
+
+```bash
+pip install rhiza-tools
+```
+
+## Commands
+
+| Command                  | Description                                              |
+|--------------------------|----------------------------------------------------------|
+| [bump](commands/bump.md) | Bump the project version using semantic versioning       |
+| [release](commands/release.md) | Push a release tag to trigger the release workflow |
+| [update-readme](commands/update_readme.md) | Update README.md with `make help` output |
+| [generate-coverage-badge](commands/generate_coverage_badge.md) | Generate a coverage badge JSON file |
+| [version-matrix](commands/version_matrix.md) | Emit supported Python versions as JSON |
+| [analyze-benchmarks](commands/analyze_benchmarks.md) | Analyze and visualise benchmark results |
+
+## Quick Start
+
+```bash
+# Install the project
+make install
+
+# Run tests
+make test
+
+# Bump version interactively
+make bump
+
+# Build the documentation
+make mkdocs-build
+```
+
+## Learn More
+
+- [Architecture](ARCHITECTURE.md) — visual diagrams of the system
+- [Quick Reference](QUICK_REFERENCE.md) — cheat sheet for common tasks
+- [Releasing](RELEASING.md) — how to release a new version
+- [Customization](CUSTOMIZATION.md) — hooks, extensions, and configuration
+- [API Reference](api_reference.md) — module and function documentation
+- [Security](SECURITY.md) — security policy and vulnerability reporting

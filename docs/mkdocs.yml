@@ -46,8 +46,12 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  # Code fences
-  - pymdownx.superfences
+  # Code fences with Mermaid diagram support
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   # Admonitions (note, warning, tip boxes)
   - admonition
   - pymdownx.details
@@ -63,7 +67,18 @@ nav:
   - Architecture: ARCHITECTURE.md
   - Quick Reference: QUICK_REFERENCE.md
   - Customization: CUSTOMIZATION.md
+  - Releasing: RELEASING.md
+  - Commands:
+    - bump: commands/bump.md
+    - release: commands/release.md
+    - update-readme: commands/update_readme.md
+    - generate-coverage-badge: commands/generate_coverage_badge.md
+    - version-matrix: commands/version_matrix.md
+    - analyze-benchmarks: commands/analyze_benchmarks.md
+  - API Reference: api_reference.md
+  - Testing: TESTS.md
+  - Security: SECURITY.md
+  - Book: BOOK.md
   - Demo: DEMO.md
   - Glossary: GLOSSARY.md
-  - Releasing: RELEASING.md
 
