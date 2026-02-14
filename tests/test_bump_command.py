@@ -8,6 +8,7 @@ import typer
 
 from rhiza_tools.commands.bump import (
     BumpOptions,
+    _detect_project_language,
     bump_command,
     get_current_version,
 )
@@ -892,3 +893,191 @@ class TestPreflightValidation:
         assert len(do_bump_calls) == 1
         assert do_bump_calls[0]["dry_run"] is True
         assert get_current_version() == "0.1.0"  # unchanged
+
+
+# Tests for Go project support
+
+
+@pytest.fixture
+def go_project(tmp_path, monkeypatch):
+    """Create a temporary Go project directory with git and VERSION file.
+
+    This fixture:
+    - Creates a temporary directory
+    - Initializes a git repository
+    - Creates a go.mod file
+    - Creates a VERSION file with version 0.1.0
+    - Creates bumpversion configuration for VERSION file
+    - Changes working directory to the temp project
+    - Returns the path to the temporary project
+    """
+    import subprocess
+
+    # Change to temporary directory
+    monkeypatch.chdir(tmp_path)
+
+    # Prevent git from walking up to the real repo if anything goes wrong
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
+
+    # Initialize git repository
+    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    subprocess.run([git, "init"], check=True, capture_output=True)
+    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
+    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
+
+    # Create go.mod
+    gomod_content = """module github.com/example/test-go-project
+
+go 1.23
+"""
+    gomod_path = tmp_path / "go.mod"
+    gomod_path.write_text(gomod_content)
+
+    # Create VERSION file with initial version
+    version_path = tmp_path / "VERSION"
+    version_path.write_text("0.1.0\n")
+
+    # Create .rhiza directory and config
+    rhiza_dir = tmp_path / ".rhiza"
+    rhiza_dir.mkdir(exist_ok=True)
+
+    config_content = """
+[tool.bumpversion]
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
+serialize = [
+    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}+build.{build_n}",
+    "{major}.{minor}.{patch}-{release}.{pre_n}",
+    "{major}.{minor}.{patch}"
+]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+ignore_missing_version = false
+tag = false
+commit = false
+
+[tool.bumpversion.parts.release]
+optional_value = "prod"
+values = [
+    "dev",
+    "alpha",
+    "beta",
+    "rc",
+    "prod"
+]
+
+[[tool.bumpversion.files]]
+filename = "VERSION"
+"""  # noqa: E501
+    with open(rhiza_dir / ".cfg.toml", "w") as f:
+        f.write(config_content)
+
+    # Commit the initial state
+    subprocess.run([git, "add", "."], check=True, capture_output=True)
+    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+
+    yield tmp_path
+
+    # Safety check: ensure no git tags were created during the test
+    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)
+    tags = result.stdout.strip()
+    assert tags == "", f"Git tags were unexpectedly created during test: {tags}"
+
+
+def test_go_project_bump_patch(go_project):
+    """Test bumping the patch version in a Go project."""
+    bump_command(BumpOptions(version="patch"))
+    assert get_current_version() == "0.1.1"
+
+
+def test_go_project_bump_minor(go_project):
+    """Test bumping the minor version in a Go project."""
+    bump_command(BumpOptions(version="minor"))
+    assert get_current_version() == "0.2.0"
+
+
+def test_go_project_bump_major(go_project):
+    """Test bumping the major version in a Go project."""
+    bump_command(BumpOptions(version="major"))
+    assert get_current_version() == "1.0.0"
+
+
+def test_go_project_bump_explicit_version(go_project):
+    """Test bumping to an explicit version in a Go project."""
+    bump_command(BumpOptions(version="2.3.4"))
+    assert get_current_version() == "2.3.4"
+
+
+def test_version_file_only_project(tmp_path, monkeypatch):
+    """Test bump with only VERSION file (no pyproject.toml or go.mod)."""
+    import subprocess
+
+    # Change to temporary directory
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
+
+    # Initialize git repository
+    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    subprocess.run([git, "init"], check=True, capture_output=True)
+    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
+    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
+
+    # Create VERSION file
+    version_path = tmp_path / "VERSION"
+    version_path.write_text("1.0.0\n")
+
+    # Create .rhiza directory and config
+    rhiza_dir = tmp_path / ".rhiza"
+    rhiza_dir.mkdir(exist_ok=True)
+
+    config_content = """
+[tool.bumpversion]
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+tag = false
+commit = false
+
+[[tool.bumpversion.files]]
+filename = "VERSION"
+"""
+    with open(rhiza_dir / ".cfg.toml", "w") as f:
+        f.write(config_content)
+
+    # Commit the initial state
+    subprocess.run([git, "add", "."], check=True, capture_output=True)
+    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+
+    # Test bump
+    bump_command(BumpOptions(version="patch"))
+    assert get_current_version() == "1.0.1"
+
+
+def test_detect_project_language_python(temp_project):
+    """Test language detection for Python projects."""
+    assert _detect_project_language() == "python"
+
+
+def test_detect_project_language_go(go_project):
+    """Test language detection for Go projects."""
+    assert _detect_project_language() == "go"
+
+
+def test_detect_project_language_version_file_only(tmp_path, monkeypatch):
+    """Test language detection for projects with only VERSION file."""
+    monkeypatch.chdir(tmp_path)
+
+    # Create VERSION file
+    version_path = tmp_path / "VERSION"
+    version_path.write_text("1.0.0\n")
+
+    assert _detect_project_language() == "unknown"
+
+
+def test_detect_project_language_unknown(tmp_path, monkeypatch):
+    """Test language detection when no supported files exist."""
+    monkeypatch.chdir(tmp_path)
+    assert _detect_project_language() == "unknown"

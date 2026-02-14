@@ -1,8 +1,8 @@
-"""Command to bump version in pyproject.toml using semver and bump-my-version.
+"""Command to bump version using semver and bump-my-version.
 
 This module implements version bumping functionality with support for semantic
 versioning, interactive selection, and various bump types (patch, minor, major,
-prerelease variants).
+prerelease variants). Supports multiple languages including Python and Go.
 
 Example:
     Bump to a specific version::
@@ -88,28 +88,74 @@ class BumpOptions:
     allow_dirty: bool = False
 
 
-def get_current_version() -> str:
-    """Read current version from pyproject.toml.
+def _detect_project_language() -> str:
+    """Detect the project language based on files present.
 
     Returns:
-        The current version string from the project.version field.
+        The detected language: "python", "go", or "unknown".
+
+    Example:
+        >>> lang = _detect_project_language()  # doctest: +SKIP
+        >>> print(lang)  # doctest: +SKIP
+        python
+    """
+    if Path("pyproject.toml").exists():
+        return "python"
+    elif Path("go.mod").exists():
+        return "go"
+    elif Path("VERSION").exists():
+        # VERSION file can be used with any language
+        return "unknown"
+    return "unknown"
+
+
+def get_current_version() -> str:
+    """Read current version from project configuration.
+
+    Supports multiple languages:
+    - Python: reads from pyproject.toml
+    - Go and others: reads from VERSION file
+
+    Returns:
+        The current version string.
 
     Raises:
-        typer.Exit: If pyproject.toml cannot be read or parsed.
+        typer.Exit: If version cannot be read or parsed.
 
     Example:
         >>> version = get_current_version()  # doctest: +SKIP
         >>> print(version)  # doctest: +SKIP
         0.1.0
     """
-    try:
-        with open("pyproject.toml") as f:
-            data = tomlkit.parse(f.read())
-            project = cast(dict[str, Any], data["project"])
-            return str(project["version"])
-    except Exception as e:
-        console.error(f"Failed to read version from pyproject.toml: {e}")
-        raise typer.Exit(code=1) from None
+    # Try Python first (pyproject.toml)
+    if Path("pyproject.toml").exists():
+        try:
+            with open("pyproject.toml") as f:
+                data = tomlkit.parse(f.read())
+                project = cast(dict[str, Any], data["project"])
+                return str(project["version"])
+        except Exception as e:
+            console.error(f"Failed to read version from pyproject.toml: {e}")
+            raise typer.Exit(code=1) from None
+
+    # Try VERSION file (used by Go and other languages)
+    if Path("VERSION").exists():
+        try:
+            with open("VERSION") as f:
+                version = f.read().strip()
+        except Exception as e:
+            console.error(f"Failed to read version from VERSION file: {e}")
+            raise typer.Exit(code=1) from None
+
+        if not version:
+            console.error("VERSION file is empty")
+            raise typer.Exit(code=1)
+
+        return version
+
+    # No version file found
+    console.error("No version file found. Expected pyproject.toml or VERSION file.")
+    raise typer.Exit(code=1)
 
 
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
@@ -322,15 +368,41 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     return _validate_explicit_version(version)
 
 
-def _validate_pyproject_exists() -> None:
-    """Validate that pyproject.toml exists in the current directory.
+def _validate_project_exists() -> None:
+    """Validate that a supported project file exists in the current directory.
+
+    Supports:
+    - Python projects (pyproject.toml)
+    - Go projects (go.mod with VERSION file)
+    - Other projects with VERSION file
 
     Raises:
-        typer.Exit: If pyproject.toml is not found.
+        typer.Exit: If no supported project files are found.
     """
-    if not Path("pyproject.toml").exists():
-        console.error("pyproject.toml not found in current directory")
-        raise typer.Exit(code=1)
+    has_pyproject = Path("pyproject.toml").exists()
+    has_gomod = Path("go.mod").exists()
+    has_version_file = Path("VERSION").exists()
+
+    if has_pyproject:
+        # Python project
+        return
+
+    if has_gomod or has_version_file:
+        # Go or other language project with VERSION file
+        # For Go, we expect a VERSION file
+        if not has_version_file:
+            console.error("Go project detected but VERSION file not found.")
+            console.error("Please create a VERSION file with the current version.")
+            raise typer.Exit(code=1)
+        return
+
+    # No supported project files found
+    console.error("No supported project files found in current directory.")
+    console.error("Expected one of:")
+    console.error("  - pyproject.toml (Python)")
+    console.error("  - go.mod with VERSION file (Go)")
+    console.error("  - VERSION file (other languages)")
+    raise typer.Exit(code=1)
 
 
 def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool) -> tuple[Any, Path]:
@@ -430,7 +502,7 @@ def _preview_file_modifications(config: Any, current_version: str, new_version: 
         console.info("")  # Empty line for spacing
     else:
         # Fallback: check common files
-        common_files = [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]
+        common_files = [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]
         console.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
         for file_path in common_files:
             if file_path.exists():
@@ -531,7 +603,7 @@ def _log_bump_success(current_version_str: str, config: Any) -> None:
     else:
         # Show common files that typically get modified
         console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
-        for file_path in [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]:
+        for file_path in [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]:
             if file_path.exists():
                 # Check if file was actually modified by checking content
                 try:
@@ -727,17 +799,22 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
 
 
 def bump_command(options: BumpOptions) -> None:
-    """Bump version in pyproject.toml using bump-my-version.
+    """Bump version using bump-my-version.
 
     This function handles the complete version bumping workflow including
     configuration loading, version parsing, interactive selection (if needed),
     and executing the bump operation.
 
+    Supports multiple languages:
+    - Python: uses pyproject.toml
+    - Go: uses VERSION file with go.mod
+    - Other: uses VERSION file
+
     Args:
         options: Configuration options for the bump command.
 
     Raises:
-        typer.Exit: If pyproject.toml is missing, configuration is invalid, or
+        typer.Exit: If project files are missing, configuration is invalid, or
             bump operation fails.
 
     Example:
@@ -757,7 +834,7 @@ def bump_command(options: BumpOptions) -> None:
 
             bump_command(BumpOptions(version="minor", push=True))
     """
-    _validate_pyproject_exists()
+    _validate_project_exists()
 
     # Handle branch checkout if specified
     original_branch = _handle_branch_checkout(options.branch, options.dry_run)
