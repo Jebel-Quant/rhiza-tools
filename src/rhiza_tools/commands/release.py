@@ -558,6 +558,11 @@ def release_command(
     if should_bump and new_version:
         bumped_new_version = _perform_version_bump(new_version, dry_run)
 
+        # Push the bump commit to remote before branch status checks
+        if push and not dry_run:
+            logger.info("Pushing bump commit to remote...")
+            run_git_command(["git", "push", "origin", current_branch])
+
     # Get current version and tag
     current_version, tag = _get_release_version(dry_run, bumped_new_version)
 

@@ -700,13 +700,16 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
 
 def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
     """Test release in non-interactive mode with bump."""
+    git_push_calls = []
 
     def mock_run_git_command(cmd, check=True):
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
 
-        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+        if "push" in cmd:
+            git_push_calls.append(cmd)
+        elif "rev-parse" in cmd and "--abbrev-ref" in cmd:
             result.stdout = "main"
         elif "symbolic-full-name" in cmd:
             result.stdout = "origin/main"
@@ -747,6 +750,106 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
             release_command(bump_type="MINOR", push=True, non_interactive=True)
 
     assert bump_called["called"]
+    # Verify the bump commit was pushed to remote
+    assert any("push" in cmd and "origin" in cmd and "main" in cmd for cmd in git_push_calls), (
+        "Expected bump commit to be pushed to remote with 'git push origin main'"
+    )
+
+
+def test_release_with_bump_push_pushes_commit_before_branch_check(mock_pyproject, monkeypatch):
+    """Test that --push pushes the bump commit to remote before branch status check."""
+    call_order = []
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "push" in cmd and "origin" in cmd and "refs/tags" not in cmd:
+            call_order.append("push_bump_commit")
+        elif "fetch" in cmd:
+            call_order.append("fetch_for_branch_check")
+        elif "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            if "--symbolic-full-name" in cmd:
+                result.stdout = "origin/main"
+            else:
+                result.stdout = "main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
+            result.stdout = "abc123"
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.3\nv1.2.2"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    def mock_bump_command(options):
+        import tomlkit
+
+        with open("pyproject.toml") as f:
+            data = tomlkit.parse(f.read())
+        data["project"]["version"] = "1.2.4"
+        with open("pyproject.toml", "w") as f:
+            f.write(tomlkit.dumps(data))
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
+            release_command(bump_type="PATCH", push=True, non_interactive=True)
+
+    # Bump commit must be pushed BEFORE git fetch (which is the first step of check_branch_status)
+    assert "push_bump_commit" in call_order, "Bump commit should be pushed to remote"
+    assert "fetch_for_branch_check" in call_order, "Branch status should be checked"
+    push_idx = call_order.index("push_bump_commit")
+    fetch_idx = call_order.index("fetch_for_branch_check")
+    assert push_idx < fetch_idx, (
+        f"Bump commit push (index {push_idx}) should happen before branch status check (index {fetch_idx})"
+    )
+
+
+def test_release_with_bump_dry_run_does_not_push_commit(mock_pyproject, monkeypatch):
+    """Test that --dry-run does NOT push the bump commit to remote."""
+    git_push_calls = []
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "push" in cmd:
+            git_push_calls.append(cmd)
+        elif "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            if "--symbolic-full-name" in cmd:
+                result.stdout = "origin/main"
+            else:
+                result.stdout = "main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = ""
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        with patch("rhiza_tools.commands.release.bump_command"):
+            release_command(bump_type="PATCH", push=True, dry_run=True)
+
+    # In dry-run mode, no branch push should happen (only tag-related pushes are simulated)
+    branch_pushes = [cmd for cmd in git_push_calls if "refs/tags" not in cmd]
+    assert len(branch_pushes) == 0, "Dry-run should not push bump commit to remote"
 
 
 def test_push_tag_dry_run_with_tag_details(monkeypatch):
