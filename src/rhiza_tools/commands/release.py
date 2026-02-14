@@ -4,6 +4,10 @@ This module implements release functionality that validates the git repository
 state and pushes tags to remote, triggering the release workflow. Tags are
 created by bump-my-version during the bump process.
 
+Note:
+    Currently, this command only supports Python projects. Go projects should
+    use the bump command with --language=go instead.
+
 Example:
     Push a release tag::
 
