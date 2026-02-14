@@ -253,8 +253,8 @@ def _get_bump_type_interactively(
     Args:
         non_interactive: If True, skip interactive prompts.
         bump_type: Explicit bump type provided (e.g., "MAJOR", "MINOR", "PATCH").
-        dry_run: If True, skip interactive prompts (unless with_bump is set).
-        with_bump: If True, enable interactive bump selection even in dry-run mode.
+        dry_run: If True, the bump will be simulated (handled by caller).
+        with_bump: If True, enable interactive bump selection directly.
 
     Returns:
         Tuple of (should_bump, new_version_string). The version string is the
@@ -291,7 +291,7 @@ def _get_bump_type_interactively(
             return True, new_version
 
     # Default interactive mode: ask if user wants to bump
-    if not non_interactive and not dry_run:
+    if not non_interactive:
         import questionary as qs
 
         try:
@@ -441,18 +441,23 @@ def _confirm_and_push_tag(
         typer.Exit: If user declines to push.
     """
     should_push = push
-    if not dry_run and not non_interactive and not push:
+    if not non_interactive and not push:
         should_push = typer.confirm("Push tag to remote and trigger release workflow?", default=False)
         if not should_push:
             console.info("Release cancelled by user")
             raise typer.Exit(code=0)
 
-    if should_push or dry_run:
-        # Push the bump commit first so the tag references a known commit
-        if bump_branch and not dry_run:
-            console.info("Pushing bump commit to remote...")
-            run_git_command(["git", "push", "origin", bump_branch])
-        push_tag(tag, dry_run, non_interactive or push)
+    if should_push:
+        if dry_run:
+            if bump_branch:
+                console.info(f"[DRY-RUN] Would push bump commit on '{bump_branch}' to remote")
+            console.info(f"[DRY-RUN] Would push tag '{tag}' to remote")
+        else:
+            # Push the bump commit first so the tag references a known commit
+            if bump_branch:
+                console.info("Pushing bump commit to remote...")
+                run_git_command(["git", "push", "origin", bump_branch])
+            push_tag(tag, dry_run=False, non_interactive=non_interactive or push)
 
 
 def _get_release_version(dry_run: bool, bumped_new_version: str | None) -> tuple[str, str]:

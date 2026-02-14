@@ -615,20 +615,20 @@ def _show_interactive_preview(
     current_version_str: str,
     new_version_str: str,
     current_git_branch: str,
-    commit: bool,
-    push: bool,
-) -> bool:
-    """Show interactive preview and get confirmation.
+) -> tuple[bool, bool, bool]:
+    """Show interactive preview and prompt for commit/push decisions.
+
+    In interactive mode, the user is asked step-by-step whether to proceed
+    with the bump, whether to commit the changes, and whether to push.
 
     Args:
         current_version_str: Current version.
         new_version_str: New version.
         current_git_branch: Current git branch.
-        commit: Whether changes will be committed.
-        push: Whether changes will be pushed.
 
     Returns:
-        True if user confirms, False otherwise.
+        Tuple of (proceed, commit, push). ``proceed`` is False if the user
+        cancels the bump entirely.
     """
     import questionary as qs
 
@@ -636,18 +636,34 @@ def _show_interactive_preview(
     console.info("\nPreview of changes:")
     console.info(f"  Version: {current_version_str} → {new_version_str}")
     console.info(f"  Branch: {current_git_branch}")
-    if commit:
-        console.info("  Commit: Yes")
-    if push:
-        console.info("  Push: Yes")
 
-    # Confirm - wrap in try/except to handle testing scenarios
+    # Confirm bump
     try:
-        return cast(bool, qs.confirm("Proceed with version bump?", default=True, style=_COOL_STYLE).ask())
+        proceed = cast(bool, qs.confirm("Proceed with version bump?", default=True, style=_COOL_STYLE).ask())
     except EOFError:
-        # In testing or non-interactive environment, proceed
         logger.debug("Running in non-interactive environment, proceeding automatically")
-        return True
+        proceed = True
+
+    if not proceed:
+        return False, False, False
+
+    # Ask about commit
+    try:
+        commit = cast(bool, qs.confirm("Commit the changes?", default=True, style=_COOL_STYLE).ask())
+    except EOFError:
+        logger.debug("Running in non-interactive environment, committing automatically")
+        commit = True
+
+    # Ask about push (only if committing)
+    push = False
+    if commit:
+        try:
+            push = cast(bool, qs.confirm("Push changes to remote?", default=False, style=_COOL_STYLE).ask())
+        except EOFError:
+            logger.debug("Running in non-interactive environment, skipping push")
+            push = False
+
+    return True, commit, push
 
 
 def _handle_push_to_remote(version: str | None) -> None:
@@ -746,8 +762,12 @@ def bump_command(options: BumpOptions) -> None:
     # Handle branch checkout if specified
     original_branch = _handle_branch_checkout(options.branch, options.dry_run)
 
-    # If push is True, commit must also be True
+    # Determine commit/push settings
+    # In non-interactive mode (version specified), flags control behaviour directly.
+    # In interactive mode (no version), the user is prompted for each step.
+    is_interactive = not options.version
     commit = options.commit or options.push
+    push = options.push
 
     current_version_str = get_current_version()
     config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
@@ -770,12 +790,17 @@ def bump_command(options: BumpOptions) -> None:
     _preview_file_modifications(config, current_version_str, new_version_str)
 
     # Interactive preview and confirmation (only in true interactive mode)
-    if not options.version and not options.dry_run:
-        if not _show_interactive_preview(
-            current_version_str, new_version_str, current_git_branch, commit, options.push
-        ):
+    if is_interactive:
+        proceed, commit, push = _show_interactive_preview(
+            current_version_str,
+            new_version_str,
+            current_git_branch,
+        )
+        if not proceed:
             console.info("Version bump cancelled by user")
             raise typer.Exit(code=0)
+        # Rebuild configuration with the user's commit decision
+        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
     # Preflight: validate bump would succeed before making any changes
     if not options.dry_run:
@@ -785,11 +810,17 @@ def bump_command(options: BumpOptions) -> None:
 
     _execute_bump(new_version_str, config, config_path, options.dry_run)
 
-    if not options.dry_run:
+    if options.dry_run:
+        console.info("[DRY-RUN] Bump completed (no changes made)")
+        if commit:
+            console.info("[DRY-RUN] Would commit the changes")
+        if push:
+            console.info("[DRY-RUN] Would push changes to remote")
+    else:
         _log_bump_success(current_version_str, config)
 
         # Handle push
-        if options.push:
+        if push:
             _handle_push_to_remote(options.version)
 
     # Restore original branch if we switched
