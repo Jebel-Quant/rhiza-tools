@@ -543,9 +543,11 @@ def test_bump_with_branch_flag(bump_project):
     mock_checkout = MagicMock(return_value="original-branch")
     mock_restore = MagicMock()
 
-    with patch("rhiza_tools.commands.bump._handle_branch_checkout", mock_checkout):
-        with patch("rhiza_tools.commands.bump._restore_original_branch", mock_restore):
-            bump_command(BumpOptions(version="patch", branch="test-branch"))
+    with (
+        patch("rhiza_tools.commands.bump._handle_branch_checkout", mock_checkout),
+        patch("rhiza_tools.commands.bump._restore_original_branch", mock_restore),
+    ):
+        bump_command(BumpOptions(version="patch", branch="test-branch"))
 
     assert get_current_version(Language.PYTHON) == "0.1.1"
     mock_checkout.assert_called_once_with("test-branch", False)

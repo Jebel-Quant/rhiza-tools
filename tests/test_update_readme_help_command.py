@@ -256,11 +256,10 @@ Footer content.
     def mock_write(*args, **kwargs):
         raise PermissionError("Permission denied")  # noqa: TRY003
 
-    with patch("pathlib.Path.write_text", mock_write):
-        with patch("pathlib.Path.read_text", original_read):
-            with pytest.raises(typer.Exit) as exc_info:
-                _update_readme_with_help(readme_path, help_output)
-            assert exc_info.value.exit_code == 1
+    with patch("pathlib.Path.write_text", mock_write), patch("pathlib.Path.read_text", original_read):
+        with pytest.raises(typer.Exit) as exc_info:
+            _update_readme_with_help(readme_path, help_output)
+        assert exc_info.value.exit_code == 1
 
 
 def test_update_readme_command_successful_update(tmp_path, monkeypatch):

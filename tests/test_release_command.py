@@ -81,9 +81,8 @@ def test_check_clean_working_tree_dirty(monkeypatch):
     mock_result.stdout = " M file.txt\n"
     mock_result.returncode = 0
 
-    with patch("rhiza_tools.commands.release.run_git_command", return_value=mock_result):
-        with pytest.raises(typer.Exit):
-            check_clean_working_tree()
+    with patch("rhiza_tools.commands.release.run_git_command", return_value=mock_result), pytest.raises(typer.Exit):
+        check_clean_working_tree()
 
 
 def test_check_branch_status_up_to_date(monkeypatch):
@@ -95,9 +94,7 @@ def test_check_branch_status_up_to_date(monkeypatch):
         result.returncode = 0
         if "symbolic-full-name" in cmd:
             result.stdout = "origin/main"
-        elif "rev-parse" in cmd:
-            result.stdout = commit_hash
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = commit_hash
         return result
 
@@ -121,9 +118,11 @@ def test_check_branch_status_behind(monkeypatch):
             result.stdout = "abc123"  # base == local (behind)
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            check_branch_status("main")
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        check_branch_status("main")
 
 
 def test_check_branch_status_ahead(monkeypatch):
@@ -144,9 +143,11 @@ def test_check_branch_status_ahead(monkeypatch):
             result.stdout = "* abc123 commit message\n"
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            check_branch_status("main")
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        check_branch_status("main")
 
 
 def test_check_branch_status_diverged(monkeypatch):
@@ -165,9 +166,11 @@ def test_check_branch_status_diverged(monkeypatch):
             result.stdout = "xyz789"  # base (different from both)
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            check_branch_status("main")
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        check_branch_status("main")
 
 
 def test_get_default_branch():
@@ -193,9 +196,11 @@ def test_get_default_branch_failure():
         result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            get_default_branch()
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        get_default_branch()
 
 
 def test_check_tag_exists():
@@ -272,9 +277,7 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"  # Tag exists locally
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
@@ -287,9 +290,11 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-            release_command(dry_run=True)  # Should complete without errors
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+    ):
+        release_command(dry_run=True)  # Should complete without errors
 
 
 def test_release_command_tag_missing(mock_pyproject, monkeypatch):
@@ -308,18 +313,18 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
             result.stdout = "* remote origin\n  HEAD branch: main\n"
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.returncode = 1  # Tag doesn't exist locally
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd and "--tags" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            release_command()
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        release_command()
 
 
 def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
@@ -336,18 +341,18 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
             result.stdout = "origin/main"
         elif "remote" in cmd and "show" in cmd:
             result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd and "--tags" in cmd:
             result.returncode = 0  # Tag exists remotely
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            release_command()
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        release_command()
 
 
 def test_check_branch_status_no_upstream(monkeypatch):
@@ -359,9 +364,11 @@ def test_check_branch_status_no_upstream(monkeypatch):
             result.returncode = 1  # No upstream
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            check_branch_status("main")
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        check_branch_status("main")
 
 
 def test_check_branch_status_ahead_of_remote(monkeypatch):
@@ -385,9 +392,11 @@ def test_check_branch_status_ahead_of_remote(monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            check_branch_status("main")
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        check_branch_status("main")
 
 
 def test_get_default_branch_no_head_branch(monkeypatch):
@@ -399,9 +408,11 @@ def test_get_default_branch_no_head_branch(monkeypatch):
         result.stdout = "* remote origin\n  some other info\n"  # No HEAD branch line
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with pytest.raises(typer.Exit):
-            get_default_branch()
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        pytest.raises(typer.Exit),
+    ):
+        get_default_branch()
 
 
 def test_push_tag_ssh_url(monkeypatch):
@@ -438,9 +449,7 @@ def test_release_command_non_default_branch_non_interactive(mock_pyproject, monk
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"  # Tag exists locally
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
@@ -475,9 +484,7 @@ def test_release_command_with_commit_count(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -511,9 +518,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -524,11 +529,13 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("typer.confirm", return_value=False):
-            with pytest.raises(typer.Exit) as exc_info:
-                release_command(dry_run=False, non_interactive=False)
-            assert exc_info.value.exit_code == 0
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("typer.confirm", return_value=False),
+        pytest.raises(typer.Exit) as exc_info,
+    ):
+        release_command(dry_run=False, non_interactive=False)
+    assert exc_info.value.exit_code == 0
 
 
 def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
@@ -548,9 +555,7 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -585,20 +590,20 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("typer.confirm", return_value=False):
-            with pytest.raises(typer.Exit) as exc_info:
-                release_command(dry_run=False, non_interactive=False)
-            assert exc_info.value.exit_code == 0
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("typer.confirm", return_value=False),
+        pytest.raises(typer.Exit) as exc_info,
+    ):
+        release_command(dry_run=False, non_interactive=False)
+    assert exc_info.value.exit_code == 0
 
 
 def test_release_with_bump_flag(mock_pyproject, monkeypatch):
@@ -618,9 +623,7 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -646,9 +649,11 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
         with open("pyproject.toml", "w") as f:
             f.write(tomlkit.dumps(data))
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-            release_command(bump_type="PATCH", push=True, dry_run=True)
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+    ):
+        release_command(bump_type="PATCH", push=True, dry_run=True)
 
     assert bump_called["called"]
     assert isinstance(bump_called["options"], BumpOptions)
@@ -672,9 +677,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -692,9 +695,11 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
     def mock_push_tag(tag, dry_run=False, non_interactive=False):
         push_called["called"] = True
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-        with patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag):
-            release_command(push=True)
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag),
+    ):
+        release_command(push=True)
 
     assert push_called["called"]
 
@@ -724,9 +729,11 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
         with open("pyproject.toml", "w") as f:
             f.write(tomlkit.dumps(data))
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-        with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-            release_command(bump_type="MINOR", push=True, non_interactive=True)
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+    ):
+        release_command(bump_type="MINOR", push=True, non_interactive=True)
 
     assert bump_called["called"]
     # Verify the bump commit was pushed to remote
@@ -767,11 +774,7 @@ def _make_mock_git_for_bump_release(
             result.stdout = "origin/main"
         elif category == "remote_show":
             result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif category == "rev_parse_tag":
-            result.stdout = "abc123"
-        elif category == "rev_parse":
-            result.stdout = "abc123"
-        elif category == "merge_base":
+        elif category == "rev_parse_tag" or category == "rev_parse" or category == "merge_base":
             result.stdout = "abc123"
         elif category == "ls_remote":
             result.returncode = 0 if tag_exists_remotely else 1
@@ -841,9 +844,11 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
         with open("pyproject.toml", "w") as f:
             f.write(tomlkit.dumps(data))
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-        with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-            release_command(bump_type="PATCH", push=True, non_interactive=True)
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+    ):
+        release_command(bump_type="PATCH", push=True, non_interactive=True)
 
     # Branch status check (fetch) must happen BEFORE bump commit push
     assert "fetch_for_branch_check" in call_order, "Branch status should be checked"
@@ -867,9 +872,11 @@ def test_release_with_bump_dry_run_does_not_push_commit(mock_pyproject, monkeypa
         callbacks={"push_branch": track_push, "push": track_push},
     )
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-        with patch("rhiza_tools.commands.release.bump_command"):
-            release_command(bump_type="PATCH", push=True, dry_run=True)
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands.release.bump_command"),
+    ):
+        release_command(bump_type="PATCH", push=True, dry_run=True)
 
     # In dry-run mode, no branch push should happen (only tag-related pushes are simulated)
     branch_pushes = [cmd for cmd in git_push_calls if "refs/tags" not in cmd]
@@ -909,10 +916,12 @@ def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
             result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists):
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-            _validate_tag_state("v1.2.3", "1.2.3")
-            # Should complete and show tag details
+    with (
+        patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists),
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+    ):
+        _validate_tag_state("v1.2.3", "1.2.3")
+        # Should complete and show tag details
 
 
 def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
@@ -932,10 +941,12 @@ def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
             result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists):
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-            _validate_tag_state("v1.2.3", "1.2.3")
-            # Should complete without showing tag details
+    with (
+        patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists),
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+    ):
+        _validate_tag_state("v1.2.3", "1.2.3")
+        # Should complete without showing tag details
 
 
 def test_get_bump_type_interactively_eoferror(monkeypatch):
@@ -1093,17 +1104,17 @@ class TestReleasePreflightValidation:
                 result.stdout = " M dirty-file.txt\n"  # Dirty working tree
             elif "symbolic-full-name" in cmd:
                 result.stdout = "origin/main"
-            elif "rev-parse" in cmd:
-                result.stdout = "abc123"
-            elif "merge-base" in cmd:
+            elif "rev-parse" in cmd or "merge-base" in cmd:
                 result.stdout = "abc123"
 
             return result
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-            with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-                with pytest.raises(typer.Exit):
-                    release_command(bump_type="PATCH", push=True, non_interactive=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+            pytest.raises(typer.Exit),
+        ):
+            release_command(bump_type="PATCH", push=True, non_interactive=True)
 
         # Bump should NOT have been called since repo was dirty
         assert not bump_called["called"], "Bump should not be called when repo state is dirty"
@@ -1128,19 +1139,19 @@ class TestReleasePreflightValidation:
                 result.stdout = ""  # Clean tree
             elif "symbolic-full-name" in cmd:
                 result.stdout = "origin/main"
-            elif "rev-parse" in cmd:
-                result.stdout = "abc123"
-            elif "merge-base" in cmd:
+            elif "rev-parse" in cmd or "merge-base" in cmd:
                 result.stdout = "abc123"
             elif "ls-remote" in cmd and "--tags" in cmd:
                 result.returncode = 0  # Tag exists remotely (conflict!)
 
             return result
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
-            with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-                with pytest.raises(typer.Exit):
-                    release_command(bump_type="PATCH", push=True, non_interactive=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+            pytest.raises(typer.Exit),
+        ):
+            release_command(bump_type="PATCH", push=True, non_interactive=True)
 
         # Bump should NOT have been called since tag already exists on remote
         assert not bump_called["called"], "Bump should not be called when tag already exists on remote"
@@ -1152,10 +1163,12 @@ class TestReleasePreflightValidation:
             previous_tags="",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command"):
-                # Should complete without error in dry-run
-                release_command(bump_type="PATCH", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command"),
+        ):
+            # Should complete without error in dry-run
+            release_command(bump_type="PATCH", push=True, dry_run=True)
 
     def test_preflight_allows_release_when_tag_available(self, mock_pyproject, monkeypatch):
         """Release proceeds when preflight confirms tag is available on remote."""
@@ -1175,8 +1188,10 @@ class TestReleasePreflightValidation:
             tag_exists_remotely=False,
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-                release_command(bump_type="PATCH", push=True, non_interactive=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+        ):
+            release_command(bump_type="PATCH", push=True, non_interactive=True)
 
         assert bump_called["called"], "Bump should proceed when tag is available"
