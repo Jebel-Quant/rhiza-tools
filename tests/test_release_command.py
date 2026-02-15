@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from rhiza_tools.commands.bump import BumpOptions, get_current_version
+from rhiza_tools.commands.bump import BumpOptions, Language, get_current_version
 from rhiza_tools.commands.release import (
     check_branch_status,
     check_clean_working_tree,
@@ -35,7 +35,7 @@ version = "1.2.3"
 
 def test_get_current_version(mock_pyproject):
     """Test reading version from pyproject.toml."""
-    version = get_current_version()
+    version = get_current_version(Language.PYTHON)
     assert version == "1.2.3"
 
 
@@ -43,7 +43,7 @@ def test_get_current_version_missing_file(tmp_path, monkeypatch):
     """Test error when pyproject.toml is missing."""
     monkeypatch.chdir(tmp_path)
     with pytest.raises(typer.Exit):
-        get_current_version()
+        get_current_version(Language.PYTHON)
 
 
 def test_run_git_command_success():
