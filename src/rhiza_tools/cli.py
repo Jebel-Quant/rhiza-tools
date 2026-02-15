@@ -31,7 +31,7 @@ from typing import Annotated
 
 import typer
 
-from rhiza_tools import __version__
+from rhiza_tools import __version__, console
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
@@ -80,6 +80,9 @@ def main(
 @app.command()
 def bump(
     version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
+    language: str | None = typer.Option(
+        None, "--language", "-l", help="Programming language (python or go). Auto-detected if not specified."
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     commit: bool = typer.Option(False, "--commit", help="Commit the changes to git."),
     push: bool = typer.Option(False, "--push", help="Push changes to remote after commit (implies --commit)."),
@@ -93,14 +96,15 @@ def bump(
 ) -> None:
     """Bump the version of the project.
 
-    This command updates the version in pyproject.toml using semantic versioning.
-    You can provide an explicit version number, a bump type (patch, minor, major),
-    or leave it blank for an interactive prompt.
+    This command updates the version for Python (pyproject.toml) or Go (VERSION file)
+    projects using semantic versioning. You can provide an explicit version number,
+    a bump type (patch, minor, major), or leave it blank for an interactive prompt.
 
     Args:
         version: The version to bump to. Can be an explicit version (e.g., "1.2.3"),
             a bump type ("patch", "minor", "major"), a prerelease type
             ("alpha", "beta", "rc", "dev"), or None for interactive selection.
+        language: Programming language (python or go). Auto-detected if not specified.
         dry_run: If True, show what would change without actually changing anything.
         commit: If True, automatically commit the version change to git.
         push: If True, push changes to remote after commit (implies --commit).
@@ -117,6 +121,10 @@ def bump(
 
             $ rhiza-tools bump patch
 
+        Bump a Go project explicitly::
+
+            $ rhiza-tools bump minor --language go
+
         Preview changes without applying them::
 
             $ rhiza-tools bump minor --dry-run
@@ -130,7 +138,17 @@ def bump(
             $ rhiza-tools bump minor --push
     """
     _apply_verbose(verbose)
-    from rhiza_tools.commands.bump import BumpOptions
+    from rhiza_tools.commands.bump import BumpOptions, Language
+
+    # Parse language if provided
+    lang_enum = None
+    if language:
+        try:
+            lang_enum = Language(language.lower())
+        except ValueError:
+            console.error(f"Invalid language: {language}")
+            console.error("Supported languages: python, go")
+            raise typer.Exit(code=1) from None
 
     options = BumpOptions(
         version=version,
@@ -139,6 +157,7 @@ def bump(
         push=push,
         branch=branch,
         allow_dirty=allow_dirty,
+        language=lang_enum,
     )
     bump_command(options)
 
