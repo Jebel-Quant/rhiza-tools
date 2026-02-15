@@ -27,6 +27,7 @@ from typing import Any, cast
 
 import questionary as qs
 import semver
+import tomlkit
 import typer
 from bumpversion.bump import do_bump
 from bumpversion.config import get_configuration
@@ -34,6 +35,7 @@ from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
+from rhiza_tools.commands._shared import COOL_STYLE, get_current_git_branch, run_git_command
 from rhiza_tools.config import CONFIG_FILENAME
 
 
@@ -83,21 +85,6 @@ class Language(StrEnum):
         # Language.GO
         return Path("VERSION")
 
-
-_COOL_STYLE = qs.Style(
-    [
-        ("separator", "fg:#cc5454"),
-        ("qmark", "fg:#2FA4A9 bold"),
-        ("question", ""),
-        ("selected", "fg:#2FA4A9 bold"),
-        ("pointer", "fg:#2FA4A9 bold"),
-        ("highlighted", "fg:#2FA4A9 bold"),
-        ("answer", "fg:#2FA4A9 bold"),
-        ("text", "fg:#ffffff"),
-        ("disabled", "fg:#858585 italic"),
-    ]
-)
-from rhiza_tools.config import CONFIG_FILENAME
 
 # Valid bump type keywords
 _VALID_BUMP_TYPES = ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "rc", "dev"]

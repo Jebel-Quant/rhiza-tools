@@ -25,7 +25,6 @@ from loguru import logger
 
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
-    get_current_version,
     run_git_command,
     validate_pyproject_exists,
 )
@@ -34,6 +33,7 @@ from rhiza_tools.commands.bump import (
     Language,
     bump_command,
     get_bumped_version_from_type,
+    get_current_version,
     get_interactive_bump_type,
 )
 
@@ -241,71 +241,90 @@ def _get_bump_type_interactively(
         Tuple of (should_bump, new_version_string). The version string is the
         explicit new version (not a bump type keyword).
     """
-    # Explicit bump type provided
     if bump_type:
-        current = get_current_version(Language.PYTHON)
-        try:
-            current_semver = semver.Version.parse(current_version_str)
-        except ValueError:
-            console.error(f"Invalid semantic version: {current_version_str}")
-            raise typer.Exit(code=1) from None
-        new_version = get_bumped_version_from_type(current_semver, bump_type.lower())
-        if not new_version:
-            console.error(f"Invalid bump type: {bump_type}")
-            raise typer.Exit(code=1)
-        return True, new_version
+        return _resolve_explicit_bump_type(bump_type)
 
-    # --with-bump flag: use bump's interactive selection (even in dry-run)
     if with_bump:
-        if non_interactive:
-            console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-            current = get_current_version(Language.PYTHON)
-            current_semver = semver.Version.parse(current)
-            return True, str(current_semver.bump_patch())
+        return _resolve_with_bump_flag(non_interactive)
 
-        current_version_str = get_current_version(Language.PYTHON)
-        try:
-            new_version = get_interactive_bump_type(current_version_str)
-        except (typer.Exit, EOFError):
-            return False, None
-        else:
-            return True, new_version
-
-    # Default interactive mode: ask if user wants to bump
     if not non_interactive:
-        import questionary as qs
+        return _resolve_interactive_prompt()
 
-        try:
-            should_bump = qs.confirm(
-                "Would you like to bump the version before releasing?",
-                default=False,
-            ).ask()
-        except EOFError:
-            logger.debug("Running in non-interactive environment")
-            return False, None
-        else:
-            if should_bump:
-                current_version_str = get_current_version(Language.PYTHON)
-                try:
-                    new_version = get_interactive_bump_type(current_version_str)
-                except (typer.Exit, EOFError):
-                    return False, None
-                else:
-                    return True, new_version
-            return False, None
+    # Non-interactive without --with-bump or --bump: no bump
+    return False, None
+
+
+def _resolve_explicit_bump_type(bump_type: str) -> tuple[bool, str | None]:
+    """Resolve version from an explicitly provided bump type.
+
+    Args:
+        bump_type: The bump type keyword (e.g., "MAJOR", "MINOR", "PATCH").
+
+    Returns:
+        Tuple of (True, new_version_string).
+
+    Raises:
+        typer.Exit: If the current version is invalid or the bump type is unsupported.
+    """
+    current_version_str = get_current_version(Language.PYTHON)
+    try:
+        current_semver = semver.Version.parse(current_version_str)
+    except ValueError:
+        console.error(f"Invalid semantic version: {current_version_str}")
+        raise typer.Exit(code=1) from None
+    new_version = get_bumped_version_from_type(current_semver, bump_type.lower())
+    if not new_version:
+        console.error(f"Invalid bump type: {bump_type}")
+        raise typer.Exit(code=1)
+    return True, new_version
+
+
+def _resolve_with_bump_flag(non_interactive: bool) -> tuple[bool, str | None]:
+    """Resolve version when --with-bump flag is set.
+
+    In non-interactive mode defaults to patch; otherwise prompts interactively.
+
+    Args:
+        non_interactive: If True, default to a patch bump.
+
+    Returns:
+        Tuple of (should_bump, new_version_string).
+    """
+    if non_interactive:
+        console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
+        current_version_str = get_current_version(Language.PYTHON)
+        current_semver = semver.Version.parse(current_version_str)
+        return True, str(current_semver.bump_patch())
+
+    current_version_str = get_current_version(Language.PYTHON)
+    try:
+        new_version = get_interactive_bump_type(current_version_str)
+    except (typer.Exit, EOFError):
+        return False, None
+    return True, new_version
+
+
+def _resolve_interactive_prompt() -> tuple[bool, str | None]:
+    """Prompt the user interactively whether to bump before releasing.
+
+    Returns:
+        Tuple of (should_bump, new_version_string).
+    """
+    import questionary as qs
+
+    try:
+        should_bump = qs.confirm(
+            "Would you like to bump the version before releasing?",
+            default=False,
+        ).ask()
+    except EOFError:
+        logger.debug("Running in non-interactive environment")
+        return False, None
 
     if not should_bump:
         return False, None
 
-    # Non-interactive with --with-bump: default to patch
-    if non_interactive:
-        console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-        current_version_str = get_current_version()
-        current_semver = semver.Version.parse(current_version_str)
-        return True, str(current_semver.bump_patch())
-
-    # Interactive version selection (shared by --with-bump and default interactive modes)
-    current_version_str = get_current_version()
+    current_version_str = get_current_version(Language.PYTHON)
     try:
         new_version = get_interactive_bump_type(current_version_str)
     except (typer.Exit, EOFError):
