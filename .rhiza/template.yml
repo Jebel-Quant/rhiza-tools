@@ -8,3 +8,6 @@ templates:
   - legal
   - book
 
+exclude:
+  - docs/
+
