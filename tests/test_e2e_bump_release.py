@@ -380,9 +380,7 @@ def _make_mock_git_for_release(
         elif "rev-parse" in cmd and any(f"v{version}" in arg for arg in cmd):
             result.returncode = 0 if tag_exists_locally else 1
             result.stdout = "abc123" if tag_exists_locally else ""
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd and "--tags" in cmd:
             result.returncode = 0 if tag_exists_remotely else 1

@@ -828,9 +828,7 @@ class TestRollbackCommand:
             result.stdout = ""
             if "rev-parse" in cmd and "--abbrev-ref" in cmd:
                 result.stdout = "main"
-            elif "tag" in cmd and "-l" in cmd:
-                result.stdout = "v1.2.3\nv1.2.2\n"
-            elif "tag" in cmd and "--sort" in cmd:
+            elif ("tag" in cmd and "-l" in cmd) or ("tag" in cmd and "--sort" in cmd):
                 result.stdout = "v1.2.3\nv1.2.2\n"
             elif "show" in cmd:
                 result.stdout = "abc123|2025-01-01|Some commit"
@@ -877,9 +875,7 @@ class TestRollbackCommand:
                 result.stdout = "Bump version: 1.2.2 → 1.2.3"
             elif "rev-list" in cmd:
                 result.stdout = "abc123def456"
-            elif "revert" in cmd:
-                result.returncode = 0
-            elif "push" in cmd:
+            elif "revert" in cmd or "push" in cmd:
                 result.returncode = 0
             return result
 

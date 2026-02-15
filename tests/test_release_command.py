@@ -81,9 +81,8 @@ def test_check_clean_working_tree_dirty(monkeypatch):
     mock_result.stdout = " M file.txt\n"
     mock_result.returncode = 0
 
-    with patch("rhiza_tools.commands.release.run_git_command", return_value=mock_result):
-        with pytest.raises(typer.Exit):
-            check_clean_working_tree()
+    with patch("rhiza_tools.commands.release.run_git_command", return_value=mock_result), pytest.raises(typer.Exit):
+        check_clean_working_tree()
 
 
 def test_check_branch_status_up_to_date(monkeypatch):
@@ -95,9 +94,7 @@ def test_check_branch_status_up_to_date(monkeypatch):
         result.returncode = 0
         if "symbolic-full-name" in cmd:
             result.stdout = "origin/main"
-        elif "rev-parse" in cmd:
-            result.stdout = commit_hash
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = commit_hash
         return result
 
@@ -272,9 +269,7 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"  # Tag exists locally
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
@@ -308,9 +303,7 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
             result.stdout = "* remote origin\n  HEAD branch: main\n"
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.returncode = 1  # Tag doesn't exist locally
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd and "--tags" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
@@ -336,9 +329,7 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
             result.stdout = "origin/main"
         elif "remote" in cmd and "show" in cmd:
             result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd and "--tags" in cmd:
             result.returncode = 0  # Tag exists remotely
@@ -438,9 +429,7 @@ def test_release_command_non_default_branch_non_interactive(mock_pyproject, monk
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"  # Tag exists locally
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1  # Tag doesn't exist remotely
@@ -475,9 +464,7 @@ def test_release_command_with_commit_count(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -511,9 +498,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -548,9 +533,7 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -585,9 +568,7 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -618,9 +599,7 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -672,9 +651,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
         elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
             result.stdout = "abc123"
             result.returncode = 0
-        elif "rev-parse" in cmd:
-            result.stdout = "abc123"
-        elif "merge-base" in cmd:
+        elif "rev-parse" in cmd or "merge-base" in cmd:
             result.stdout = "abc123"
         elif "ls-remote" in cmd:
             result.returncode = 1
@@ -767,11 +744,7 @@ def _make_mock_git_for_bump_release(
             result.stdout = "origin/main"
         elif category == "remote_show":
             result.stdout = "* remote origin\n  HEAD branch: main\n"
-        elif category == "rev_parse_tag":
-            result.stdout = "abc123"
-        elif category == "rev_parse":
-            result.stdout = "abc123"
-        elif category == "merge_base":
+        elif category == "rev_parse_tag" or category == "rev_parse" or category == "merge_base":
             result.stdout = "abc123"
         elif category == "ls_remote":
             result.returncode = 0 if tag_exists_remotely else 1
@@ -1093,9 +1066,7 @@ class TestReleasePreflightValidation:
                 result.stdout = " M dirty-file.txt\n"  # Dirty working tree
             elif "symbolic-full-name" in cmd:
                 result.stdout = "origin/main"
-            elif "rev-parse" in cmd:
-                result.stdout = "abc123"
-            elif "merge-base" in cmd:
+            elif "rev-parse" in cmd or "merge-base" in cmd:
                 result.stdout = "abc123"
 
             return result
@@ -1128,9 +1099,7 @@ class TestReleasePreflightValidation:
                 result.stdout = ""  # Clean tree
             elif "symbolic-full-name" in cmd:
                 result.stdout = "origin/main"
-            elif "rev-parse" in cmd:
-                result.stdout = "abc123"
-            elif "merge-base" in cmd:
+            elif "rev-parse" in cmd or "merge-base" in cmd:
                 result.stdout = "abc123"
             elif "ls-remote" in cmd and "--tags" in cmd:
                 result.returncode = 0  # Tag exists remotely (conflict!)
