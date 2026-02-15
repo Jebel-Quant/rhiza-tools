@@ -53,7 +53,7 @@ def run_git_command(command: list[str], check: bool = True) -> subprocess.Comple
         >>> result = run_git_command(["git", "status", "--porcelain"])  # doctest: +SKIP
         >>> print(result.stdout)  # doctest: +SKIP
     """
-    result = subprocess.run(command, capture_output=True, text=True, check=False)  # nosec B603 - git commands are trusted
+    result = subprocess.run(command, capture_output=True, text=True, check=False)  # nosec B603 - git commands are trusted  # noqa: S603
     if check and result.returncode != 0:
         console.error(f"Git command failed: {' '.join(command)}")
         console.error(f"Error: {result.stderr}")

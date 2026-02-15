@@ -1,5 +1,6 @@
 """Tests for rhiza_tools.__main__.py module."""
 
+import contextlib
 import importlib.util
 import runpy
 import subprocess
@@ -53,13 +54,13 @@ def test_main_if_name_main_block():
 
     try:
         # Mock sys.argv and the app to prevent actual execution
-        with patch("sys.argv", ["rhiza_tools", "--help"]), patch("rhiza_tools.cli.app") as mock_app:
-            try:
-                # Run the module as if it were __main__
-                runpy.run_module(main_module_name, run_name="__main__")
-            except SystemExit:
-                # Expected when app() runs and exits
-                pass
+        with (
+            patch("sys.argv", ["rhiza_tools", "--help"]),
+            patch("rhiza_tools.cli.app") as mock_app,
+            contextlib.suppress(SystemExit),
+        ):
+            # Run the module as if it were __main__
+            runpy.run_module(main_module_name, run_name="__main__")
 
             # The app should have been called
             assert mock_app.called

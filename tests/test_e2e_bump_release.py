@@ -412,9 +412,11 @@ class TestInteractiveRelease:
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                release_command(dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+        ):
+            release_command(dry_run=True)
 
         # Version should be unchanged
         assert get_current_version(Language.PYTHON) == "0.1.0"
@@ -425,11 +427,13 @@ class TestInteractiveRelease:
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("typer.confirm", return_value=False):
-                with pytest.raises(typer.Exit) as exc_info:
-                    release_command()
-                assert exc_info.value.exit_code == 0
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("typer.confirm", return_value=False),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            release_command()
+        assert exc_info.value.exit_code == 0
 
 
 # ──────────────────────────────────────────────
@@ -448,9 +452,11 @@ class TestInteractiveReleaseWithBump:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                release_command(bump_type="MINOR", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+        ):
+            release_command(bump_type="MINOR", push=True, dry_run=True)
 
         # bump_command should be called with BumpOptions containing the explicit version
         mock_bump.assert_called_once()
@@ -504,9 +510,11 @@ class TestNonInteractiveReleaseBumpPush:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                release_command(bump_type="MINOR", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+        ):
+            release_command(bump_type="MINOR", push=True, dry_run=True)
 
         mock_bump.assert_called_once()
 
@@ -518,9 +526,11 @@ class TestNonInteractiveReleaseBumpPush:
             version="0.1.1",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                release_command(bump_type="PATCH", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+        ):
+            release_command(bump_type="PATCH", push=True, dry_run=True)
 
         mock_bump.assert_called_once()
 
@@ -532,9 +542,11 @@ class TestNonInteractiveReleaseBumpPush:
             version="1.0.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                release_command(bump_type="MAJOR", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+        ):
+            release_command(bump_type="MAJOR", push=True, dry_run=True)
 
         mock_bump.assert_called_once()
 
@@ -569,9 +581,11 @@ class TestReleaseWithoutBump:
         def mock_push_tag(tag, dry_run=False, non_interactive=False):
             push_called["called"] = True
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag):
-                release_command(push=True, non_interactive=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag),
+        ):
+            release_command(push=True, non_interactive=True)
 
         assert push_called["called"]
 
@@ -590,10 +604,12 @@ class TestReleaseCommitListing:
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                # Should complete without errors
-                release_command(dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+        ):
+            # Should complete without errors
+            release_command(dry_run=True)
 
 
 # ──────────────────────────────────────────────
@@ -634,9 +650,11 @@ class TestReleaseMissingTag:
         """Release should fail if tag doesn't exist locally."""
         mock_git = _make_mock_git_for_release(tag_exists_locally=False)
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with pytest.raises(typer.Exit):
-                release_command()
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            pytest.raises(typer.Exit),
+        ):
+            release_command()
 
 
 # ──────────────────────────────────────────────
@@ -654,9 +672,11 @@ class TestReleaseExistingRemoteTag:
             tag_exists_remotely=True,
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with pytest.raises(typer.Exit):
-                release_command()
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            pytest.raises(typer.Exit),
+        ):
+            release_command()
 
 
 # ──────────────────────────────────────────────
@@ -678,10 +698,12 @@ class TestDryRunVersionCalculation:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command"):
-                # This should succeed - it should look for tag v0.2.0, not v0.1.0
-                release_command(bump_type="MINOR", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command"),
+        ):
+            # This should succeed - it should look for tag v0.2.0, not v0.1.0
+            release_command(bump_type="MINOR", push=True, dry_run=True)
 
         # Original version should be unchanged
         assert get_current_version(Language.PYTHON) == "0.1.0"
@@ -696,10 +718,12 @@ class TestDryRunVersionCalculation:
             tag_exists_locally=True,
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                # Should NOT fail even with dirty working tree in dry-run
-                release_command(dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+        ):
+            # Should NOT fail even with dirty working tree in dry-run
+            release_command(dry_run=True)
 
     def test_dry_run_bump_skips_tag_validation(self, e2e_project):
         """Dry-run with bump should not require tag to exist yet."""
@@ -709,10 +733,12 @@ class TestDryRunVersionCalculation:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command"):
-                # Should succeed: tag v0.2.0 doesn't exist yet, but that's OK in dry-run
-                release_command(bump_type="MINOR", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command"),
+        ):
+            # Should succeed: tag v0.2.0 doesn't exist yet, but that's OK in dry-run
+            release_command(bump_type="MINOR", push=True, dry_run=True)
 
 
 # ──────────────────────────────────────────────
@@ -731,11 +757,13 @@ class TestWithBumpFlag:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command"):
-                with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
-                    release_command(with_bump=True, push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command"),
+            patch("questionary.select") as mock_select,
+        ):
+            mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
+            release_command(with_bump=True, push=True, dry_run=True)
 
         mock_select.assert_called_once()
 
@@ -747,11 +775,13 @@ class TestWithBumpFlag:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
-                    release_command(with_bump=True, push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("questionary.select") as mock_select,
+        ):
+            mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
+            release_command(with_bump=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
 
@@ -763,9 +793,11 @@ class TestWithBumpFlag:
             version="0.1.1",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                release_command(with_bump=True, non_interactive=True, push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+        ):
+            release_command(with_bump=True, non_interactive=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
         # Should have been called with BumpOptions containing the explicit version string
@@ -778,12 +810,14 @@ class TestWithBumpFlag:
         """--with-bump: user cancels bump type selection."""
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.return_value = None
-                    # Should proceed without bump
-                    release_command(with_bump=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("questionary.select") as mock_select,
+        ):
+            mock_select.return_value.ask.return_value = None
+            # Should proceed without bump
+            release_command(with_bump=True, dry_run=True)
 
     def test_with_bump_explicit_type_takes_priority(self, e2e_project):
         """--bump MAJOR takes priority over --with-bump."""
@@ -793,10 +827,12 @@ class TestWithBumpFlag:
             version="1.0.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command") as mock_bump:
-                # --bump MAJOR should take priority, --with-bump should not trigger prompt
-                release_command(bump_type="MAJOR", with_bump=True, push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+        ):
+            # --bump MAJOR should take priority, --with-bump should not trigger prompt
+            release_command(bump_type="MAJOR", with_bump=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
         # Should have been called with BumpOptions containing the explicit version string
@@ -809,12 +845,14 @@ class TestWithBumpFlag:
         """--with-bump should handle EOFError gracefully (non-tty)."""
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                with patch("questionary.select") as mock_select:
-                    mock_select.return_value.ask.side_effect = EOFError
-                    # Should not crash, just skip bump
-                    release_command(with_bump=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("questionary.select") as mock_select,
+        ):
+            mock_select.return_value.ask.side_effect = EOFError
+            # Should not crash, just skip bump
+            release_command(with_bump=True, dry_run=True)
 
 
 # ──────────────────────────────────────────────
@@ -947,9 +985,11 @@ class TestSequentialBumpRelease:
             tag_exists_remotely=False,
             version="0.1.1",
         )
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                release_command(dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+        ):
+            release_command(dry_run=True)
 
     def test_bump_minor_then_release(self, e2e_project):
         """Bump minor, then release dry-run."""
@@ -1004,9 +1044,11 @@ class TestNonDefaultBranchRelease:
             tag_exists_locally=True,
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.typer.confirm", return_value=True):
-                release_command(dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+        ):
+            release_command(dry_run=True)
 
     def test_release_bump_from_non_default_branch_dry_run(self, e2e_project):
         """Bump + release from non-default branch in dry-run."""
@@ -1018,6 +1060,8 @@ class TestNonDefaultBranchRelease:
             version="0.2.0",
         )
 
-        with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
-            with patch("rhiza_tools.commands.release.bump_command"):
-                release_command(bump_type="MINOR", push=True, dry_run=True)
+        with (
+            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.bump_command"),
+        ):
+            release_command(bump_type="MINOR", push=True, dry_run=True)
