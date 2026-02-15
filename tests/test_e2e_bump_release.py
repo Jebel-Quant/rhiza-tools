@@ -11,7 +11,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-from rhiza_tools.commands.bump import BumpOptions, bump_command, get_current_version
+from rhiza_tools.commands.bump import (
+    BumpOptions,
+    Language,
+    bump_command,
+    get_current_version,
+)
 from rhiza_tools.commands.release import (
     _get_bump_type_interactively,
     release_command,
@@ -133,7 +138,7 @@ class TestInteractiveBump:
 
         bump_command(BumpOptions(version=None))
 
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
     def test_interactive_bump_selects_minor(self, e2e_project, monkeypatch):
         """User selects Minor from interactive menu."""
@@ -154,7 +159,7 @@ class TestInteractiveBump:
 
         bump_command(BumpOptions(version=None))
 
-        assert get_current_version() == "0.2.0"
+        assert get_current_version(Language.PYTHON) == "0.2.0"
 
     def test_interactive_bump_selects_major(self, e2e_project, monkeypatch):
         """User selects Major from interactive menu."""
@@ -175,7 +180,7 @@ class TestInteractiveBump:
 
         bump_command(BumpOptions(version=None))
 
-        assert get_current_version() == "1.0.0"
+        assert get_current_version(Language.PYTHON) == "1.0.0"
 
 
 # ──────────────────────────────────────────────
@@ -196,7 +201,7 @@ class TestInteractiveBumpWithPush:
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
             bump_command(BumpOptions(version="patch", push=True))
 
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
         assert push_called["called"]
 
     def test_bump_push_implies_commit(self, e2e_project, monkeypatch):
@@ -209,7 +214,7 @@ class TestInteractiveBumpWithPush:
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
             bump_command(BumpOptions(version="patch", push=True, commit=False))
 
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
         assert push_called["called"]
 
 
@@ -223,21 +228,21 @@ class TestNonInteractiveBumpDryRun:
 
     def test_dry_run_does_not_change_version(self, e2e_project):
         """Dry-run should not actually change the version."""
-        original_version = get_current_version()
+        original_version = get_current_version(Language.PYTHON)
 
         bump_command(BumpOptions(version="minor", dry_run=True))
 
-        assert get_current_version() == original_version
+        assert get_current_version(Language.PYTHON) == original_version
 
     def test_dry_run_patch(self, e2e_project):
         """Dry-run patch should not change version."""
         bump_command(BumpOptions(version="patch", dry_run=True))
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_dry_run_major(self, e2e_project):
         """Dry-run major should not change version."""
         bump_command(BumpOptions(version="major", dry_run=True))
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_dry_run_leaves_git_clean(self, e2e_project):
         """Dry-run should not leave any git changes."""
@@ -259,7 +264,7 @@ class TestNonInteractiveBumpCommitPush:
         """Bump with --commit should create a git commit."""
         bump_command(BumpOptions(version="patch", commit=True))
 
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
         # Verify a commit was made with the version tag
         result = subprocess.run(
@@ -280,7 +285,7 @@ class TestNonInteractiveBumpCommitPush:
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
             bump_command(BumpOptions(version="patch", commit=True, push=True))
 
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
         assert push_called["called"]
 
 
@@ -325,7 +330,7 @@ class TestBumpOnBranch:
         bump_command(BumpOptions(version="patch", branch="feature-branch", dry_run=True))
 
         # Version on any branch should still be 0.1.0
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
 
 # ──────────────────────────────────────────────
@@ -340,7 +345,7 @@ class TestBumpDryRunPreview:
         """Major dry-run should show preview but not change files."""
         bump_command(BumpOptions(version="major", dry_run=True))
 
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
         # Verify no changes in git
         result = subprocess.run([GIT, "diff", "pyproject.toml"], capture_output=True, text=True, check=True)
@@ -414,7 +419,7 @@ class TestInteractiveRelease:
                 release_command(dry_run=True)
 
         # Version should be unchanged
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_release_user_declines_push(self, e2e_project):
         """User declines push in interactive mode."""
@@ -458,7 +463,7 @@ class TestInteractiveReleaseWithBump:
         assert options.version == "0.2.0"
 
         # Version should be unchanged (dry-run)
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
 
 # ──────────────────────────────────────────────
@@ -478,7 +483,7 @@ class TestNonInteractiveReleaseDryRun:
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
             release_command(dry_run=True, non_interactive=True)
 
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
         # Git should be clean
         result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)
@@ -553,7 +558,7 @@ class TestReleaseWithoutBump:
         with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git):
             release_command(push=True, dry_run=True)
 
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_release_push_non_interactive(self, e2e_project):
         """Non-interactive push of existing tag."""
@@ -607,7 +612,7 @@ class TestBumpDirtyWorkingDirectory:
         subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)
 
         bump_command(BumpOptions(version="patch", allow_dirty=True))
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
     def test_bump_dirty_without_commit_succeeds(self, e2e_project):
         """Bump without commit should succeed (bumps file only)."""
@@ -616,7 +621,7 @@ class TestBumpDirtyWorkingDirectory:
 
         # Without commit flag, bumpversion may still allow dirty (depends on config)
         bump_command(BumpOptions(version="patch"))
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
 
 # ──────────────────────────────────────────────
@@ -681,7 +686,7 @@ class TestDryRunVersionCalculation:
                 release_command(bump_type="MINOR", push=True, dry_run=True)
 
         # Original version should be unchanged
-        assert get_current_version() == "0.1.0"
+        assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_dry_run_skips_clean_working_tree_check(self, e2e_project):
         """Dry-run should not fail due to dirty working tree."""
@@ -932,7 +937,7 @@ class TestSequentialBumpRelease:
         """Bump patch, then release dry-run."""
         # Step 1: Actually bump the version
         bump_command(BumpOptions(version="patch", commit=True))
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
         # Step 2: Verify tag was created by bump-my-version (safe - runs in temp repo)
         result = subprocess.run([GIT, "tag", "-l", "v0.1.1"], capture_output=True, text=True, check=True)
@@ -951,7 +956,7 @@ class TestSequentialBumpRelease:
     def test_bump_minor_then_release(self, e2e_project):
         """Bump minor, then release dry-run."""
         bump_command(BumpOptions(version="minor", commit=True))
-        assert get_current_version() == "0.2.0"
+        assert get_current_version(Language.PYTHON) == "0.2.0"
 
         # Verify tag was created (safe - runs in temp repo)
         result = subprocess.run([GIT, "tag", "-l", "v0.2.0"], capture_output=True, text=True, check=True)
@@ -960,27 +965,27 @@ class TestSequentialBumpRelease:
     def test_multiple_bumps(self, e2e_project):
         """Multiple sequential bumps work correctly."""
         bump_command(BumpOptions(version="patch"))
-        assert get_current_version() == "0.1.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1"
 
         bump_command(BumpOptions(version="patch"))
-        assert get_current_version() == "0.1.2"
+        assert get_current_version(Language.PYTHON) == "0.1.2"
 
         bump_command(BumpOptions(version="minor"))
-        assert get_current_version() == "0.2.0"
+        assert get_current_version(Language.PYTHON) == "0.2.0"
 
         bump_command(BumpOptions(version="major"))
-        assert get_current_version() == "1.0.0"
+        assert get_current_version(Language.PYTHON) == "1.0.0"
 
     def test_bump_prerelease_then_release_candidate(self, e2e_project):
         """Bump through prerelease types."""
         bump_command(BumpOptions(version="alpha"))
-        assert get_current_version() == "0.1.1-alpha.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1-alpha.1"
 
         bump_command(BumpOptions(version="beta"))
-        assert get_current_version() == "0.1.1-beta.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1-beta.1"
 
         bump_command(BumpOptions(version="rc"))
-        assert get_current_version() == "0.1.1-rc.1"
+        assert get_current_version(Language.PYTHON) == "0.1.1-rc.1"
 
 
 # ──────────────────────────────────────────────

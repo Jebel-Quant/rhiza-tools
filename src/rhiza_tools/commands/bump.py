@@ -1,8 +1,8 @@
-"""Command to bump version in pyproject.toml using semver and bump-my-version.
+"""Command to bump version using semver and bump-my-version.
 
 This module implements version bumping functionality with support for semantic
 versioning, interactive selection, and various bump types (patch, minor, major,
-prerelease variants).
+prerelease variants). Supports multiple languages including Python and Go.
 
 Example:
     Bump to a specific version::
@@ -21,6 +21,7 @@ Example:
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, cast
 
@@ -33,12 +34,68 @@ from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import (
-    COOL_STYLE,
-    get_current_git_branch,
-    get_current_version,
-    run_git_command,
-    validate_pyproject_exists,
+from rhiza_tools.config import CONFIG_FILENAME
+
+
+class Language(StrEnum):
+    """Supported programming languages for version bumping.
+
+    Attributes:
+        PYTHON: Python projects using pyproject.toml
+        GO: Go projects using VERSION file with go.mod
+    """
+
+    PYTHON = "python"
+    GO = "go"
+
+    @classmethod
+    def detect(cls) -> "Language | None":
+        """Detect the project language based on files present.
+
+        Returns:
+            Language enum if detected, None if no supported language is found.
+
+        Example:
+            >>> lang = Language.detect()  # doctest: +SKIP
+            >>> if lang:
+            ...     print(lang.value)  # doctest: +SKIP
+            python
+        """
+        if Path("pyproject.toml").exists():
+            return cls.PYTHON
+        elif Path("go.mod").exists() and Path("VERSION").exists():
+            return cls.GO
+        return None
+
+    def get_version_file(self) -> Path:
+        """Get the version file path for this language.
+
+        Returns:
+            Path to the version file.
+
+        Example:
+            >>> lang = Language.PYTHON
+            >>> lang.get_version_file()  # doctest: +SKIP
+            PosixPath('pyproject.toml')
+        """
+        if self == Language.PYTHON:
+            return Path("pyproject.toml")
+        # Language.GO
+        return Path("VERSION")
+
+
+_COOL_STYLE = qs.Style(
+    [
+        ("separator", "fg:#cc5454"),
+        ("qmark", "fg:#2FA4A9 bold"),
+        ("question", ""),
+        ("selected", "fg:#2FA4A9 bold"),
+        ("pointer", "fg:#2FA4A9 bold"),
+        ("highlighted", "fg:#2FA4A9 bold"),
+        ("answer", "fg:#2FA4A9 bold"),
+        ("text", "fg:#ffffff"),
+        ("disabled", "fg:#858585 italic"),
+    ]
 )
 from rhiza_tools.config import CONFIG_FILENAME
 
@@ -70,6 +127,7 @@ class BumpOptions:
         push: If True, push changes to remote after commit (implies commit=True).
         branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
+        language: The programming language (python or go). If None, auto-detect.
     """
 
     version: str | None = None
@@ -78,10 +136,51 @@ class BumpOptions:
     push: bool = False
     branch: str | None = None
     allow_dirty: bool = False
+    language: Language | None = None
 
 
-# Re-export for backward compatibility — consumers import from here.
-get_current_version = get_current_version
+def get_current_version(language: Language) -> str:
+    """Read current version from project configuration for the specified language.
+
+    Args:
+        language: The programming language (python or go).
+
+    Returns:
+        The current version string.
+
+    Raises:
+        typer.Exit: If version cannot be read or parsed.
+
+    Example:
+        >>> version = get_current_version(Language.PYTHON)  # doctest: +SKIP
+        >>> print(version)  # doctest: +SKIP
+        0.1.0
+    """
+    if language == Language.PYTHON:
+        try:
+            with open("pyproject.toml") as f:
+                data = tomlkit.parse(f.read())
+                project = cast(dict[str, Any], data["project"])
+                return str(project["version"])
+        except Exception as e:
+            console.error(f"Failed to read version from pyproject.toml: {e}")
+            raise typer.Exit(code=1) from None
+    elif language == Language.GO:
+        try:
+            with open("VERSION") as f:
+                version = f.read().strip()
+        except Exception as e:
+            console.error(f"Failed to read version from VERSION file: {e}")
+            raise typer.Exit(code=1) from None
+
+        if not version:
+            console.error("VERSION file is empty")
+            raise typer.Exit(code=1)
+
+        return version
+    else:
+        console.error(f"Unsupported language: {language}")
+        raise typer.Exit(code=1)
 
 
 def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
@@ -294,6 +393,34 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     return _validate_explicit_version(version)
 
 
+def _validate_project_exists(language: Language) -> None:
+    """Validate that required project files exist for the specified language.
+
+    Args:
+        language: The programming language (python or go).
+
+    Raises:
+        typer.Exit: If required project files are not found.
+    """
+    if language == Language.PYTHON:
+        if not Path("pyproject.toml").exists():
+            console.error("Python project detected but pyproject.toml not found.")
+            console.error("Please create a pyproject.toml file with the current version.")
+            raise typer.Exit(code=1)
+    elif language == Language.GO:
+        if not Path("go.mod").exists():
+            console.error("Go language specified but go.mod not found.")
+            console.error("Please create a go.mod file for your Go project.")
+            raise typer.Exit(code=1)
+        if not Path("VERSION").exists():
+            console.error("Go project detected but VERSION file not found.")
+            console.error("Please create a VERSION file with the current version.")
+            raise typer.Exit(code=1)
+    else:
+        console.error(f"Unsupported language: {language}")
+        raise typer.Exit(code=1)
+
+
 def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool) -> tuple[Any, Path]:
     """Build bumpversion configuration with appropriate overrides.
 
@@ -391,7 +518,7 @@ def _preview_file_modifications(config: Any, current_version: str, new_version: 
         console.info("")  # Empty line for spacing
     else:
         # Fallback: check common files
-        common_files = [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]
+        common_files = [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]
         console.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
         for file_path in common_files:
             if file_path.exists():
@@ -468,14 +595,15 @@ def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run:
         raise typer.Exit(code=1) from None
 
 
-def _log_bump_success(current_version_str: str, config: Any) -> None:
+def _log_bump_success(current_version_str: str, config: Any, language: Language) -> None:
     """Log successful version bump and post-bump instructions.
 
     Args:
         current_version_str: The original version string before the bump.
         config: The bumpversion configuration object.
+        language: The programming language (python or go).
     """
-    updated_version = get_current_version()
+    updated_version = get_current_version(language)
     success_msg = (
         f"\n{typer.style('✓', fg=typer.colors.GREEN, bold=True)} "
         f"Version bumped: {current_version_str} -> {updated_version}"
@@ -492,7 +620,7 @@ def _log_bump_success(current_version_str: str, config: Any) -> None:
     else:
         # Show common files that typically get modified
         console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
-        for file_path in [Path("pyproject.toml"), Path("setup.py"), Path("setup.cfg")]:
+        for file_path in [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]:
             if file_path.exists():
                 # Check if file was actually modified by checking content
                 try:
@@ -643,17 +771,22 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
 
 
 def bump_command(options: BumpOptions) -> None:
-    """Bump version in pyproject.toml using bump-my-version.
+    """Bump version using bump-my-version.
 
     This function handles the complete version bumping workflow including
     configuration loading, version parsing, interactive selection (if needed),
     and executing the bump operation.
 
+    Supports multiple languages:
+    - Python: uses pyproject.toml
+    - Go: uses VERSION file with go.mod
+    - Other: uses VERSION file
+
     Args:
         options: Configuration options for the bump command.
 
     Raises:
-        typer.Exit: If pyproject.toml is missing, configuration is invalid, or
+        typer.Exit: If project files are missing, configuration is invalid, or
             bump operation fails.
 
     Example:
@@ -673,7 +806,21 @@ def bump_command(options: BumpOptions) -> None:
 
             bump_command(BumpOptions(version="minor", push=True))
     """
-    validate_pyproject_exists()
+    # Detect or use provided language
+    if options.language is None:
+        detected_language = Language.detect()
+        if detected_language is None:
+            console.error("Unable to detect project language.")
+            console.error("Please specify language explicitly with --language option.")
+            console.error("Supported languages: python, go")
+            raise typer.Exit(code=1)
+        language = detected_language
+        console.info(f"Detected language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+    else:
+        language = options.language
+        console.info(f"Using language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+
+    _validate_project_exists(language)
 
     # Handle branch checkout if specified
     original_branch = _handle_branch_checkout(options.branch, options.dry_run)
@@ -685,7 +832,7 @@ def bump_command(options: BumpOptions) -> None:
     commit = options.commit or options.push
     push = options.push
 
-    current_version_str = get_current_version()
+    current_version_str = get_current_version(language)
     config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
 
     # Get current branch for display
@@ -733,7 +880,7 @@ def bump_command(options: BumpOptions) -> None:
         if push:
             console.info("[DRY-RUN] Would push changes to remote")
     else:
-        _log_bump_success(current_version_str, config)
+        _log_bump_success(current_version_str, config, language)
 
         # Handle push
         if push:
