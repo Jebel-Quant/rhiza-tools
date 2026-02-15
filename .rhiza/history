@@ -57,7 +57,7 @@
 .rhiza/requirements/tests.txt
 .rhiza/requirements/tools.txt
 .rhiza/rhiza.mk
-.rhiza/scripts/release.sh
+.rhiza/scripts/.gitkeep
 .rhiza/templates/minibook/custom.html.jinja2
 .rhiza/tests/README.md
 .rhiza/tests/api/conftest.py
@@ -70,7 +70,6 @@
 .rhiza/tests/integration/test_lfs.py
 .rhiza/tests/integration/test_marimushka.py
 .rhiza/tests/integration/test_notebook_execution.py
-.rhiza/tests/integration/test_release.py
 .rhiza/tests/integration/test_sbom.py
 .rhiza/tests/integration/test_test_mk.py
 .rhiza/tests/integration/test_virtual_env_unexport.py
@@ -88,14 +87,6 @@ CODE_OF_CONDUCT.md
 CONTRIBUTING.md
 LICENSE
 Makefile
-docs/ARCHITECTURE.md
-docs/BOOK.md
-docs/CUSTOMIZATION.md
-docs/DEMO.md
-docs/GLOSSARY.md
-docs/QUICK_REFERENCE.md
-docs/SECURITY.md
-docs/TESTS.md
 pytest.ini
 renovate.json
 ruff.toml

@@ -45,7 +45,7 @@ def _get_make_help_output() -> str:
     try:
         # Run make help and capture output
         result = subprocess.run(  # nosec B603 B607
-            ["make", "help"],
+            ["make", "help"],  # noqa: S607
             capture_output=True,
             text=True,
             check=False,  # Don't raise on non-zero exit

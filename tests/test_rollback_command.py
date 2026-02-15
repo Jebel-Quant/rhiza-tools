@@ -135,10 +135,12 @@ class TestSelectTagInteractively:
 
         monkeypatch.setattr(rollback_mod.qs, "select", lambda *a, **kw: MockQuestion())
 
-        with patch.object(rollback_mod, "check_tag_exists", side_effect=mock_check_tag_exists):
-            with pytest.raises(typer.Exit) as exc_info:
-                _select_tag_interactively(["v1.2.3"])
-            assert exc_info.value.exit_code == 0
+        with (
+            patch.object(rollback_mod, "check_tag_exists", side_effect=mock_check_tag_exists),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            _select_tag_interactively(["v1.2.3"])
+        assert exc_info.value.exit_code == 0
 
     def test_handles_eof_error(self, monkeypatch):
         """Should exit on EOFError (non-interactive environment)."""
@@ -151,10 +153,12 @@ class TestSelectTagInteractively:
 
         monkeypatch.setattr(rollback_mod.qs, "select", mock_select)
 
-        with patch.object(rollback_mod, "check_tag_exists", side_effect=mock_check_tag_exists):
-            with pytest.raises(typer.Exit) as exc_info:
-                _select_tag_interactively(["v1.2.3"])
-            assert exc_info.value.exit_code == 1
+        with (
+            patch.object(rollback_mod, "check_tag_exists", side_effect=mock_check_tag_exists),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            _select_tag_interactively(["v1.2.3"])
+        assert exc_info.value.exit_code == 1
 
 
 # ──────────────────────────────────────────────
@@ -568,10 +572,12 @@ class TestValidateRollbackPreconditions:
 
     def test_tag_not_found(self):
         """Should exit when tag doesn't exist anywhere."""
-        with patch.object(rollback_mod, "check_tag_exists", return_value=(False, False)):
-            with pytest.raises(typer.Exit) as exc_info:
-                _validate_rollback_preconditions("v9.9.9")
-            assert exc_info.value.exit_code == 1
+        with (
+            patch.object(rollback_mod, "check_tag_exists", return_value=(False, False)),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            _validate_rollback_preconditions("v9.9.9")
+        assert exc_info.value.exit_code == 1
 
 
 # ──────────────────────────────────────────────
@@ -647,11 +653,13 @@ class TestRollbackCommand:
                 result.returncode = 1
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(False, False)):
-                with pytest.raises(typer.Exit) as exc_info:
-                    rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
-                assert exc_info.value.exit_code == 1
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(False, False)),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
+        assert exc_info.value.exit_code == 1
 
     def test_dry_run_local_and_remote_tag(self, mock_pyproject):
         """Should preview rollback in dry-run mode."""
@@ -670,9 +678,11 @@ class TestRollbackCommand:
                 result.stdout = "Some commit"
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                rollback_command(RollbackOptions(tag="v1.2.3", dry_run=True, non_interactive=True))
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", dry_run=True, non_interactive=True))
 
     def test_dry_run_with_revert_bump(self, mock_pyproject):
         """Should preview rollback with bump revert in dry-run mode."""
@@ -693,9 +703,11 @@ class TestRollbackCommand:
                 result.stdout = "abc123def456"
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, dry_run=True, non_interactive=True))
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, dry_run=True, non_interactive=True))
 
     def test_non_interactive_rollback(self, mock_pyproject):
         """Should rollback without prompts in non-interactive mode."""
@@ -716,9 +728,11 @@ class TestRollbackCommand:
                 result.returncode = 0
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
 
     def test_user_cancels_rollback(self, mock_pyproject, monkeypatch):
         """Should exit when user cancels rollback confirmation."""
@@ -743,11 +757,13 @@ class TestRollbackCommand:
 
         monkeypatch.setattr(rollback_mod.qs, "confirm", lambda *a, **kw: MockConfirmFalse())
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                with pytest.raises(typer.Exit) as exc_info:
-                    rollback_command(RollbackOptions(tag="v1.2.3"))
-                assert exc_info.value.exit_code == 0
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3"))
+        assert exc_info.value.exit_code == 0
 
     def test_remote_tag_delete_failure_aborts(self, mock_pyproject):
         """Should abort if remote tag deletion fails."""
@@ -769,11 +785,13 @@ class TestRollbackCommand:
                 result.stderr = "error: unable to delete"
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                with pytest.raises(typer.Exit) as exc_info:
-                    rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
-                assert exc_info.value.exit_code == 1
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
+        assert exc_info.value.exit_code == 1
 
     def test_adds_v_prefix_to_tag(self, mock_pyproject):
         """Should automatically add 'v' prefix if missing."""
@@ -792,11 +810,13 @@ class TestRollbackCommand:
                 result.stdout = "Some commit"
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)) as mock_check:
-                rollback_command(RollbackOptions(tag="1.2.3", dry_run=True, non_interactive=True))
-                # Should have been called with "v1.2.3"
-                mock_check.assert_called_with("v1.2.3")
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)) as mock_check,
+        ):
+            rollback_command(RollbackOptions(tag="1.2.3", dry_run=True, non_interactive=True))
+            # Should have been called with "v1.2.3"
+            mock_check.assert_called_with("v1.2.3")
 
     def test_local_only_tag_rollback(self, mock_pyproject):
         """Should rollback a tag that only exists locally."""
@@ -815,9 +835,11 @@ class TestRollbackCommand:
                 result.stdout = "Some commit"
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)):
-                rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)),
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
 
     def test_non_interactive_no_tag_uses_most_recent(self, mock_pyproject):
         """Should use most recent tag in non-interactive mode without explicit tag."""
@@ -828,9 +850,7 @@ class TestRollbackCommand:
             result.stdout = ""
             if "rev-parse" in cmd and "--abbrev-ref" in cmd:
                 result.stdout = "main"
-            elif "tag" in cmd and "-l" in cmd:
-                result.stdout = "v1.2.3\nv1.2.2\n"
-            elif "tag" in cmd and "--sort" in cmd:
+            elif ("tag" in cmd and "-l" in cmd) or ("tag" in cmd and "--sort" in cmd):
                 result.stdout = "v1.2.3\nv1.2.2\n"
             elif "show" in cmd:
                 result.stdout = "abc123|2025-01-01|Some commit"
@@ -838,9 +858,11 @@ class TestRollbackCommand:
                 result.stdout = "Some commit"
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)):
-                rollback_command(RollbackOptions(non_interactive=True))
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)),
+        ):
+            rollback_command(RollbackOptions(non_interactive=True))
 
     def test_non_interactive_no_tag_and_no_tags_exits(self, mock_pyproject):
         """Should exit when no tags found in non-interactive mode without explicit tag."""
@@ -855,10 +877,12 @@ class TestRollbackCommand:
                 result.stdout = ""
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with pytest.raises(typer.Exit) as exc_info:
-                rollback_command(RollbackOptions(non_interactive=True))
-            assert exc_info.value.exit_code == 1
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            rollback_command(RollbackOptions(non_interactive=True))
+        assert exc_info.value.exit_code == 1
 
     def test_rollback_with_revert_and_push(self, mock_pyproject):
         """Should revert bump and push in non-interactive mode."""
@@ -877,15 +901,15 @@ class TestRollbackCommand:
                 result.stdout = "Bump version: 1.2.2 → 1.2.3"
             elif "rev-list" in cmd:
                 result.stdout = "abc123def456"
-            elif "revert" in cmd:
-                result.returncode = 0
-            elif "push" in cmd:
+            elif "revert" in cmd or "push" in cmd:
                 result.returncode = 0
             return result
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            with patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)):
-                rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, non_interactive=True))
+        with (
+            patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
+        ):
+            rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, non_interactive=True))
 
 
 # ──────────────────────────────────────────────

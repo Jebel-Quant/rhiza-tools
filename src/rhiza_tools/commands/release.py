@@ -486,10 +486,7 @@ def _get_release_version(dry_run: bool, bumped_new_version: str | None) -> tuple
     Returns:
         Tuple of (current_version, tag).
     """
-    if dry_run and bumped_new_version:
-        current_version = bumped_new_version
-    else:
-        current_version = get_current_version(Language.PYTHON)
+    current_version = bumped_new_version if dry_run and bumped_new_version else get_current_version(Language.PYTHON)
 
     tag = f"v{current_version}"
     console.info(f"Current version: {current_version}")
