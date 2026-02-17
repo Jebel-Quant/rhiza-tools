@@ -262,46 +262,41 @@ def _delete_remote_tag(tag: str, dry_run: bool) -> bool:
         return False
 
 
-def _revert_bump_commit(tag: str, dry_run: bool) -> bool:
-    """Revert the version bump commit that the tag points to.
+def _revert_bump_commit(commit_hash: str, dry_run: bool) -> bool:
+    """Revert the version bump commit.
 
     Creates a new revert commit rather than rewriting history, making
     this safe even when the commit has been pushed to remote.
 
     Args:
-        tag: The tag whose commit should be reverted.
+        commit_hash: The commit hash to revert.
         dry_run: If True, only simulate the revert.
 
     Returns:
         True if revert succeeded (or would succeed in dry-run).
     """
-    tag_commit = _get_tag_commit(tag)
-    if not tag_commit:
-        console.error(f"Could not find commit for tag: {tag}")
-        return False
-
     if dry_run:
         result = run_git_command(
-            ["git", "log", "-1", "--format=%s", tag_commit],
+            ["git", "log", "-1", "--format=%s", commit_hash],
             check=False,
         )
         commit_msg = result.stdout.strip() if result.returncode == 0 else "unknown"
-        console.info(f"[DRY-RUN] Would revert commit {tag_commit[:8]}: {commit_msg}")
+        console.info(f"[DRY-RUN] Would revert commit {commit_hash[:8]}: {commit_msg}")
         return True
 
-    console.info(f"Reverting bump commit {tag_commit[:8]}...")
+    console.info(f"Reverting bump commit {commit_hash[:8]}...")
     result = run_git_command(
-        ["git", "revert", "--no-edit", tag_commit],
+        ["git", "revert", "--no-edit", commit_hash],
         check=False,
     )
     if result.returncode == 0:
-        console.success(f"Reverted bump commit: {tag_commit[:8]}")
+        console.success(f"Reverted bump commit: {commit_hash[:8]}")
         return True
     else:
-        console.error(f"Failed to revert commit {tag_commit[:8]}")
+        console.error(f"Failed to revert commit {commit_hash[:8]}")
         console.error(f"Error: {result.stderr}")
         console.error("You may need to resolve conflicts manually:")
-        console.error(f"  git revert {tag_commit[:8]}")
+        console.error(f"  git revert {commit_hash[:8]}")
         return False
 
 
@@ -543,6 +538,15 @@ def _execute_rollback(
     """
     success = True
 
+    # Get commit hash BEFORE deleting tags (needed for revert)
+    tag_commit = None
+    if revert_bump and is_bump and exists_locally:
+        tag_commit = _get_tag_commit(tag)
+        if not tag_commit:
+            console.error(f"Could not find commit for tag: {tag}")
+            console.error("Skipping bump revert but proceeding with tag deletion.")
+            revert_bump = False
+
     # Delete remote tag first to stop any in-progress release
     if exists_remotely and not _delete_remote_tag(tag, dry_run):
         success = False
@@ -559,8 +563,8 @@ def _execute_rollback(
             console.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
 
     # Revert bump commit and push (if requested)
-    if revert_bump and is_bump and exists_locally:
-        if not _revert_bump_commit(tag, dry_run):
+    if revert_bump and is_bump and tag_commit:
+        if not _revert_bump_commit(tag_commit, dry_run):
             success = False
             if not dry_run:
                 console.warning("Bump revert failed. Tags were still deleted.")
