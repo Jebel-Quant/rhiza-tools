@@ -1025,6 +1025,22 @@ class TestSequentialBumpRelease:
         bump_command(BumpOptions(version="rc"))
         assert get_current_version(Language.PYTHON) == "0.1.1-rc.1"
 
+    def test_bump_beta_with_commit_creates_correct_tag(self, e2e_project):
+        """Bump beta with --commit should create tag with proper semver format (v0.1.1-beta.1)."""
+        # Bump to beta with commit=True
+        bump_command(BumpOptions(version="beta", commit=True))
+
+        # Verify version is correct
+        assert get_current_version(Language.PYTHON) == "0.1.1-beta.1"
+
+        # Verify tag was created with proper format (v0.1.1-beta.1, not v0.1.1beta1)
+        result = subprocess.run([GIT, "tag", "-l", "v0.1.1-beta.1"], capture_output=True, text=True, check=True)
+        assert "v0.1.1-beta.1" in result.stdout, f"Expected tag 'v0.1.1-beta.1' not found. Tags: {result.stdout}"
+
+        # Ensure the incorrect format tag was NOT created
+        result_incorrect = subprocess.run([GIT, "tag", "-l", "v0.1.1beta1"], capture_output=True, text=True, check=True)
+        assert "v0.1.1beta1" not in result_incorrect.stdout, "Incorrect tag format 'v0.1.1beta1' was created"
+
 
 # ──────────────────────────────────────────────
 # Non-default Branch Release
