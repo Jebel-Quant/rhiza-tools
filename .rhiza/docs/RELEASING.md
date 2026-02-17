@@ -4,21 +4,9 @@ This guide covers the release process for Rhiza-based projects.
 
 ## 🚀 The Release Process
 
-The release process can be done in two separate steps (**Bump** then **Release**), or in a single step using **Publish**.
+The release process consists of two interactive steps: **Bump** and **Release**.
 
-### Option A: One-Step Publish (Recommended)
-
-Bump the version and release in a single flow:
-
-```bash
-make publish
-```
-
-This combines the bump and release steps below into one interactive command.
-
-### Option B: Two-Step Process
-
-#### 1. Bump Version
+### 1. Bump Version
 
 First, update the version in `pyproject.toml`:
 
@@ -38,7 +26,7 @@ The script ensures safety by:
 - Validating that the tag doesn't already exist
 - Verifying the version format
 
-#### 2. Release
+### 2. Release
 
 Once the version is bumped and committed, run the release command:
 
@@ -57,20 +45,6 @@ The script provides safety checks by:
 - Verifying no uncommitted changes exist
 - Checking if the tag already exists locally or on remote
 - Showing the number of commits since the last tag
-
-### Checking Release Status
-
-After releasing, you can check the status of the release workflow and the latest release:
-
-```bash
-make release-status
-```
-
-This will display:
-- The last 5 release workflow runs with their status and conclusion
-- The latest GitHub release details (tag, author, published time, status, URL)
-
-> **Note:** `release-status` is currently supported for GitHub repositories only. GitLab support is planned for a future release.
 
 ## What Happens After Release
 

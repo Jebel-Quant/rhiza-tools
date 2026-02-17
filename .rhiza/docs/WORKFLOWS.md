@@ -183,9 +183,6 @@ See [RELEASING.md](RELEASING.md) for the complete release workflow.
 Quick reference:
 
 ```bash
-# Bump version and release in one step (recommended)
-make publish
-
 # Bump version (interactive)
 make bump
 
@@ -194,11 +191,8 @@ make bump BUMP=patch  # 1.0.0 → 1.0.1
 make bump BUMP=minor  # 1.0.0 → 1.1.0
 make bump BUMP=major  # 1.0.0 → 2.0.0
 
-# Create and push release tag (without bump)
+# Create and push release tag
 make release
-
-# Check release workflow status and latest release
-make release-status
 ```
 
 ## Template Synchronization
