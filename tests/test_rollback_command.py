@@ -388,71 +388,44 @@ class TestRevertBumpCommit:
 
     def test_reverts_commit(self):
         """Should revert the bump commit."""
-        mock_rev_list = MagicMock()
-        mock_rev_list.returncode = 0
-        mock_rev_list.stdout = "abc123def456"
-
         mock_revert = MagicMock()
         mock_revert.returncode = 0
 
         def mock_run_git(cmd, check=True):
-            if "rev-list" in cmd:
-                return mock_rev_list
             if "revert" in cmd:
                 return mock_revert
             return MagicMock(returncode=0, stdout="")
 
         with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            assert _revert_bump_commit("v1.2.3", dry_run=False)
+            assert _revert_bump_commit("abc123def456", dry_run=False)
 
     def test_dry_run_does_not_revert(self):
         """Should not actually revert in dry-run mode."""
-        mock_rev_list = MagicMock()
-        mock_rev_list.returncode = 0
-        mock_rev_list.stdout = "abc123def456"
-
         mock_log = MagicMock()
         mock_log.returncode = 0
         mock_log.stdout = "Bump version: 1.2.2 → 1.2.3"
 
         def mock_run_git(cmd, check=True):
-            if "rev-list" in cmd:
-                return mock_rev_list
             if "log" in cmd:
                 return mock_log
             return MagicMock(returncode=0, stdout="")
 
         with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            assert _revert_bump_commit("v1.2.3", dry_run=True)
-
-    def test_returns_false_when_tag_commit_not_found(self):
-        """Should return False when tag commit not found."""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ""
-
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
-            assert not _revert_bump_commit("v9.9.9", dry_run=False)
+            assert _revert_bump_commit("abc123def456", dry_run=True)
 
     def test_handles_revert_failure(self):
         """Should return False when revert fails."""
-        mock_rev_list = MagicMock()
-        mock_rev_list.returncode = 0
-        mock_rev_list.stdout = "abc123def456"
-
         mock_revert = MagicMock()
         mock_revert.returncode = 1
         mock_revert.stderr = "error: could not revert"
 
         def mock_run_git(cmd, check=True):
-            if "rev-list" in cmd:
-                return mock_rev_list
             if "revert" in cmd:
                 return mock_revert
             return MagicMock(returncode=0, stdout="")
 
         with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
-            assert not _revert_bump_commit("v1.2.3", dry_run=False)
+            assert not _revert_bump_commit("abc123def456", dry_run=False)
 
 
 # ──────────────────────────────────────────────
