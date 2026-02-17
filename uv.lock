@@ -842,7 +842,7 @@ wheels = [
 
 [[package]]
 name = "rhiza-tools"
-version = "0.3.4"
+version = "0.3.5b1"
 source = { editable = "." }
 dependencies = [
     { name = "bump-my-version" },
