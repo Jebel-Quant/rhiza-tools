@@ -27,9 +27,9 @@ def bump_project(temp_project):
 [tool.bumpversion]
 parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:[-]?(?P<release>[a-z]+)[\\\\.]?(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
 serialize = [
-    "{major}.{minor}.{patch}{release}{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
     "{major}.{minor}.{patch}+build.{build_n}",
-    "{major}.{minor}.{patch}{release}{pre_n}",
+    "{major}.{minor}.{patch}-{release}.{pre_n}",
     "{major}.{minor}.{patch}"
 ]
 search = "{current_version}"
@@ -951,9 +951,9 @@ go 1.23
 [tool.bumpversion]
 parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:[-]?(?P<release>[a-z]+)[\\\\.]?(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
 serialize = [
-    "{major}.{minor}.{patch}{release}{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
     "{major}.{minor}.{patch}+build.{build_n}",
-    "{major}.{minor}.{patch}{release}{pre_n}",
+    "{major}.{minor}.{patch}-{release}.{pre_n}",
     "{major}.{minor}.{patch}"
 ]
 search = "{current_version}"
