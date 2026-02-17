@@ -25,11 +25,11 @@ def bump_project(temp_project):
 
     config_content = """
 [tool.bumpversion]
-parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:[-]?(?P<release>[a-z]+)[\\\\.]?(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
 serialize = [
-    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}+build.{build_n}",
     "{major}.{minor}.{patch}+build.{build_n}",
-    "{major}.{minor}.{patch}-{release}.{pre_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}",
     "{major}.{minor}.{patch}"
 ]
 search = "{current_version}"
@@ -44,7 +44,9 @@ optional_value = "prod"
 values = [
     "dev",
     "alpha",
+    "a",
     "beta",
+    "b",
     "rc",
     "prod"
 ]
@@ -947,11 +949,11 @@ go 1.23
     # Python string -> TOML file (\\\\d becomes \\d) -> regex pattern (\d)
     config_content = """
 [tool.bumpversion]
-parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:[-]?(?P<release>[a-z]+)[\\\\.]?(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
 serialize = [
-    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}+build.{build_n}",
     "{major}.{minor}.{patch}+build.{build_n}",
-    "{major}.{minor}.{patch}-{release}.{pre_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}",
     "{major}.{minor}.{patch}"
 ]
 search = "{current_version}"
@@ -966,7 +968,9 @@ optional_value = "prod"
 values = [
     "dev",
     "alpha",
+    "a",
     "beta",
+    "b",
     "rc",
     "prod"
 ]
@@ -1080,3 +1084,89 @@ def test_detect_project_language_none(tmp_path, monkeypatch):
     """Test language detection when no supported files exist."""
     monkeypatch.chdir(tmp_path)
     assert Language.detect() is None
+
+
+def test_get_interactive_bump_type_with_eoferror(bump_project, monkeypatch):
+    """Test get_interactive_bump_type handles EOFError in non-interactive mode."""
+    from unittest.mock import MagicMock
+
+    from rhiza_tools.commands.bump import get_interactive_bump_type
+
+    # Mock questionary to raise EOFError (simulating non-interactive environment)
+    mock_select = MagicMock()
+    mock_select.ask.side_effect = EOFError
+
+    import questionary as qs
+
+    monkeypatch.setattr(qs, "select", lambda *args, **kwargs: mock_select)
+
+    # Should raise typer.Exit with code 1
+    with pytest.raises(typer.Exit) as exc_info:
+        get_interactive_bump_type("1.0.0")
+    assert exc_info.value.exit_code == 1
+
+
+def test_get_interactive_bump_type_with_invalid_choice(bump_project, monkeypatch):
+    """Test get_interactive_bump_type handles invalid choice format."""
+    from unittest.mock import MagicMock
+
+    from rhiza_tools.commands.bump import get_interactive_bump_type
+
+    # Mock questionary to return a choice without the expected format
+    mock_select = MagicMock()
+    mock_select.ask.return_value = "Invalid Choice Format"
+
+    import questionary as qs
+
+    monkeypatch.setattr(qs, "select", lambda *args, **kwargs: mock_select)
+
+    # Should raise typer.Exit with code 1
+    with pytest.raises(typer.Exit) as exc_info:
+        get_interactive_bump_type("1.0.0")
+    assert exc_info.value.exit_code == 1
+
+
+def test_handle_push_to_remote_non_interactive(bump_project, monkeypatch):
+    """Test _handle_push_to_remote does not push in non-interactive environment."""
+    from unittest.mock import MagicMock
+
+    from rhiza_tools.commands.bump import _handle_push_to_remote
+
+    # Mock questionary to raise EOFError
+    mock_confirm = MagicMock()
+    mock_confirm.ask.side_effect = EOFError
+
+    import questionary as qs
+
+    monkeypatch.setattr(qs, "confirm", lambda *args, **kwargs: mock_confirm)
+
+    # Mock run_git_command to track if push was attempted
+    push_attempted = []
+
+    def mock_run_git(*args, **kwargs):
+        push_attempted.append(args)
+        return MagicMock(returncode=0, stdout="", stderr="")
+
+    from rhiza_tools.commands import bump
+
+    monkeypatch.setattr(bump, "run_git_command", mock_run_git)
+
+    # Call without version (interactive mode) which should handle EOFError
+    _handle_push_to_remote(version=None)
+
+    # Verify push was NOT attempted
+    assert len(push_attempted) == 0, "Push should not be attempted in non-interactive environment"
+
+
+def test_go_project_whitespace_only_version_file(go_project, monkeypatch):
+    """Test that VERSION file with only whitespace is rejected."""
+    # Write whitespace-only content to VERSION file
+    version_file = go_project / "VERSION"
+    version_file.write_text("   \n\t  \n   ")
+
+    monkeypatch.chdir(go_project)
+
+    # Should raise typer.Exit with error about empty file
+    with pytest.raises(typer.Exit) as exc_info:
+        get_current_version(Language.GO)
+    assert exc_info.value.exit_code == 1
