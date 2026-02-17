@@ -163,6 +163,11 @@ def get_current_version(language: Language) -> str:
         if not version:
             console.error("VERSION file is empty")
             raise typer.Exit(code=1)
+        
+        # Validate that the version string is not just whitespace and looks valid
+        if not version or version.isspace():
+            console.error("VERSION file contains only whitespace")
+            raise typer.Exit(code=1)
 
         return version
     else:
@@ -257,22 +262,26 @@ def get_interactive_bump_type(current_version_str: str) -> str:
     next_rc = get_next_prerelease(current_version, "rc")
     next_dev = get_next_prerelease(current_version, "dev")
 
-    choice = qs.select(
-        f"Select bump type (Current: {current_version_str})",
-        choices=[
-            f"Patch ({current_version_str} -> {next_patch})",
-            f"Minor ({current_version_str} -> {next_minor})",
-            f"Major ({current_version_str} -> {next_major})",
-            qs.Separator("-" * 30),
-            f"Prerelease ({current_version_str} -> {next_prerelease})",
-            f"Alpha ({current_version_str} -> {next_alpha})",
-            f"Beta ({current_version_str} -> {next_beta})",
-            f"RC ({current_version_str} -> {next_rc})",
-            f"Dev ({current_version_str} -> {next_dev})",
-            f"Build ({current_version_str} -> {next_build})",
-        ],
-        style=COOL_STYLE,
-    ).ask()
+    try:
+        choice = qs.select(
+            f"Select bump type (Current: {current_version_str})",
+            choices=[
+                f"Patch ({current_version_str} -> {next_patch})",
+                f"Minor ({current_version_str} -> {next_minor})",
+                f"Major ({current_version_str} -> {next_major})",
+                qs.Separator("-" * 30),
+                f"Prerelease ({current_version_str} -> {next_prerelease})",
+                f"Alpha ({current_version_str} -> {next_alpha})",
+                f"Beta ({current_version_str} -> {next_beta})",
+                f"RC ({current_version_str} -> {next_rc})",
+                f"Dev ({current_version_str} -> {next_dev})",
+                f"Build ({current_version_str} -> {next_build})",
+            ],
+            style=COOL_STYLE,
+        ).ask()
+    except EOFError:
+        console.error("Interactive selection not available in non-interactive environment")
+        raise typer.Exit(code=1) from None
 
     if not choice:
         raise typer.Exit(code=0)
@@ -280,6 +289,11 @@ def get_interactive_bump_type(current_version_str: str) -> str:
     # Extract the new version string from the choice
     # Format is "Label (Current -> New)"
     # We want "New"
+    # Check if the choice contains the expected format (skip separators)
+    if "-> " not in choice:
+        console.error("Invalid choice selection")
+        raise typer.Exit(code=1)
+    
     new_version: str = choice.split("-> ")[1].rstrip(")")
     return new_version
 
@@ -729,8 +743,10 @@ def _handle_push_to_remote(version: str | None) -> None:
                 console.info("Push cancelled by user")
                 return
         except EOFError:
-            # In testing or non-interactive environment, proceed
-            logger.debug("Running in non-interactive environment, proceeding with push")
+            # In testing or non-interactive environment, do not proceed with push
+            console.info("Push cancelled - non-interactive environment detected")
+            logger.debug("Running in non-interactive environment, skipping push")
+            return
 
     console.info("Pushing changes to remote...")
     result = run_git_command(["git", "push"], check=False)
@@ -750,7 +766,7 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
 
     Args:
         original_branch: Original branch to restore, or None.
-        dry_run: If True, don't actually restore.
+        dry_run: If True, don't actually restore (since we didn't actually switch).
     """
     if original_branch and not dry_run:
         console.info(f"Returning to original branch {original_branch}")
