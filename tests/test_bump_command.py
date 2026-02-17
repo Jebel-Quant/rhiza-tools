@@ -1091,10 +1091,11 @@ def test_get_interactive_bump_type_with_eoferror(bump_project, monkeypatch):
     # Mock questionary to raise EOFError (simulating non-interactive environment)
     mock_select = MagicMock()
     mock_select.ask.side_effect = EOFError
-    
+
     import questionary as qs
+
     monkeypatch.setattr(qs, "select", lambda *args, **kwargs: mock_select)
-    
+
     # Should raise typer.Exit with code 1
     with pytest.raises(typer.Exit) as exc_info:
         get_interactive_bump_type("1.0.0")
@@ -1110,10 +1111,11 @@ def test_get_interactive_bump_type_with_invalid_choice(bump_project, monkeypatch
     # Mock questionary to return a choice without the expected format
     mock_select = MagicMock()
     mock_select.ask.return_value = "Invalid Choice Format"
-    
+
     import questionary as qs
+
     monkeypatch.setattr(qs, "select", lambda *args, **kwargs: mock_select)
-    
+
     # Should raise typer.Exit with code 1
     with pytest.raises(typer.Exit) as exc_info:
         get_interactive_bump_type("1.0.0")
@@ -1129,23 +1131,25 @@ def test_handle_push_to_remote_non_interactive(bump_project, monkeypatch):
     # Mock questionary to raise EOFError
     mock_confirm = MagicMock()
     mock_confirm.ask.side_effect = EOFError
-    
+
     import questionary as qs
+
     monkeypatch.setattr(qs, "confirm", lambda *args, **kwargs: mock_confirm)
-    
+
     # Mock run_git_command to track if push was attempted
     push_attempted = []
-    
+
     def mock_run_git(*args, **kwargs):
         push_attempted.append(args)
         return MagicMock(returncode=0, stdout="", stderr="")
-    
+
     from rhiza_tools.commands import bump
+
     monkeypatch.setattr(bump, "run_git_command", mock_run_git)
-    
+
     # Call without version (interactive mode) which should handle EOFError
     _handle_push_to_remote(version=None)
-    
+
     # Verify push was NOT attempted
     assert len(push_attempted) == 0, "Push should not be attempted in non-interactive environment"
 
@@ -1155,9 +1159,9 @@ def test_go_project_whitespace_only_version_file(go_project, monkeypatch):
     # Write whitespace-only content to VERSION file
     version_file = go_project / "VERSION"
     version_file.write_text("   \n\t  \n   ")
-    
+
     monkeypatch.chdir(go_project)
-    
+
     # Should raise typer.Exit with error about empty file
     with pytest.raises(typer.Exit) as exc_info:
         get_current_version(Language.GO)

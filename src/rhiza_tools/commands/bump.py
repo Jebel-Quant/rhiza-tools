@@ -163,7 +163,7 @@ def get_current_version(language: Language) -> str:
         if not version:
             console.error("VERSION file is empty")
             raise typer.Exit(code=1)
-        
+
         # Validate that the version string is not just whitespace and looks valid
         if not version or version.isspace():
             console.error("VERSION file contains only whitespace")
@@ -293,7 +293,7 @@ def get_interactive_bump_type(current_version_str: str) -> str:
     if "-> " not in choice:
         console.error("Invalid choice selection")
         raise typer.Exit(code=1)
-    
+
     new_version: str = choice.split("-> ")[1].rstrip(")")
     return new_version
 
