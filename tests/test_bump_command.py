@@ -25,11 +25,11 @@ def bump_project(temp_project):
 
     config_content = """
 [tool.bumpversion]
-parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:[-]?(?P<release>[a-z]+)[\\\\.]?(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
 serialize = [
-    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}+build.{build_n}",
     "{major}.{minor}.{patch}+build.{build_n}",
-    "{major}.{minor}.{patch}-{release}.{pre_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}",
     "{major}.{minor}.{patch}"
 ]
 search = "{current_version}"
@@ -44,7 +44,9 @@ optional_value = "prod"
 values = [
     "dev",
     "alpha",
+    "a",
     "beta",
+    "b",
     "rc",
     "prod"
 ]
@@ -947,11 +949,11 @@ go 1.23
     # Python string -> TOML file (\\\\d becomes \\d) -> regex pattern (\d)
     config_content = """
 [tool.bumpversion]
-parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:-(?P<release>[a-z]+)\\\\.(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)(?:[-]?(?P<release>[a-z]+)[\\\\.]?(?P<pre_n>\\\\d+))?(?:\\\\+build\\\\.(?P<build_n>\\\\d+))?"
 serialize = [
-    "{major}.{minor}.{patch}-{release}.{pre_n}+build.{build_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}+build.{build_n}",
     "{major}.{minor}.{patch}+build.{build_n}",
-    "{major}.{minor}.{patch}-{release}.{pre_n}",
+    "{major}.{minor}.{patch}{release}{pre_n}",
     "{major}.{minor}.{patch}"
 ]
 search = "{current_version}"
@@ -966,7 +968,9 @@ optional_value = "prod"
 values = [
     "dev",
     "alpha",
+    "a",
     "beta",
+    "b",
     "rc",
     "prod"
 ]

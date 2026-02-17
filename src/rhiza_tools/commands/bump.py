@@ -39,6 +39,51 @@ from rhiza_tools.commands._shared import COOL_STYLE, get_current_git_branch, run
 from rhiza_tools.config import CONFIG_FILENAME
 
 
+def _denormalize_pep440_to_semver(version_str: str) -> str:
+    """Convert PEP 440 prerelease format to semver format.
+
+    Converts PEP 440 format (e.g., 0.1.1a1 or 0.1.1alpha1) back to semver format
+    (e.g., 0.1.1-alpha.1) for compatibility with the semver library and bump-my-version.
+
+    Args:
+        version_str: Version string, possibly in PEP 440 format.
+
+    Returns:
+        Version string in semver format.
+
+    Example:
+        >>> _denormalize_pep440_to_semver("0.1.1a1")
+        '0.1.1-alpha.1'
+        >>> _denormalize_pep440_to_semver("0.1.1alpha1")
+        '0.1.1-alpha.1'
+        >>> _denormalize_pep440_to_semver("0.1.1")
+        '0.1.1'
+    """
+    import re
+
+    # Pattern to match PEP 440 prerelease: 0.1.1a1, 0.1.1alpha1, 0.1.1b2, 0.1.1rc3
+    # Captures: major.minor.patch, release letter(s), and pre_n
+    pattern = r"^(\d+\.\d+\.\d+)(a|alpha|b|beta|rc|dev)(\d+)$"
+    match = re.match(pattern, version_str)
+
+    if match:
+        base, release_short, pre_n = match.groups()
+        # Map PEP 440 forms to full names for semver
+        release_map = {
+            "a": "alpha",
+            "alpha": "alpha",
+            "b": "beta",
+            "beta": "beta",
+            "rc": "rc",
+            "dev": "dev",
+        }
+        release_full = release_map.get(release_short, release_short)
+        return f"{base}-{release_full}.{pre_n}"
+
+    # If not a PEP 440 prerelease, return as-is
+    return version_str
+
+
 class Language(StrEnum):
     """Supported programming languages for version bumping.
 
@@ -133,7 +178,7 @@ def get_current_version(language: Language) -> str:
         language: The programming language (python or go).
 
     Returns:
-        The current version string.
+        The current version string in semver format (for compatibility with bump logic).
 
     Raises:
         typer.Exit: If version cannot be read or parsed.
@@ -148,7 +193,10 @@ def get_current_version(language: Language) -> str:
             with open("pyproject.toml") as f:
                 data = tomlkit.parse(f.read())
                 project = cast(dict[str, Any], data["project"])
-                return str(project["version"])
+                version = str(project["version"])
+                # Convert PEP 440 format back to semver format for compatibility
+                # e.g., 0.1.1a1 -> 0.1.1-alpha.1
+                return _denormalize_pep440_to_semver(version)
         except Exception as e:
             console.error(f"Failed to read version from pyproject.toml: {e}")
             raise typer.Exit(code=1) from None
