@@ -957,7 +957,7 @@ def test_get_bump_type_interactively_eoferror(monkeypatch):
     with patch("questionary.confirm") as mock_confirm:
         mock_confirm.return_value.ask.side_effect = EOFError
 
-        should_bump, bump_type = _get_bump_type_interactively(False, None, False)
+        should_bump, bump_type = _get_bump_type_interactively(False, None, False, language=Language.PYTHON)
 
         assert should_bump is False
         assert bump_type is None
@@ -973,7 +973,7 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
         bump_called["called"] = True
 
     with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
-        new_version = _perform_version_bump("1.3.0", dry_run=True)
+        new_version = _perform_version_bump("1.3.0", dry_run=True, language=Language.PYTHON)
 
     assert bump_called["called"]
     assert new_version == "1.3.0"
@@ -1195,3 +1195,136 @@ class TestReleasePreflightValidation:
             release_command(bump_type="PATCH", push=True, non_interactive=True)
 
         assert bump_called["called"], "Bump should proceed when tag is available"
+
+
+# ──────────────────────────────────────────────
+# Multi-Language Support Tests
+# ──────────────────────────────────────────────
+
+
+@pytest.fixture
+def mock_go_project(tmp_path, monkeypatch):
+    """Create a temporary Go project with go.mod and VERSION files."""
+    (tmp_path / "go.mod").write_text("module example.com/myproject\n\ngo 1.21\n")
+    (tmp_path / "VERSION").write_text("1.2.3\n")
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def test_release_command_go_project_dry_run(mock_go_project, monkeypatch):
+    """Test release_command with a Go project in dry-run mode."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd or "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1  # Tag doesn't exist remotely
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        # Auto-detect should find Go project
+        release_command(dry_run=True, non_interactive=True)
+
+
+def test_release_command_go_project_explicit_language(mock_go_project, monkeypatch):
+    """Test release_command with Go language explicitly specified."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.3" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd or "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.2\nv1.2.1"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+        release_command(dry_run=True, non_interactive=True, language=Language.GO)
+
+
+def test_release_command_no_project_files(tmp_path, monkeypatch):
+    """Test release_command when no supported project files are found."""
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(typer.Exit):
+        release_command()
+
+
+def test_release_command_go_with_bump(mock_go_project, monkeypatch):
+    """Test release_command with a Go project with bump type."""
+
+    def mock_run_git_command(cmd, check=True):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = ""
+
+        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+            result.stdout = "main"
+        elif "symbolic-full-name" in cmd:
+            result.stdout = "origin/main"
+        elif "remote" in cmd and "show" in cmd:
+            result.stdout = "* remote origin\n  HEAD branch: main\n"
+        elif "rev-parse" in cmd and any("v1.2.4" in arg for arg in cmd):
+            result.stdout = "abc123"
+            result.returncode = 0
+        elif "rev-parse" in cmd or "merge-base" in cmd:
+            result.stdout = "abc123"
+        elif "ls-remote" in cmd:
+            result.returncode = 1
+        elif "tag" in cmd and "--sort" in cmd:
+            result.stdout = "v1.2.3\nv1.2.2"
+        elif "remote" in cmd and "get-url" in cmd:
+            result.stdout = "https://github.com/user/repo.git"
+
+        return result
+
+    bump_called = {"called": False, "language": None}
+
+    def mock_bump_command(options):
+        bump_called["called"] = True
+        bump_called["language"] = options.language
+        # Update VERSION file
+        (mock_go_project / "VERSION").write_text("1.2.4\n")
+
+    with (
+        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+    ):
+        release_command(bump_type="PATCH", push=True, dry_run=True, language=Language.GO)
+
+    assert bump_called["called"]
+    assert bump_called["language"] == Language.GO

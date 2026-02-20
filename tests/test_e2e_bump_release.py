@@ -866,7 +866,7 @@ class TestGetBumpTypeInteractively:
     def test_explicit_bump_type_takes_priority(self, e2e_project):
         """Explicit bump_type should be converted to version string."""
         should_bump, new_version = _get_bump_type_interactively(
-            non_interactive=False, bump_type="MINOR", dry_run=False, with_bump=False
+            non_interactive=False, bump_type="MINOR", dry_run=False, with_bump=False, language=Language.PYTHON
         )
         assert should_bump is True
         assert new_version == "0.2.0"
@@ -874,7 +874,7 @@ class TestGetBumpTypeInteractively:
     def test_with_bump_non_interactive_defaults_patch(self, e2e_project):
         """with_bump + non_interactive should default to patch version."""
         should_bump, new_version = _get_bump_type_interactively(
-            non_interactive=True, bump_type=None, dry_run=True, with_bump=True
+            non_interactive=True, bump_type=None, dry_run=True, with_bump=True, language=Language.PYTHON
         )
         assert should_bump is True
         assert new_version == "0.1.1"
@@ -882,7 +882,7 @@ class TestGetBumpTypeInteractively:
     def test_dry_run_without_with_bump_skips_prompts(self):
         """dry_run without with_bump should not prompt."""
         should_bump, bump_type = _get_bump_type_interactively(
-            non_interactive=False, bump_type=None, dry_run=True, with_bump=False
+            non_interactive=False, bump_type=None, dry_run=True, with_bump=False, language=Language.PYTHON
         )
         assert should_bump is False
         assert bump_type is None
@@ -892,7 +892,7 @@ class TestGetBumpTypeInteractively:
         with patch("questionary.select") as mock_select:
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
             should_bump, new_version = _get_bump_type_interactively(
-                non_interactive=False, bump_type=None, dry_run=True, with_bump=True
+                non_interactive=False, bump_type=None, dry_run=True, with_bump=True, language=Language.PYTHON
             )
         assert should_bump is True
         assert new_version == "0.2.0"
@@ -918,7 +918,7 @@ class TestCLIIntegration:
 
         result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
         assert result.exit_code == 0
-        mock_release.assert_called_once_with(None, True, True, False, True)
+        mock_release.assert_called_once_with(None, True, True, False, True, None)
 
     def test_release_bump_and_with_bump_cli(self, monkeypatch):
         """Test --bump MINOR --with-bump together via CLI."""
@@ -932,7 +932,7 @@ class TestCLIIntegration:
 
         result = runner.invoke(app, ["release", "--bump", "MINOR", "--with-bump", "--push"])
         assert result.exit_code == 0
-        mock_release.assert_called_once_with("MINOR", True, False, False, True)
+        mock_release.assert_called_once_with("MINOR", True, False, False, True, None)
 
     def test_bump_cli_all_flags(self, monkeypatch):
         """Test bump CLI with all flags."""

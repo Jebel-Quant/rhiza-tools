@@ -216,13 +216,18 @@ def release(
     push: bool = typer.Option(False, "--push", help="Push changes to remote (default: prompt in interactive mode)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
     non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
+    language: str | None = typer.Option(
+        None, "--language", "-l", help="Programming language (python or go). Auto-detected if not specified."
+    ),
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Push a release tag to remote to trigger the release workflow.
 
     This command validates the repository state and pushes the git tag for the
     current version to the remote repository, which triggers the automated release
-    workflow. Optionally, it can bump the version before creating the release.
+    workflow. Supports Python projects (pyproject.toml) and Go projects
+    (go.mod + VERSION file). The project language is auto-detected when not
+    explicitly specified.
 
     Args:
         bump: Bump type (MAJOR, MINOR, PATCH) to apply before release.
@@ -230,6 +235,7 @@ def release(
         push: If True, push changes without prompting (implies non-interactive for push).
         dry_run: If True, show what would happen without actually pushing the tag.
         non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
+        language: Programming language (python or go). Auto-detected if not specified.
         verbose: If True, enable verbose debug output.
 
     Example:
@@ -252,9 +258,24 @@ def release(
         Interactive bump with dry-run preview::
 
             $ rhiza-tools release --with-bump --push --dry-run
+
+        Release a Go project::
+
+            $ rhiza-tools release --language go
     """
     _apply_verbose(verbose)
-    release_command(bump, push, dry_run, non_interactive, with_bump)
+    from rhiza_tools.commands.bump import Language
+
+    lang_enum = None
+    if language:
+        try:
+            lang_enum = Language(language.lower())
+        except ValueError:
+            console.error(f"Invalid language: {language}")
+            console.error("Supported languages: python, go")
+            raise typer.Exit(code=1) from None
+
+    release_command(bump, push, dry_run, non_interactive, with_bump, lang_enum)
 
 
 @app.command()
