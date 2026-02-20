@@ -4,9 +4,8 @@ This module implements release functionality that validates the git repository
 state and pushes tags to remote, triggering the release workflow. Tags are
 created by bump-my-version during the bump process.
 
-Note:
-    Currently, this command only supports Python projects. Go projects should
-    use the bump command with --language=go instead.
+Supports Python projects (pyproject.toml) and Go projects (go.mod + VERSION file).
+The project language is auto-detected when not explicitly specified.
 
 Example:
     Push a release tag::
@@ -17,6 +16,10 @@ Example:
     Dry run to preview release::
 
         release_command(dry_run=True)
+
+    Release a Go project::
+
+        release_command(language=Language.GO)
 """
 
 import semver
@@ -26,7 +29,6 @@ from loguru import logger
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
     run_git_command,
-    validate_pyproject_exists,
 )
 from rhiza_tools.commands.bump import (
     BumpOptions,
@@ -224,7 +226,7 @@ def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> 
 
 
 def _get_bump_type_interactively(
-    non_interactive: bool, bump_type: str | None, dry_run: bool, with_bump: bool = False
+    non_interactive: bool, bump_type: str | None, dry_run: bool, with_bump: bool = False, *, language: Language
 ) -> tuple[bool, str | None]:
     """Get bump version interactively or from parameters.
 
@@ -236,29 +238,31 @@ def _get_bump_type_interactively(
         bump_type: Explicit bump type provided (e.g., "MAJOR", "MINOR", "PATCH").
         dry_run: If True, the bump will be simulated (handled by caller).
         with_bump: If True, enable interactive bump selection directly.
+        language: The programming language for version reading.
 
     Returns:
         Tuple of (should_bump, new_version_string). The version string is the
         explicit new version (not a bump type keyword).
     """
     if bump_type:
-        return _resolve_explicit_bump_type(bump_type)
+        return _resolve_explicit_bump_type(bump_type, language)
 
     if with_bump:
-        return _resolve_with_bump_flag(non_interactive)
+        return _resolve_with_bump_flag(non_interactive, language)
 
     if not non_interactive:
-        return _resolve_interactive_prompt()
+        return _resolve_interactive_prompt(language)
 
     # Non-interactive without --with-bump or --bump: no bump
     return False, None
 
 
-def _resolve_explicit_bump_type(bump_type: str) -> tuple[bool, str | None]:
+def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[bool, str | None]:
     """Resolve version from an explicitly provided bump type.
 
     Args:
         bump_type: The bump type keyword (e.g., "MAJOR", "MINOR", "PATCH").
+        language: The programming language for version reading.
 
     Returns:
         Tuple of (True, new_version_string).
@@ -266,7 +270,7 @@ def _resolve_explicit_bump_type(bump_type: str) -> tuple[bool, str | None]:
     Raises:
         typer.Exit: If the current version is invalid or the bump type is unsupported.
     """
-    current_version_str = get_current_version(Language.PYTHON)
+    current_version_str = get_current_version(language)
     try:
         current_semver = semver.Version.parse(current_version_str)
     except ValueError:
@@ -279,24 +283,25 @@ def _resolve_explicit_bump_type(bump_type: str) -> tuple[bool, str | None]:
     return True, new_version
 
 
-def _resolve_with_bump_flag(non_interactive: bool) -> tuple[bool, str | None]:
+def _resolve_with_bump_flag(non_interactive: bool, language: Language) -> tuple[bool, str | None]:
     """Resolve version when --with-bump flag is set.
 
     In non-interactive mode defaults to patch; otherwise prompts interactively.
 
     Args:
         non_interactive: If True, default to a patch bump.
+        language: The programming language for version reading.
 
     Returns:
         Tuple of (should_bump, new_version_string).
     """
     if non_interactive:
         console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-        current_version_str = get_current_version(Language.PYTHON)
+        current_version_str = get_current_version(language)
         current_semver = semver.Version.parse(current_version_str)
         return True, str(current_semver.bump_patch())
 
-    current_version_str = get_current_version(Language.PYTHON)
+    current_version_str = get_current_version(language)
     try:
         new_version = get_interactive_bump_type(current_version_str)
     except (typer.Exit, EOFError):
@@ -304,8 +309,11 @@ def _resolve_with_bump_flag(non_interactive: bool) -> tuple[bool, str | None]:
     return True, new_version
 
 
-def _resolve_interactive_prompt() -> tuple[bool, str | None]:
+def _resolve_interactive_prompt(language: Language) -> tuple[bool, str | None]:
     """Prompt the user interactively whether to bump before releasing.
+
+    Args:
+        language: The programming language for version reading.
 
     Returns:
         Tuple of (should_bump, new_version_string).
@@ -324,7 +332,7 @@ def _resolve_interactive_prompt() -> tuple[bool, str | None]:
     if not should_bump:
         return False, None
 
-    current_version_str = get_current_version(Language.PYTHON)
+    current_version_str = get_current_version(language)
     try:
         new_version = get_interactive_bump_type(current_version_str)
     except (typer.Exit, EOFError):
@@ -332,12 +340,13 @@ def _resolve_interactive_prompt() -> tuple[bool, str | None]:
     return True, new_version
 
 
-def _perform_version_bump(new_version: str, dry_run: bool) -> str:
+def _perform_version_bump(new_version: str, dry_run: bool, language: Language) -> str:
     """Perform version bump with validation.
 
     Args:
         new_version: The explicit new version string to bump to.
         dry_run: If True, only simulate the bump.
+        language: The programming language for the bump.
 
     Returns:
         The new version string.
@@ -354,6 +363,7 @@ def _perform_version_bump(new_version: str, dry_run: bool) -> str:
             commit=True,
             push=False,  # Don't push yet, we'll do it after tagging
             allow_dirty=False,
+            language=language,
         )
     )
 
@@ -476,17 +486,18 @@ def _confirm_and_push_tag(
             push_tag(tag, dry_run=False, non_interactive=non_interactive or push)
 
 
-def _get_release_version(dry_run: bool, bumped_new_version: str | None) -> tuple[str, str]:
+def _get_release_version(dry_run: bool, bumped_new_version: str | None, language: Language) -> tuple[str, str]:
     """Get current version and tag for release.
 
     Args:
         dry_run: If True and version was bumped, use bumped version.
         bumped_new_version: New version if bump was performed.
+        language: The programming language for version reading.
 
     Returns:
         Tuple of (current_version, tag).
     """
-    current_version = bumped_new_version if dry_run and bumped_new_version else get_current_version(Language.PYTHON)
+    current_version = bumped_new_version if dry_run and bumped_new_version else get_current_version(language)
 
     tag = f"v{current_version}"
     console.info(f"Current version: {current_version}")
@@ -545,15 +556,17 @@ def release_command(
     dry_run: bool = False,
     non_interactive: bool = False,
     with_bump: bool = False,
+    language: Language | None = None,
 ) -> None:
     """Push a release tag to remote.
 
     This command performs the following steps:
-    1. Optionally bumps the version if bump_type is provided or with_bump is True
-    2. Reads the current version from pyproject.toml
-    3. Validates the git repository state (clean working tree, up-to-date with remote)
-    4. Checks that a tag exists for the current version (created by bump-my-version)
-    5. Pushes the tag to remote, triggering the release workflow
+    1. Detects the project language (Python or Go) unless explicitly specified
+    2. Optionally bumps the version if bump_type is provided or with_bump is True
+    3. Reads the current version from pyproject.toml (Python) or VERSION file (Go)
+    4. Validates the git repository state (clean working tree, up-to-date with remote)
+    5. Checks that a tag exists for the current version (created by bump-my-version)
+    6. Pushes the tag to remote, triggering the release workflow
 
     Args:
         bump_type: Optional bump type (MAJOR, MINOR, PATCH) to apply before release.
@@ -561,9 +574,10 @@ def release_command(
         dry_run: If True, show what would be done without making any changes.
         non_interactive: If True, skip all confirmation prompts.
         with_bump: If True, enable interactive bump selection (works with dry-run).
+        language: Programming language (python or go). Auto-detected if not specified.
 
     Raises:
-        typer.Exit: If pyproject.toml is missing, repository is not clean,
+        typer.Exit: If no supported project files are found, repository is not clean,
             tag doesn't exist, or any git operations fail.
 
     Example:
@@ -586,9 +600,22 @@ def release_command(
         Interactive bump with dry-run::
 
             release_command(with_bump=True, push=True, dry_run=True)
+
+        Release a Go project::
+
+            release_command(language=Language.GO)
     """
-    # Validate pyproject.toml exists
-    validate_pyproject_exists()
+    # Detect or validate project language
+    if language is None:
+        language = Language.detect()
+        if language is None:
+            console.error("No supported project files found in current directory.")
+            console.error("Python projects need pyproject.toml; Go projects need go.mod and VERSION.")
+            raise typer.Exit(code=1)
+    else:
+        from rhiza_tools.commands.bump import _validate_project_exists
+
+        _validate_project_exists(language)
 
     # Get current branch early
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
@@ -596,7 +623,9 @@ def release_command(
     console.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
     # Interactive mode: ask if user wants to bump version
-    should_bump, new_version = _get_bump_type_interactively(non_interactive, bump_type, dry_run, with_bump)
+    should_bump, new_version = _get_bump_type_interactively(
+        non_interactive, bump_type, dry_run, with_bump, language=language
+    )
 
     # ── Preflight validation: check everything BEFORE making any changes ──
     default_branch = get_default_branch()
@@ -620,10 +649,10 @@ def release_command(
     # Perform bump if requested (bump_command runs its own internal preflight)
     bumped_new_version: str | None = None
     if should_bump and new_version:
-        bumped_new_version = _perform_version_bump(new_version, dry_run)
+        bumped_new_version = _perform_version_bump(new_version, dry_run, language)
 
     # Get current version and tag
-    current_version, tag = _get_release_version(dry_run, bumped_new_version)
+    current_version, tag = _get_release_version(dry_run, bumped_new_version, language)
 
     # Validate tag state (for non-bump cases, ensures local tag exists)
     _handle_tag_validation(dry_run, bumped_new_version, tag, current_version)

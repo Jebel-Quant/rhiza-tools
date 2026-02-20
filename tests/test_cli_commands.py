@@ -62,29 +62,45 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump)
-    mock_release_command.assert_called_once_with(None, False, True, False, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language)
+    mock_release_command.assert_called_once_with(None, False, True, False, False, None)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump)
-    mock_release_command.assert_called_once_with(None, False, False, False, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language)
+    mock_release_command.assert_called_once_with(None, False, False, False, False, None)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release", "--non-interactive"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump)
-    mock_release_command.assert_called_once_with(None, False, False, True, False)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language)
+    mock_release_command.assert_called_once_with(None, False, False, True, False, None)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump)
-    mock_release_command.assert_called_once_with(None, True, True, False, True)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language)
+    mock_release_command.assert_called_once_with(None, True, True, False, True, None)
+
+    mock_release_command.reset_mock()
+
+    from rhiza_tools.commands.bump import Language
+
+    result = runner.invoke(app, ["release", "--language", "go", "--dry-run"])
+    assert result.exit_code == 0
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language)
+    mock_release_command.assert_called_once_with(None, False, True, False, False, Language.GO)
+
+    mock_release_command.reset_mock()
+
+    result = runner.invoke(app, ["release", "--language", "invalid"])
+    assert result.exit_code == 1
+    assert "Invalid language: invalid" in result.output
+    assert "Supported languages: python, go" in result.output
 
 
 def test_update_readme(monkeypatch):
