@@ -788,6 +788,15 @@ def _make_mock_git_for_bump_release(
     return mock_run_git_command
 
 
+def _categorize_rev_parse_command(cmd, version=""):
+    """Categorize a rev-parse git command into a simple string label."""
+    if "--abbrev-ref" in cmd:
+        return "symbolic_ref" if "--symbolic-full-name" in cmd else "branch_name"
+    if any(f"v{version}" in arg for arg in cmd):
+        return "rev_parse_tag"
+    return "rev_parse"
+
+
 def _categorize_git_command(cmd, version=""):
     """Categorize a git command list into a simple string label."""
     if "push" in cmd and "origin" in cmd and "refs/tags" not in cmd:
@@ -796,16 +805,10 @@ def _categorize_git_command(cmd, version=""):
         return "push"
     if "fetch" in cmd:
         return "fetch"
-    if "rev-parse" in cmd and "--abbrev-ref" in cmd:
-        if "--symbolic-full-name" in cmd:
-            return "symbolic_ref"
-        return "branch_name"
+    if "rev-parse" in cmd:
+        return _categorize_rev_parse_command(cmd, version)
     if "remote" in cmd and "show" in cmd:
         return "remote_show"
-    if "rev-parse" in cmd and any(f"v{version}" in arg for arg in cmd):
-        return "rev_parse_tag"
-    if "rev-parse" in cmd:
-        return "rev_parse"
     if "merge-base" in cmd:
         return "merge_base"
     if "ls-remote" in cmd:
