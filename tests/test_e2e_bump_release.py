@@ -357,6 +357,37 @@ class TestBumpDryRunPreview:
 # ──────────────────────────────────────────────
 
 
+def _apply_ref_commands_result(cmd, result, current_branch, tag_exists_locally, version):
+    """Apply result for git ref commands (rev-parse, merge-base, symbolic-ref)."""
+    if "rev-parse" in cmd and "--abbrev-ref" in cmd:
+        result.stdout = current_branch
+    elif "symbolic-full-name" in cmd:
+        result.stdout = f"origin/{current_branch}"
+    elif "rev-parse" in cmd and any(f"v{version}" in arg for arg in cmd):
+        result.returncode = 0 if tag_exists_locally else 1
+        result.stdout = "abc123" if tag_exists_locally else ""
+    elif "rev-parse" in cmd or "merge-base" in cmd:
+        result.stdout = "abc123"
+
+
+def _apply_remote_commands_result(cmd, result, default_branch, tag_exists_remotely, version):
+    """Apply result for git remote/tag/log/status commands."""
+    if "remote" in cmd and "show" in cmd:
+        result.stdout = f"* remote origin\n  HEAD branch: {default_branch}\n"
+    elif "ls-remote" in cmd and "--tags" in cmd:
+        result.returncode = 0 if tag_exists_remotely else 1
+    elif "tag" in cmd and "--sort" in cmd:
+        result.stdout = f"v{version}\nv0.0.1"
+    elif "log" in cmd:
+        result.stdout = "abc1234 Some commit\ndef5678 Another commit"
+    elif "remote" in cmd and "get-url" in cmd:
+        result.stdout = "https://github.com/user/repo.git"
+    elif "show" in cmd and "--format" in cmd:
+        result.stdout = "abc123|2026-01-15|Bump version"
+    elif "status" in cmd and "--porcelain" in cmd:
+        result.stdout = ""
+
+
 def _make_mock_git_for_release(
     current_branch: str = "main",
     default_branch: str = "main",
@@ -370,33 +401,8 @@ def _make_mock_git_for_release(
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
-
-        if "rev-parse" in cmd and "--abbrev-ref" in cmd:
-            result.stdout = current_branch
-        elif "symbolic-full-name" in cmd:
-            result.stdout = f"origin/{current_branch}"
-        elif "remote" in cmd and "show" in cmd:
-            result.stdout = f"* remote origin\n  HEAD branch: {default_branch}\n"
-        elif "rev-parse" in cmd and any(f"v{version}" in arg for arg in cmd):
-            result.returncode = 0 if tag_exists_locally else 1
-            result.stdout = "abc123" if tag_exists_locally else ""
-        elif "rev-parse" in cmd or "merge-base" in cmd:
-            result.stdout = "abc123"
-        elif "ls-remote" in cmd and "--tags" in cmd:
-            result.returncode = 0 if tag_exists_remotely else 1
-        elif "tag" in cmd and "--sort" in cmd:
-            result.stdout = f"v{version}\nv0.0.1"
-        elif "log" in cmd:
-            result.stdout = "abc1234 Some commit\ndef5678 Another commit"
-        elif "remote" in cmd and "get-url" in cmd:
-            result.stdout = "https://github.com/user/repo.git"
-        elif "show" in cmd and "--format" in cmd:
-            result.stdout = "abc123|2026-01-15|Bump version"
-        elif "status" in cmd and "--porcelain" in cmd:
-            result.stdout = ""
-        elif "fetch" in cmd:
-            pass
-
+        _apply_ref_commands_result(cmd, result, current_branch, tag_exists_locally, version)
+        _apply_remote_commands_result(cmd, result, default_branch, tag_exists_remotely, version)
         return result
 
     return mock_run_git_command
