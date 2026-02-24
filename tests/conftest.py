@@ -1,4 +1,12 @@
-"""Pytest configuration and fixtures for the tests directory."""
+"""Pytest configuration and fixtures for the tests directory.
+
+Security Notes:
+- S101 (assert usage): Asserts are appropriate in test code for validating conditions
+- S603 (subprocess without shell=True): All subprocess calls use lists of known commands (git),
+  not user input, making them safe from shell injection
+- S607 (subprocess with partial path): Using 'git' from PATH is acceptable in test fixtures
+  as the test environment is controlled and git is a required development dependency
+"""
 
 import subprocess
 
