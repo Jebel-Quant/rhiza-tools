@@ -54,6 +54,12 @@ app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
 # Shared option so --verbose / -v works both before and after the subcommand.
 VERBOSE_OPTION = typer.Option(False, "--verbose", "-v", help="Show verbose debug output.")
+CONFIG_OPTION = typer.Option(
+    None,
+    "--config",
+    "-c",
+    help="Path to the .cfg.toml bumpversion config file. Defaults to .rhiza/.cfg.toml.",
+)
 
 
 def _apply_verbose(verbose: bool) -> None:
@@ -92,6 +98,7 @@ def bump(
     allow_dirty: bool = typer.Option(
         False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
     ),
+    config: Path | None = CONFIG_OPTION,
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Bump the version of the project.
@@ -110,6 +117,7 @@ def bump(
         push: If True, push changes to remote after commit (implies --commit).
         branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
+        config: Path to the .cfg.toml bumpversion config file. Defaults to .rhiza/.cfg.toml.
         verbose: If True, enable verbose debug output.
 
     Example:
@@ -136,6 +144,10 @@ def bump(
         Bump and push to remote::
 
             $ rhiza-tools bump minor --push
+
+        Use a custom config file::
+
+            $ rhiza-tools bump patch --config /path/to/my.cfg.toml
     """
     _apply_verbose(verbose)
     from rhiza_tools.commands.bump import BumpOptions, Language
@@ -158,6 +170,7 @@ def bump(
         branch=branch,
         allow_dirty=allow_dirty,
         language=lang_enum,
+        config=config,
     )
     bump_command(options)
 
