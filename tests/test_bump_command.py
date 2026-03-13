@@ -1170,3 +1170,51 @@ def test_go_project_whitespace_only_version_file(go_project, monkeypatch):
     with pytest.raises(typer.Exit) as exc_info:
         get_current_version(Language.GO)
     assert exc_info.value.exit_code == 1
+
+
+def test_bump_custom_config_path(temp_project):
+    """Test that --config flag uses the specified config file path."""
+    import subprocess
+
+    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+
+    # Write the bumpversion config to a non-default location
+    custom_config_dir = temp_project / "custom"
+    custom_config_dir.mkdir()
+    custom_config_path = custom_config_dir / "bumpversion.toml"
+
+    config_content = """
+[tool.bumpversion]
+parse = "(?P<major>\\\\d+)\\\\.(?P<minor>\\\\d+)\\\\.(?P<patch>\\\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+ignore_missing_version = false
+tag = false
+commit = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+"""
+    custom_config_path.write_text(config_content)
+
+    subprocess.run([git, "add", str(custom_config_path)], check=True, capture_output=True)
+    subprocess.run([git, "commit", "-m", "Add custom bumpversion config"], check=True, capture_output=True)
+
+    # Bump using the custom config path
+    bump_command(BumpOptions(version="patch", config=custom_config_path))
+    assert get_current_version(Language.PYTHON) == "0.1.1"
+
+    # Safety check: ensure no git tags were created
+    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)
+    assert result.stdout.strip() == "", "No git tags should be created"
+
+
+def test_bump_missing_custom_config_path(temp_project):
+    """Test that a non-existent custom config path raises an error."""
+    nonexistent_path = temp_project / "nonexistent" / "config.toml"
+    with pytest.raises(typer.Exit):
+        bump_command(BumpOptions(version="patch", config=nonexistent_path))

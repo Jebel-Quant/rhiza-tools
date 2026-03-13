@@ -160,6 +160,7 @@ class BumpOptions:
         branch: Branch to perform the bump on (default: current branch).
         allow_dirty: If True, allow bumping even with uncommitted changes.
         language: The programming language (python or go). If None, auto-detect.
+        config: Path to the .cfg.toml config file. Defaults to CONFIG_FILENAME.
     """
 
     version: str | None = None
@@ -169,6 +170,7 @@ class BumpOptions:
     branch: str | None = None
     allow_dirty: bool = False
     language: Language | None = None
+    config: Path | None = None
 
 
 def get_current_version(language: Language) -> str:
@@ -470,13 +472,19 @@ def _validate_project_exists(language: Language) -> None:
         raise typer.Exit(code=1)
 
 
-def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bool) -> tuple[Any, Path]:
+def _build_configuration(
+    current_version_str: str,
+    allow_dirty: bool,
+    commit: bool,
+    config_path: Path | None = None,
+) -> tuple[Any, Path]:
     """Build bumpversion configuration with appropriate overrides.
 
     Args:
         current_version_str: The current version string.
         allow_dirty: If True, allow bumping even with uncommitted changes.
         commit: If True, automatically commit the version change to git.
+        config_path: Path to the .cfg.toml config file. Defaults to CONFIG_FILENAME.
 
     Returns:
         A tuple of (config object, config_path).
@@ -484,7 +492,8 @@ def _build_configuration(current_version_str: str, allow_dirty: bool, commit: bo
     Raises:
         typer.Exit: If configuration loading fails.
     """
-    config_path = Path(CONFIG_FILENAME)
+    if config_path is None:
+        config_path = Path(CONFIG_FILENAME)
     overrides: dict[str, Any] = {"current_version": current_version_str}
     if allow_dirty:
         overrides["allow_dirty"] = True
@@ -884,7 +893,7 @@ def bump_command(options: BumpOptions) -> None:
     push = options.push
 
     current_version_str = get_current_version(language)
-    config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
+    config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
 
     # Get current branch for display
     current_git_branch = get_current_git_branch()
@@ -914,13 +923,13 @@ def bump_command(options: BumpOptions) -> None:
             console.info("Version bump cancelled by user")
             raise typer.Exit(code=0)
         # Rebuild configuration with the user's commit decision
-        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
+        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
 
     # Preflight: validate bump would succeed before making any changes
     if not options.dry_run:
         _preflight_bump(new_version_str, config, config_path)
         # Rebuild configuration to avoid stale state from dry-run
-        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit)
+        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
 
     _execute_bump(new_version_str, config, config_path, options.dry_run)
 
