@@ -1,9 +1,8 @@
 repository: "jebel-quant/rhiza"
-ref: "v0.8.5"
+ref: "v0.8.13"
 
 templates:
   - github
-  - core
   - tests
   - legal
   - book
