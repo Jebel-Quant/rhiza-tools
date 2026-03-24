@@ -22,6 +22,8 @@ Example:
         release_command(language=Language.GO)
 """
 
+from pathlib import Path
+
 import semver
 import typer
 from loguru import logger
@@ -340,13 +342,14 @@ def _resolve_interactive_prompt(language: Language) -> tuple[bool, str | None]:
     return True, new_version
 
 
-def _perform_version_bump(new_version: str, dry_run: bool, language: Language) -> str:
+def _perform_version_bump(new_version: str, dry_run: bool, language: Language, config: Path | None = None) -> str:
     """Perform version bump with validation.
 
     Args:
         new_version: The explicit new version string to bump to.
         dry_run: If True, only simulate the bump.
         language: The programming language for the bump.
+        config: Optional path to the .cfg.toml bumpversion config file.
 
     Returns:
         The new version string.
@@ -364,6 +367,7 @@ def _perform_version_bump(new_version: str, dry_run: bool, language: Language) -
             push=False,  # Don't push yet, we'll do it after tagging
             allow_dirty=False,
             language=language,
+            config=config,
         )
     )
 
@@ -557,6 +561,7 @@ def release_command(
     non_interactive: bool = False,
     with_bump: bool = False,
     language: Language | None = None,
+    config: Path | None = None,
 ) -> None:
     """Push a release tag to remote.
 
@@ -575,6 +580,7 @@ def release_command(
         non_interactive: If True, skip all confirmation prompts.
         with_bump: If True, enable interactive bump selection (works with dry-run).
         language: Programming language (python or go). Auto-detected if not specified.
+        config: Optional path to the .cfg.toml bumpversion config file.
 
     Raises:
         typer.Exit: If no supported project files are found, repository is not clean,
@@ -649,7 +655,7 @@ def release_command(
     # Perform bump if requested (bump_command runs its own internal preflight)
     bumped_new_version: str | None = None
     if should_bump and new_version:
-        bumped_new_version = _perform_version_bump(new_version, dry_run, language)
+        bumped_new_version = _perform_version_bump(new_version, dry_run, language, config)
 
     # Get current version and tag
     current_version, tag = _get_release_version(dry_run, bumped_new_version, language)

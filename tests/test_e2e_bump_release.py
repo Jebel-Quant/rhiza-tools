@@ -924,7 +924,7 @@ class TestCLIIntegration:
 
         result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
         assert result.exit_code == 0
-        mock_release.assert_called_once_with(None, True, True, False, True, None)
+        mock_release.assert_called_once_with(None, True, True, False, True, None, None)
 
     def test_release_bump_and_with_bump_cli(self, monkeypatch):
         """Test --bump MINOR --with-bump together via CLI."""
@@ -938,7 +938,7 @@ class TestCLIIntegration:
 
         result = runner.invoke(app, ["release", "--bump", "MINOR", "--with-bump", "--push"])
         assert result.exit_code == 0
-        mock_release.assert_called_once_with("MINOR", True, False, False, True, None)
+        mock_release.assert_called_once_with("MINOR", True, False, False, True, None, None)
 
     def test_bump_cli_all_flags(self, monkeypatch):
         """Test bump CLI with all flags."""
