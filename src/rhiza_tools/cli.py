@@ -232,6 +232,7 @@ def release(
     language: str | None = typer.Option(
         None, "--language", "-l", help="Programming language (python or go). Auto-detected if not specified."
     ),
+    config: Path | None = CONFIG_OPTION,
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Push a release tag to remote to trigger the release workflow.
@@ -249,6 +250,7 @@ def release(
         dry_run: If True, show what would happen without actually pushing the tag.
         non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
         language: Programming language (python or go). Auto-detected if not specified.
+        config: Path to the .cfg.toml bumpversion config file. Passed through to bump when --with-bump is used.
         verbose: If True, enable verbose debug output.
 
     Example:
@@ -267,6 +269,10 @@ def release(
         Bump version and release::
 
             $ rhiza-tools release --bump MINOR --push
+
+        Bump version and release with custom config::
+
+            $ rhiza-tools release --bump MINOR --push --config /path/to/.cfg.toml
 
         Interactive bump with dry-run preview::
 
@@ -288,7 +294,7 @@ def release(
             console.error("Supported languages: python, go")
             raise typer.Exit(code=1) from None
 
-    release_command(bump, push, dry_run, non_interactive, with_bump, lang_enum)
+    release_command(bump, push, dry_run, non_interactive, with_bump, lang_enum, config)
 
 
 @app.command()
