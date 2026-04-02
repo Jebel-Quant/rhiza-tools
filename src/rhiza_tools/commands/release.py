@@ -30,6 +30,7 @@ from loguru import logger
 
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
+    NON_INTERACTIVE_ERRORS,
     run_git_command,
 )
 from rhiza_tools.commands.bump import (
@@ -40,6 +41,9 @@ from rhiza_tools.commands.bump import (
     get_current_version,
     get_interactive_bump_type,
 )
+
+# Combined tuple for catching both typer.Exit and non-interactive environment errors.
+_EXIT_OR_NON_INTERACTIVE: tuple[type[BaseException], ...] = (typer.Exit, *NON_INTERACTIVE_ERRORS)
 
 
 def check_clean_working_tree() -> None:
@@ -306,7 +310,7 @@ def _resolve_with_bump_flag(non_interactive: bool, language: Language) -> tuple[
     current_version_str = get_current_version(language)
     try:
         new_version = get_interactive_bump_type(current_version_str)
-    except (typer.Exit, EOFError):
+    except _EXIT_OR_NON_INTERACTIVE:
         return False, None
     return True, new_version
 
@@ -327,7 +331,7 @@ def _resolve_interactive_prompt(language: Language) -> tuple[bool, str | None]:
             "Would you like to bump the version before releasing?",
             default=False,
         ).ask()
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment")
         return False, None
 
@@ -337,7 +341,7 @@ def _resolve_interactive_prompt(language: Language) -> tuple[bool, str | None]:
     current_version_str = get_current_version(language)
     try:
         new_version = get_interactive_bump_type(current_version_str)
-    except (typer.Exit, EOFError):
+    except _EXIT_OR_NON_INTERACTIVE:
         return False, None
     return True, new_version
 

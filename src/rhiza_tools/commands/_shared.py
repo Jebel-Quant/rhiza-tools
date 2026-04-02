@@ -21,6 +21,20 @@ import typer
 
 from rhiza_tools import console
 
+try:
+    from prompt_toolkit.output.win32 import NoConsoleScreenBufferError as _WinConsoleError
+except (ImportError, AssertionError):
+
+    class _WinConsoleError(Exception):  # type: ignore[no-redef]
+        """Sentinel: never raised outside of Windows environments."""
+
+
+# Tuple of exceptions indicating a non-interactive environment (no TTY).
+# Use this in except clauses instead of bare ``EOFError`` so that Windows CI
+# (which raises ``NoConsoleScreenBufferError`` instead of ``EOFError``) is
+# handled consistently.
+NON_INTERACTIVE_ERRORS: tuple[type[BaseException], ...] = (EOFError, _WinConsoleError)
+
 COOL_STYLE = qs.Style(
     [
         ("separator", "fg:#cc5454"),
