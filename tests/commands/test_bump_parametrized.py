@@ -14,7 +14,9 @@ def python_project(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
     # Initialize git
-    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    import shutil
+
+    git = shutil.which("git") or "git"
     subprocess.run([git, "init"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
@@ -60,7 +62,9 @@ def go_project(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
     # Initialize git
-    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    import shutil
+
+    git = shutil.which("git") or "git"
     subprocess.run([git, "init"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)

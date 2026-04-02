@@ -5,6 +5,7 @@ covering interactive and non-interactive modes, dry-run, push, branch operations
 and the --with-bump release flag.
 """
 
+import shutil
 import subprocess
 from unittest.mock import MagicMock, patch
 
@@ -22,7 +23,7 @@ from rhiza_tools.commands.release import (
     release_command,
 )
 
-GIT = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+GIT = shutil.which("git") or "git"
 
 
 # ──────────────────────────────────────────────

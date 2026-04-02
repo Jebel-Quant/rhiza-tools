@@ -293,6 +293,7 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
     ):
         release_command(dry_run=True)  # Should complete without errors
 
@@ -322,6 +323,7 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit),
     ):
         release_command()
@@ -350,6 +352,7 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit),
     ):
         release_command()
@@ -532,6 +535,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
+        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit) as exc_info,
     ):
         release_command(dry_run=False, non_interactive=False)
@@ -600,6 +604,7 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
+        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit) as exc_info,
     ):
         release_command(dry_run=False, non_interactive=False)
@@ -698,6 +703,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag),
+        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
     ):
         release_command(push=True)
 
