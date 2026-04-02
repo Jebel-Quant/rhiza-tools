@@ -60,9 +60,10 @@ replace = 'version = "{new_version}"'
         f.write(config_content)
 
     # Commit the config file to git so tests with commit=True can work
+    import shutil
     import subprocess
 
-    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    git = shutil.which("git") or "git"
     subprocess.run([git, "add", ".rhiza/.cfg.toml"], check=True, capture_output=True)
     subprocess.run([git, "commit", "-m", "Add bumpversion config"], check=True, capture_output=True)
 
@@ -924,7 +925,9 @@ def go_project(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
     # Initialize git repository
-    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    import shutil
+
+    git = shutil.which("git") or "git"
     subprocess.run([git, "init"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
@@ -1026,7 +1029,9 @@ def test_version_file_only_project(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
     # Initialize git repository
-    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    import shutil
+
+    git = shutil.which("git") or "git"
     subprocess.run([git, "init"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
@@ -1174,9 +1179,10 @@ def test_go_project_whitespace_only_version_file(go_project, monkeypatch):
 
 def test_bump_custom_config_path(temp_project):
     """Test that --config flag uses the specified config file path."""
+    import shutil
     import subprocess
 
-    git = subprocess.run(["which", "git"], capture_output=True, text=True, check=True).stdout.strip()
+    git = shutil.which("git") or "git"
 
     # Write the bumpversion config to a non-default location
     custom_config_dir = temp_project / "custom"

@@ -30,6 +30,7 @@ from loguru import logger
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
     COOL_STYLE,
+    NON_INTERACTIVE_ERRORS,
     run_git_command,
     validate_pyproject_exists,
 )
@@ -108,7 +109,7 @@ def _select_tag_interactively(tags: list[str]) -> str:
             choices=choices,
             style=COOL_STYLE,
         ).ask()
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment")
         raise typer.Exit(code=1) from None
 
@@ -322,7 +323,7 @@ def _push_revert(dry_run: bool, non_interactive: bool) -> bool:
                 default=True,
                 style=COOL_STYLE,
             ).ask()
-        except EOFError:
+        except NON_INTERACTIVE_ERRORS:
             logger.debug("Running in non-interactive environment, proceeding with push")
             should_push = True
 
@@ -419,7 +420,7 @@ def _confirm_rollback(non_interactive: bool) -> bool:
                 style=COOL_STYLE,
             ).ask()
         )
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment, proceeding")
         return True
 
@@ -505,7 +506,7 @@ def _should_revert_bump(options: RollbackOptions, exists_locally: bool, is_bump:
                 style=COOL_STYLE,
             ).ask()
         )
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment")
         return False
 

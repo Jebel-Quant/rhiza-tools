@@ -35,7 +35,7 @@ from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import COOL_STYLE, get_current_git_branch, run_git_command
+from rhiza_tools.commands._shared import COOL_STYLE, NON_INTERACTIVE_ERRORS, get_current_git_branch, run_git_command
 from rhiza_tools.config import CONFIG_FILENAME
 
 
@@ -329,7 +329,7 @@ def get_interactive_bump_type(current_version_str: str) -> str:
             ],
             style=COOL_STYLE,
         ).ask()
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         console.error("Interactive selection not available in non-interactive environment")
         raise typer.Exit(code=1) from None
 
@@ -758,7 +758,7 @@ def _show_interactive_preview(
     # Confirm bump
     try:
         proceed = cast(bool, qs.confirm("Proceed with version bump?", default=True, style=COOL_STYLE).ask())
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment, proceeding automatically")
         proceed = True
 
@@ -768,7 +768,7 @@ def _show_interactive_preview(
     # Ask about commit
     try:
         commit = cast(bool, qs.confirm("Commit the changes?", default=True, style=COOL_STYLE).ask())
-    except EOFError:
+    except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment, committing automatically")
         commit = True
 
@@ -777,7 +777,7 @@ def _show_interactive_preview(
     if commit:
         try:
             push = cast(bool, qs.confirm("Push changes to remote?", default=False, style=COOL_STYLE).ask())
-        except EOFError:
+        except NON_INTERACTIVE_ERRORS:
             logger.debug("Running in non-interactive environment, skipping push")
             push = False
 
@@ -799,7 +799,7 @@ def _handle_push_to_remote(version: str | None) -> None:
             if not qs.confirm("Push changes to remote?", default=False, style=COOL_STYLE).ask():
                 console.info("Push cancelled by user")
                 return
-        except EOFError:
+        except NON_INTERACTIVE_ERRORS:
             # In testing or non-interactive environment, do not proceed with push
             console.info("Push cancelled - non-interactive environment detected")
             logger.debug("Running in non-interactive environment, skipping push")
