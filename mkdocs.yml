@@ -1,0 +1,23 @@
+INHERIT: docs/mkdocs-base.yml
+
+site_name: Rhiza Tools
+site_url: https://jebel-quant.github.io/rhiza-tools/
+repo_url: https://github.com/Jebel-Quant/rhiza-tools
+repo_name: Jebel-Quant/rhiza-tools
+
+docs_dir: docs   # always set this explicitly — base uses docs_dir: . which
+                 # resolves relative to docs/mkdocs-base.yml, not mkdocs.yml
+
+nav:
+  - Home: index.md
+  - Configuration: configuration.md
+  - Releasing: RELEASING.md
+  - Commands:
+    - bump: commands/bump.md
+    - release: commands/release.md
+    - rollback: commands/rollback.md
+    - update-readme: commands/update_readme.md
+    - generate-coverage-badge: commands/generate_coverage_badge.md
+    - version-matrix: commands/version_matrix.md
+    - analyze-benchmarks: commands/analyze_benchmarks.md
+  - API Reference: api_reference.md
