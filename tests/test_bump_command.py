@@ -817,7 +817,7 @@ def test_restore_original_branch_none(bump_project):
     from rhiza_tools.commands.bump import _restore_original_branch
 
     # Get current branch
-    before = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603
+    before = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
 
     # Should do nothing
     _restore_original_branch(None, False)
