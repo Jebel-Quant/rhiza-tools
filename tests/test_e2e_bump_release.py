@@ -6,7 +6,7 @@ and the --with-bump release flag.
 """
 
 import shutil
-import subprocess
+import subprocess  # nosec B404
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -47,7 +47,7 @@ def e2e_project(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
     # Initialize git repo
-    subprocess.run([GIT, "init"], check=True, capture_output=True)
+    subprocess.run([GIT, "init"], check=True, capture_output=True)  # nosec B603
     subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([GIT, "config", "user.name", "Test User"], check=True, capture_output=True)
 
@@ -96,7 +96,7 @@ replace = 'version = "{new_version}"'
 
     # Initial commit
     subprocess.run([GIT, "add", "."], check=True, capture_output=True)
-    subprocess.run([GIT, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+    subprocess.run([GIT, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603
 
     return tmp_path
 
@@ -304,7 +304,7 @@ class TestBumpOnBranch:
         subprocess.run([GIT, "checkout", "-b", "feature-branch"], check=True, capture_output=True)
         subprocess.run([GIT, "checkout", "-"], check=True, capture_output=True)
 
-        original_branch = subprocess.run(
+        original_branch = subprocess.run(  # nosec B603
             [GIT, "rev-parse", "--abbrev-ref", "HEAD"],
             capture_output=True,
             text=True,
@@ -415,7 +415,7 @@ class TestInteractiveRelease:
     def test_release_dry_run_shows_info(self, e2e_project):
         """Dry-run release should show version and tag info without changes."""
         # Create a tag for the current version
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
@@ -430,7 +430,7 @@ class TestInteractiveRelease:
 
     def test_release_user_declines_push(self, e2e_project):
         """User declines push in interactive mode."""
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
@@ -487,7 +487,7 @@ class TestNonInteractiveReleaseDryRun:
 
     def test_release_dry_run_no_changes(self, e2e_project):
         """Dry-run release should make no changes."""
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
@@ -568,7 +568,7 @@ class TestReleaseWithoutBump:
 
     def test_release_push_existing_tag_dry_run(self, e2e_project):
         """Push existing tag in dry-run mode."""
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
@@ -579,7 +579,7 @@ class TestReleaseWithoutBump:
 
     def test_release_push_non_interactive(self, e2e_project):
         """Non-interactive push of existing tag."""
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
@@ -607,7 +607,7 @@ class TestReleaseCommitListing:
 
     def test_release_shows_commits(self, e2e_project):
         """Release dry-run should complete without error showing commits."""
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
@@ -1004,7 +1004,7 @@ class TestSequentialBumpRelease:
         assert get_current_version(Language.PYTHON) == "0.2.0"
 
         # Verify tag was created (safe - runs in temp repo)
-        result = subprocess.run([GIT, "tag", "-l", "v0.2.0"], capture_output=True, text=True, check=True)
+        result = subprocess.run([GIT, "tag", "-l", "v0.2.0"], capture_output=True, text=True, check=True)  # nosec B603
         assert "v0.2.0" in result.stdout
 
     def test_multiple_bumps(self, e2e_project):
@@ -1041,11 +1041,11 @@ class TestSequentialBumpRelease:
         assert get_current_version(Language.PYTHON) == "0.1.1-beta.1"
 
         # Verify tag was created with proper format (v0.1.1-beta.1, not v0.1.1beta1)
-        result = subprocess.run([GIT, "tag", "-l", "v0.1.1-beta.1"], capture_output=True, text=True, check=True)
+        result = subprocess.run([GIT, "tag", "-l", "v0.1.1-beta.1"], capture_output=True, text=True, check=True)  # nosec B603
         assert "v0.1.1-beta.1" in result.stdout, f"Expected tag 'v0.1.1-beta.1' not found. Tags: {result.stdout}"
 
         # Ensure the incorrect format tag was NOT created
-        result_incorrect = subprocess.run([GIT, "tag", "-l", "v0.1.1beta1"], capture_output=True, text=True, check=True)
+        result_incorrect = subprocess.run([GIT, "tag", "-l", "v0.1.1beta1"], capture_output=True, text=True, check=True)  # nosec B603
         assert "v0.1.1beta1" not in result_incorrect.stdout, "Incorrect tag format 'v0.1.1beta1' was created"
 
 
@@ -1059,7 +1059,7 @@ class TestNonDefaultBranchRelease:
 
     def test_release_from_feature_branch_dry_run(self, e2e_project):
         """Release from non-default branch should show warning."""
-        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)
+        subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(
             current_branch="feature-branch",

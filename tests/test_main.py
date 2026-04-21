@@ -3,7 +3,7 @@
 import contextlib
 import importlib.util
 import runpy
-import subprocess
+import subprocess  # nosec B404
 import sys
 from unittest.mock import patch
 
@@ -30,7 +30,7 @@ def test_main_direct_execution():
     main_file = spec.origin
 
     # Run the file directly with --help
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603
         [sys.executable, main_file, "--help"],
         capture_output=True,
         text=True,

@@ -17,7 +17,7 @@ def python_project(tmp_path, monkeypatch):
     import shutil
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "init"], check=True, capture_output=True)
+    subprocess.run([git, "init"], check=True, capture_output=True)  # nosec B603
     subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
 
@@ -49,7 +49,7 @@ replace = 'version = "{new_version}"'
     (rhiza_dir / ".cfg.toml").write_text(config_content)
 
     # Commit
-    subprocess.run([git, "add", "."], check=True, capture_output=True)
+    subprocess.run([git, "add", "."], check=True, capture_output=True)  # nosec B603
     subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
 
     return tmp_path, Language.PYTHON
@@ -65,7 +65,7 @@ def go_project(tmp_path, monkeypatch):
     import shutil
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "init"], check=True, capture_output=True)
+    subprocess.run([git, "init"], check=True, capture_output=True)  # nosec B603
     subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
     subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
 
@@ -94,7 +94,7 @@ filename = "VERSION"
     (rhiza_dir / ".cfg.toml").write_text(config_content)
 
     # Commit
-    subprocess.run([git, "add", "."], check=True, capture_output=True)
+    subprocess.run([git, "add", "."], check=True, capture_output=True)  # nosec B603
     subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
 
     return tmp_path, Language.GO
