@@ -806,7 +806,7 @@ def test_restore_original_branch_dry_run(bump_project):
     _restore_original_branch("master", dry_run=True)
 
     # Verify we're still on test branch
-    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603
+    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     assert current.stdout.strip() == "test-restore-dry"
 
 
@@ -1068,7 +1068,7 @@ filename = "VERSION"
     # Create go.mod to make it a Go project
     gomod_path = tmp_path / "go.mod"
     gomod_path.write_text("module example.com/test\n\ngo 1.23\n")
-    subprocess.run([git, "add", "go.mod"], check=True, capture_output=True)  # nosec B603
+    subprocess.run([git, "add", "go.mod"], check=True, capture_output=True)  # nosec B603 B607
     subprocess.run([git, "commit", "-m", "Add go.mod"], check=True, capture_output=True)  # nosec B603 B607
 
     bump_command(BumpOptions(version="patch", language=Language.GO))
