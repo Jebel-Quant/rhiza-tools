@@ -11,7 +11,7 @@ from unittest.mock import patch
 def test_main_entry_point():
     """Test that __main__.py can be executed as a module."""
     # Run the module with --help to verify it executes
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603 B607
         [sys.executable, "-m", "rhiza_tools", "--help"],
         capture_output=True,
         text=True,

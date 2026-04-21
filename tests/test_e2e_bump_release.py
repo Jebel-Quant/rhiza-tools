@@ -48,8 +48,8 @@ def e2e_project(tmp_path, monkeypatch):
 
     # Initialize git repo
     subprocess.run([GIT, "init"], check=True, capture_output=True)  # nosec B603
-    subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)
-    subprocess.run([GIT, "config", "user.name", "Test User"], check=True, capture_output=True)
+    subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([GIT, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
 
     # Create pyproject.toml
     pyproject_content = """[project]
@@ -95,7 +95,7 @@ replace = 'version = "{new_version}"'
     (rhiza_dir / ".cfg.toml").write_text(config_content)
 
     # Initial commit
-    subprocess.run([GIT, "add", "."], check=True, capture_output=True)
+    subprocess.run([GIT, "add", "."], check=True, capture_output=True)  # nosec B603 B607
     subprocess.run([GIT, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603
 
     return tmp_path
@@ -249,7 +249,7 @@ class TestNonInteractiveBumpDryRun:
         """Dry-run should not leave any git changes."""
         bump_command(BumpOptions(version="minor", dry_run=True))
 
-        result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)
+        result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)  # nosec B603 B607
         assert result.stdout.strip() == ""
 
 
@@ -268,7 +268,7 @@ class TestNonInteractiveBumpCommitPush:
         assert get_current_version(Language.PYTHON) == "0.1.1"
 
         # Verify a commit was made with the version tag
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607
             [GIT, "log", "--oneline", "-1"],
             capture_output=True,
             text=True,
@@ -301,8 +301,8 @@ class TestBumpOnBranch:
     def test_bump_on_branch_and_restore(self, e2e_project):
         """Bump on feature branch should restore original branch."""
         # Create a feature branch
-        subprocess.run([GIT, "checkout", "-b", "feature-branch"], check=True, capture_output=True)
-        subprocess.run([GIT, "checkout", "-"], check=True, capture_output=True)
+        subprocess.run([GIT, "checkout", "-b", "feature-branch"], check=True, capture_output=True)  # nosec B603 B607
+        subprocess.run([GIT, "checkout", "-"], check=True, capture_output=True)  # nosec B603 B607
 
         original_branch = subprocess.run(  # nosec B603
             [GIT, "rev-parse", "--abbrev-ref", "HEAD"],
@@ -315,7 +315,7 @@ class TestBumpOnBranch:
         bump_command(BumpOptions(version="patch", branch="feature-branch"))
 
         # Should be back on original branch
-        current = subprocess.run(
+        current = subprocess.run(  # nosec B603 B607
             [GIT, "rev-parse", "--abbrev-ref", "HEAD"],
             capture_output=True,
             text=True,
@@ -325,8 +325,8 @@ class TestBumpOnBranch:
 
     def test_bump_on_branch_dry_run(self, e2e_project):
         """Dry-run bump on branch should not change anything."""
-        subprocess.run([GIT, "checkout", "-b", "feature-branch"], check=True, capture_output=True)
-        subprocess.run([GIT, "checkout", "-"], check=True, capture_output=True)
+        subprocess.run([GIT, "checkout", "-b", "feature-branch"], check=True, capture_output=True)  # nosec B603 B607
+        subprocess.run([GIT, "checkout", "-"], check=True, capture_output=True)  # nosec B603 B607
 
         bump_command(BumpOptions(version="patch", branch="feature-branch", dry_run=True))
 
@@ -349,7 +349,7 @@ class TestBumpDryRunPreview:
         assert get_current_version(Language.PYTHON) == "0.1.0"
 
         # Verify no changes in git
-        result = subprocess.run([GIT, "diff", "pyproject.toml"], capture_output=True, text=True, check=True)
+        result = subprocess.run([GIT, "diff", "pyproject.toml"], capture_output=True, text=True, check=True)  # nosec B603 B607
         assert result.stdout.strip() == ""
 
 
@@ -497,7 +497,7 @@ class TestNonInteractiveReleaseDryRun:
         assert get_current_version(Language.PYTHON) == "0.1.0"
 
         # Git should be clean
-        result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)
+        result = subprocess.run([GIT, "status", "--porcelain"], capture_output=True, text=True, check=True)  # nosec B603 B607
         assert result.stdout.strip() == ""
 
 
@@ -630,7 +630,7 @@ class TestBumpDirtyWorkingDirectory:
     def test_bump_dirty_with_allow_dirty_succeeds(self, e2e_project):
         """Bump with --allow-dirty should succeed even with uncommitted changes."""
         (e2e_project / "dirty.txt").write_text("dirty")
-        subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)
+        subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)  # nosec B603 B607
 
         bump_command(BumpOptions(version="patch", allow_dirty=True))
         assert get_current_version(Language.PYTHON) == "0.1.1"
@@ -638,7 +638,7 @@ class TestBumpDirtyWorkingDirectory:
     def test_bump_dirty_without_commit_succeeds(self, e2e_project):
         """Bump without commit should succeed (bumps file only)."""
         (e2e_project / "dirty.txt").write_text("dirty")
-        subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)
+        subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)  # nosec B603 B607
 
         # Without commit flag, bumpversion may still allow dirty (depends on config)
         bump_command(BumpOptions(version="patch"))
@@ -719,7 +719,7 @@ class TestDryRunVersionCalculation:
         """Dry-run should not fail due to dirty working tree."""
         # Create uncommitted changes
         (e2e_project / "dirty.txt").write_text("dirty")
-        subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)
+        subprocess.run([GIT, "add", "dirty.txt"], check=True, capture_output=True)  # nosec B603 B607
 
         mock_git = _make_mock_git_for_release(
             tag_exists_locally=True,
@@ -983,7 +983,7 @@ class TestSequentialBumpRelease:
         assert get_current_version(Language.PYTHON) == "0.1.1"
 
         # Step 2: Verify tag was created by bump-my-version (safe - runs in temp repo)
-        result = subprocess.run([GIT, "tag", "-l", "v0.1.1"], capture_output=True, text=True, check=True)
+        result = subprocess.run([GIT, "tag", "-l", "v0.1.1"], capture_output=True, text=True, check=True)  # nosec B603 B607
         assert "v0.1.1" in result.stdout
 
         # Step 3: Release dry-run
