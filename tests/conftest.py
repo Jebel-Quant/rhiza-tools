@@ -9,7 +9,7 @@ Security Notes:
 """
 
 import shutil
-import subprocess
+import subprocess  # nosec B404
 
 import pytest
 
@@ -35,9 +35,9 @@ def temp_project(tmp_path, monkeypatch):
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
     # Initialize git repository
-    subprocess.run([GIT, "init"], check=True, capture_output=True)
-    subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)
-    subprocess.run([GIT, "config", "user.name", "Test User"], check=True, capture_output=True)
+    subprocess.run([GIT, "init"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([GIT, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
 
     # Create pyproject.toml with initial version
     pyproject_content = """[project]
@@ -48,7 +48,7 @@ version = "0.1.0"
     pyproject_path.write_text(pyproject_content)
 
     # Commit the initial state
-    subprocess.run([GIT, "add", "."], check=True, capture_output=True)
-    subprocess.run([GIT, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+    subprocess.run([GIT, "add", "."], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([GIT, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603 B607
 
     return tmp_path

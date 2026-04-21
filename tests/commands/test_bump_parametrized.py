@@ -1,6 +1,6 @@
 """Parametrized tests for bump command demonstrating multi-language support."""
 
-import subprocess
+import subprocess  # nosec B404
 
 import pytest
 
@@ -17,9 +17,9 @@ def python_project(tmp_path, monkeypatch):
     import shutil
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "init"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
+    subprocess.run([git, "init"], check=True, capture_output=True)  # nosec B603
+    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
 
     # Create pyproject.toml
     pyproject_content = """[project]
@@ -49,8 +49,8 @@ replace = 'version = "{new_version}"'
     (rhiza_dir / ".cfg.toml").write_text(config_content)
 
     # Commit
-    subprocess.run([git, "add", "."], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+    subprocess.run([git, "add", "."], check=True, capture_output=True)  # nosec B603
+    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603 B607
 
     return tmp_path, Language.PYTHON
 
@@ -65,9 +65,9 @@ def go_project(tmp_path, monkeypatch):
     import shutil
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "init"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
+    subprocess.run([git, "init"], check=True, capture_output=True)  # nosec B603
+    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
 
     # Create go.mod
     (tmp_path / "go.mod").write_text("module github.com/example/test\n\ngo 1.23\n")
@@ -94,8 +94,8 @@ filename = "VERSION"
     (rhiza_dir / ".cfg.toml").write_text(config_content)
 
     # Commit
-    subprocess.run([git, "add", "."], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+    subprocess.run([git, "add", "."], check=True, capture_output=True)  # nosec B603
+    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603 B607
 
     return tmp_path, Language.GO
 

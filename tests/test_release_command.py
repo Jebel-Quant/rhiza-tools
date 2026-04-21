@@ -1,6 +1,6 @@
 """Tests for release command in rhiza_tools.commands.release."""
 
-import subprocess
+import subprocess  # nosec B404
 from unittest.mock import MagicMock, patch
 
 import pytest

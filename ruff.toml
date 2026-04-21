@@ -102,17 +102,23 @@ line-ending = "auto"
 # File-specific rule exceptions
 [lint.per-file-ignores]
 # Test files - allow assert statements and subprocess calls for testing
-"**/tests/**/*.py" = [
+"tests/**" = [
     "S101",     # Allow assert statements in tests
+    "S404",     # Allow subprocess import in tests
     "S603",     # Allow subprocess calls without shell=False check
     "S607",     # Allow starting processes with partial paths in tests
     "PLW1510",  # Allow subprocess without explicit check parameter
-]
-"tests/**/*.py" = [
     "ERA001",   # Allow commented out code in project tests
     "PLR2004",  # Allow magic values in project tests
     "RUF002",   # Allow ambiguous unicode in project tests
     "RUF012",   # Allow mutable class attributes in project tests
+]
+"**/tests/**" = [
+    "S101",     # Allow assert statements in tests
+    "S404",     # Allow subprocess import in tests
+    "S603",     # Allow subprocess calls without shell=False check
+    "S607",     # Allow starting processes with partial paths in tests
+    "PLW1510",  # Allow subprocess without explicit check parameter
 ]
 # Marimo notebooks - allow flexible coding patterns for interactive exploration
 "**/notebooks/*.py" = [

@@ -61,16 +61,16 @@ replace = 'version = "{new_version}"'
 
     # Commit the config file to git so tests with commit=True can work
     import shutil
-    import subprocess
+    import subprocess  # nosec B404
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "add", ".rhiza/.cfg.toml"], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Add bumpversion config"], check=True, capture_output=True)
+    subprocess.run([git, "add", ".rhiza/.cfg.toml"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "commit", "-m", "Add bumpversion config"], check=True, capture_output=True)  # nosec B603 B607
 
     yield temp_project
 
     # Safety check: ensure no git tags were created during the test
-    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)
+    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)  # nosec B603 B607
     tags = result.stdout.strip()
     assert tags == "", f"Git tags were unexpectedly created during test: {tags}"
 
@@ -682,7 +682,7 @@ def test_branch_checkout_returns_none_when_no_branch(bump_project):
 
 def test_branch_checkout_returns_none_when_git_fails(bump_project, monkeypatch):
     """Test _handle_branch_checkout returns None when git fails."""
-    import subprocess
+    import subprocess  # nosec B404
     from unittest.mock import MagicMock
 
     from rhiza_tools.commands.bump import _handle_branch_checkout
@@ -707,12 +707,12 @@ def test_branch_checkout_returns_none_when_git_fails(bump_project, monkeypatch):
 
 def test_branch_checkout_returns_none_when_same_branch(bump_project):
     """Test _handle_branch_checkout returns None when already on target branch."""
-    import subprocess
+    import subprocess  # nosec B404
 
     from rhiza_tools.commands.bump import _handle_branch_checkout
 
     # Get current branch
-    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     current_branch = result.stdout.strip()
 
     # Try to checkout the same branch
@@ -722,7 +722,7 @@ def test_branch_checkout_returns_none_when_same_branch(bump_project):
 
 def test_branch_checkout_fails_gracefully(bump_project, monkeypatch):
     """Test _handle_branch_checkout raises Exit when checkout fails."""
-    import subprocess
+    import subprocess  # nosec B404
     from unittest.mock import MagicMock
 
     from rhiza_tools.commands.bump import _handle_branch_checkout
@@ -749,17 +749,17 @@ def test_branch_checkout_fails_gracefully(bump_project, monkeypatch):
 
 def test_branch_checkout_dry_run(bump_project):
     """Test _handle_branch_checkout in dry-run mode."""
-    import subprocess
+    import subprocess  # nosec B404
 
     from rhiza_tools.commands.bump import _handle_branch_checkout
 
     # Get the current default branch name
-    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     default_branch = result.stdout.strip()
 
     # Create a test branch
-    subprocess.run(["git", "checkout", "-b", "test-dry-run"], check=True, capture_output=True)
-    subprocess.run(["git", "checkout", default_branch], check=True, capture_output=True)
+    subprocess.run(["git", "checkout", "-b", "test-dry-run"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run(["git", "checkout", default_branch], check=True, capture_output=True)  # nosec B603 B607
 
     # In dry-run mode, should not actually checkout
     result_branch = _handle_branch_checkout("test-dry-run", dry_run=True)
@@ -768,62 +768,62 @@ def test_branch_checkout_dry_run(bump_project):
     assert result_branch == default_branch
 
     # Verify we're still on default branch
-    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     assert current.stdout.strip() == default_branch
 
 
 def test_restore_original_branch(bump_project):
     """Test _restore_original_branch restores the branch."""
-    import subprocess
+    import subprocess  # nosec B404
 
     from rhiza_tools.commands.bump import _restore_original_branch
 
     # Get the current default branch name
-    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     default_branch = result.stdout.strip()
 
     # Create and switch to a test branch
-    subprocess.run(["git", "checkout", "-b", "test-restore"], check=True, capture_output=True)
+    subprocess.run(["git", "checkout", "-b", "test-restore"], check=True, capture_output=True)  # nosec B603 B607
 
     # Restore to default branch
     _restore_original_branch(default_branch, False)
 
     # Verify we're back on default branch
-    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     assert current.stdout.strip() == default_branch
 
 
 def test_restore_original_branch_dry_run(bump_project):
     """Test _restore_original_branch in dry-run mode."""
-    import subprocess
+    import subprocess  # nosec B404
 
     from rhiza_tools.commands.bump import _restore_original_branch
 
     # Create and switch to a test branch
-    subprocess.run(["git", "checkout", "-b", "test-restore-dry"], check=True, capture_output=True)
+    subprocess.run(["git", "checkout", "-b", "test-restore-dry"], check=True, capture_output=True)  # nosec B603 B607
 
     # In dry-run mode, should not restore
     _restore_original_branch("master", dry_run=True)
 
     # Verify we're still on test branch
-    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    current = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     assert current.stdout.strip() == "test-restore-dry"
 
 
 def test_restore_original_branch_none(bump_project):
     """Test _restore_original_branch does nothing when original_branch is None."""
-    import subprocess
+    import subprocess  # nosec B404
 
     from rhiza_tools.commands.bump import _restore_original_branch
 
     # Get current branch
-    before = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    before = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
 
     # Should do nothing
     _restore_original_branch(None, False)
 
     # Verify branch unchanged
-    after = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+    after = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)  # nosec B603 B607
     assert before.stdout == after.stdout
 
 
@@ -916,7 +916,7 @@ def go_project(tmp_path, monkeypatch):
     - Changes working directory to the temp project
     - Returns the path to the temporary project
     """
-    import subprocess
+    import subprocess  # nosec B404
 
     # Change to temporary directory
     monkeypatch.chdir(tmp_path)
@@ -928,9 +928,9 @@ def go_project(tmp_path, monkeypatch):
     import shutil
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "init"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
+    subprocess.run([git, "init"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
 
     # Create go.mod
     gomod_content = """module github.com/example/test-go-project
@@ -985,13 +985,13 @@ filename = "VERSION"
         f.write(config_content)
 
     # Commit the initial state
-    subprocess.run([git, "add", "."], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+    subprocess.run([git, "add", "."], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603 B607
 
     yield tmp_path
 
     # Safety check: ensure no git tags were created during the test
-    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)
+    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)  # nosec B603 B607
     tags = result.stdout.strip()
     assert tags == "", f"Git tags were unexpectedly created during test: {tags}"
 
@@ -1022,7 +1022,7 @@ def test_go_project_bump_explicit_version(go_project):
 
 def test_version_file_only_project(tmp_path, monkeypatch):
     """Test bump with only VERSION file (no pyproject.toml or go.mod)."""
-    import subprocess
+    import subprocess  # nosec B404
 
     # Change to temporary directory
     monkeypatch.chdir(tmp_path)
@@ -1032,9 +1032,9 @@ def test_version_file_only_project(tmp_path, monkeypatch):
     import shutil
 
     git = shutil.which("git") or "git"
-    subprocess.run([git, "init"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)
-    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)
+    subprocess.run([git, "init"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
 
     # Create VERSION file
     version_path = tmp_path / "VERSION"
@@ -1061,15 +1061,15 @@ filename = "VERSION"
         f.write(config_content)
 
     # Commit the initial state
-    subprocess.run([git, "add", "."], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)
+    subprocess.run([git, "add", "."], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603 B607
 
     # Test bump - VERSION file only is not supported anymore, need to add go.mod
     # Create go.mod to make it a Go project
     gomod_path = tmp_path / "go.mod"
     gomod_path.write_text("module example.com/test\n\ngo 1.23\n")
-    subprocess.run([git, "add", "go.mod"], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Add go.mod"], check=True, capture_output=True)
+    subprocess.run([git, "add", "go.mod"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "commit", "-m", "Add go.mod"], check=True, capture_output=True)  # nosec B603 B607
 
     bump_command(BumpOptions(version="patch", language=Language.GO))
     assert get_current_version(Language.GO) == "1.0.1"
@@ -1180,7 +1180,7 @@ def test_go_project_whitespace_only_version_file(go_project, monkeypatch):
 def test_bump_custom_config_path(temp_project):
     """Test that --config flag uses the specified config file path."""
     import shutil
-    import subprocess
+    import subprocess  # nosec B404
 
     git = shutil.which("git") or "git"
 
@@ -1207,15 +1207,15 @@ replace = 'version = "{new_version}"'
 """
     custom_config_path.write_text(config_content)
 
-    subprocess.run([git, "add", str(custom_config_path)], check=True, capture_output=True)
-    subprocess.run([git, "commit", "-m", "Add custom bumpversion config"], check=True, capture_output=True)
+    subprocess.run([git, "add", str(custom_config_path)], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run([git, "commit", "-m", "Add custom bumpversion config"], check=True, capture_output=True)  # nosec B603 B607
 
     # Bump using the custom config path
     bump_command(BumpOptions(version="patch", config=custom_config_path))
     assert get_current_version(Language.PYTHON) == "0.1.1"
 
     # Safety check: ensure no git tags were created
-    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)
+    result = subprocess.run([git, "tag", "-l"], capture_output=True, text=True, check=False)  # nosec B603 B607
     assert result.stdout.strip() == "", "No git tags should be created"
 
 
