@@ -1,5 +1,3 @@
-<div align="center">
-
 # <img src="https://raw.githubusercontent.com/Jebel-Quant/rhiza/main/.rhiza/assets/rhiza-logo.svg" alt="Rhiza Logo" width="30" style="vertical-align: middle;"> rhiza-tools
 ![Synced with Rhiza](https://img.shields.io/badge/synced%20with-rhiza-2FA4A9?color=2FA4A9)
 
@@ -12,7 +10,6 @@
 Extra utilities and tools serving the mothership [rhiza](https://github.com/Jebel-Quant/rhiza).
 
 **📖 New to Rhiza? Check out the [Getting Started Guide](https://github.com/Jebel-Quant/rhiza-cli/blob/ad816ff3e91a8d6f07fcba979bc64576de3d0116/GETTING_STARTED.md) for a beginner-friendly introduction!**
-</div>
 
 This package provides additional commands for the Rhiza ecosystem, such as version bumping, release management, and documentation helpers. It can be used as a plugin for `rhiza-cli` or as a standalone tool.
 
