@@ -3,7 +3,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/rhiza-tools.svg)](https://pypi.org/project/rhiza-tools/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage](https://raw.githubusercontent.com/Jebel-Quant/rhiza-tools/refs/heads/gh-pages/coverage-badge.svg)](https://jebel-quant.github.io/rhiza-tools/tests/html-coverage/index.html)
+[![Coverage](https://jebel-quant.github.io/rhiza-tools/coverage-badge.svg)](https://jebel-quant.github.io/rhiza-tools/reports/html-coverage/index.html)
 [![Downloads](https://static.pepy.tech/personalized-badge/rhiza-tools?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/rhiza-tools)
 [![CodeFactor](https://www.codefactor.io/repository/github/jebel-quant/rhiza-tools/badge)](https://www.codefactor.io/repository/github/jebel-quant/rhiza-tools)
 
