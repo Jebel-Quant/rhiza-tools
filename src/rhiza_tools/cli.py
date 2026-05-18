@@ -448,6 +448,13 @@ def analyze_benchmarks(
             help="Path to save HTML visualization",
         ),
     ] = Path("_benchmarks/benchmarks.html"),
+    show: Annotated[
+        bool,
+        typer.Option(
+            "--show/--no-show",
+            help="Open the interactive chart in a browser after saving (default: no-show)",
+        ),
+    ] = False,
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Analyze pytest-benchmark results and visualize them.
@@ -462,6 +469,7 @@ def analyze_benchmarks(
     Args:
         benchmarks_json: Path to the benchmarks.json file.
         output_html: Path where the HTML visualization should be saved.
+        show: If True, open the interactive chart in a browser after saving.
         verbose: If True, enable verbose debug output.
 
     Example:
@@ -474,6 +482,10 @@ def analyze_benchmarks(
             $ rhiza-tools analyze-benchmarks \
                 --benchmarks-json tests/benchmarks.json \
                 --output-html reports/benchmarks.html
+
+        Open the chart in a browser after saving::
+
+            $ rhiza-tools analyze-benchmarks --show
     """
     _apply_verbose(verbose)
-    analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html)
+    analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html, show=show)
