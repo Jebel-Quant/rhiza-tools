@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rhiza-tools"
-version = "0.4.5"
+version = "0.5.0"
 description = "Extra utilities and tools for the Rhiza ecosystem"
 readme = "README.md"
 requires-python = ">=3.11"
