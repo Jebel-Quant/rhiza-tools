@@ -40,6 +40,7 @@ class BenchmarkError(Exception):
 def analyze_benchmarks_command(
     benchmarks_json: Path | None = None,
     output_html: Path | None = None,
+    show: bool = False,
 ) -> None:
     """Analyze pytest-benchmark results and visualize them.
 
@@ -50,6 +51,7 @@ def analyze_benchmarks_command(
     Args:
         benchmarks_json: Path to the benchmarks.json file. Defaults to _benchmarks/benchmarks.json.
         output_html: Path to save the HTML visualization. Defaults to _benchmarks/benchmarks.html.
+        show: If True, open the interactive chart in a browser after saving. Defaults to False.
 
     Raises:
         SystemExit: If benchmarks.json is missing, invalid, or has no valid benchmarks.
@@ -65,6 +67,10 @@ def analyze_benchmarks_command(
                 benchmarks_json=Path("tests/benchmarks.json"),
                 output_html=Path("reports/benchmarks.html")
             )
+
+        Open the chart in a browser after saving::
+
+            analyze_benchmarks_command(show=True)
     """
     # Import pandas and plotly here to avoid requiring them as hard dependencies
     try:
@@ -161,5 +167,6 @@ def analyze_benchmarks_command(
     fig.write_html(output_html)
     console.success(f"Visualization saved to {output_html}")
 
-    # Show interactive plot in browser
-    fig.show()
+    # Optionally open the interactive plot in a browser
+    if show:
+        fig.show()
