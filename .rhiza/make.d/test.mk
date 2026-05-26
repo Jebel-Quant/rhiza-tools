@@ -4,7 +4,7 @@
 # executing performance benchmarks.
 
 # Declare phony targets (they don't produce files)
-.PHONY: test benchmark typecheck security docs-coverage hypothesis-test stress
+.PHONY: test benchmark typecheck security docs-coverage hypothesis-test coverage-badge stress
 
 # Default directory for tests
 TESTS_FOLDER := tests
