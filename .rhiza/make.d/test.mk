@@ -30,6 +30,7 @@ test:: install ## run all tests
 	mkdir -p _tests/html-coverage _tests/html-report; \
 	if [ -d ${SOURCE_FOLDER} ]; then \
 	  ${UV_BIN} run pytest \
+	  -n auto \
 	  --ignore=${TESTS_FOLDER}/benchmarks \
 	  --ignore=${TESTS_FOLDER}/stress \
 	  --cov=${SOURCE_FOLDER} \
@@ -42,6 +43,7 @@ test:: install ## run all tests
 	else \
 	  printf "${YELLOW}[WARN] Source folder ${SOURCE_FOLDER} not found, running tests without coverage${RESET}\n"; \
 	  ${UV_BIN} run pytest \
+	  -n auto \
 	  --ignore=${TESTS_FOLDER}/benchmarks \
 	  --ignore=${TESTS_FOLDER}/stress \
 	  --html=_tests/html-report/report.html; \
@@ -95,7 +97,7 @@ benchmark:: install ## run performance benchmarks
 docs-coverage: install ## check documentation coverage with interrogate
 	@if [ -d "${SOURCE_FOLDER}" ]; then \
 	  printf "${BLUE}[INFO] Checking documentation coverage in ${SOURCE_FOLDER}...${RESET}\n"; \
-	  ${UV_BIN} run interrogate -vv ${SOURCE_FOLDER}; \
+	  ${UV_BIN} run interrogate -vv --fail-under 100 --ignore-init-method --ignore-magic ${SOURCE_FOLDER}; \
 	else \
 	  printf "${YELLOW}[WARN] Source folder ${SOURCE_FOLDER} not found, skipping docs-coverage${RESET}\n"; \
 	fi
