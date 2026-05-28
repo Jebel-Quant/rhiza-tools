@@ -1,7 +1,7 @@
-sha: 4158480c743f0d76243463b32c02419b51c04710
+sha: 2d95f598ddcb0bf5ff1cdf753d7165c96150237f
 repo: jebel-quant/rhiza
 host: github
-ref: v0.18.3
+ref: v0.18.4
 include: []
 exclude: []
 templates:
@@ -57,14 +57,11 @@ files:
 - .rhiza/semgrep.yml
 - .rhiza/tests/README.md
 - .rhiza/tests/api/conftest.py
-- .rhiza/tests/api/test_gh_aw_targets.py
-- .rhiza/tests/api/test_github_targets.py
 - .rhiza/tests/api/test_makefile_api.py
 - .rhiza/tests/api/test_makefile_targets.py
 - .rhiza/tests/conftest.py
 - .rhiza/tests/integration/test_book_targets.py
 - .rhiza/tests/integration/test_docs_targets.py
-- .rhiza/tests/integration/test_lfs.py
 - .rhiza/tests/integration/test_sbom.py
 - .rhiza/tests/integration/test_test_mk.py
 - .rhiza/tests/integration/test_virtual_env_unexport.py
@@ -73,6 +70,7 @@ files:
 - .rhiza/tests/stress/__init__.py
 - .rhiza/tests/stress/conftest.py
 - .rhiza/tests/structure/test_project_layout.py
+- .rhiza/tests/structure/test_pyproject.py
 - .rhiza/tests/structure/test_requirements.py
 - .rhiza/tests/sync/conftest.py
 - .rhiza/tests/sync/test_docstrings.py
@@ -94,5 +92,5 @@ files:
 - ruff.toml
 profiles:
 - github-project
-synced_at: '2026-05-28T15:41:23Z'
+synced_at: '2026-05-28T17:48:57Z'
 strategy: merge

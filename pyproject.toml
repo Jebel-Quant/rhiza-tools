@@ -8,6 +8,11 @@ version = "0.5.0"
 description = "Extra utilities and tools for the Rhiza ecosystem"
 readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Thomas Schmelzer", email = "thomas.s@yukkalab.com"},
+]
+
 dependencies = [
     "loguru>=0.7.3",
     "questionary>=2.1.1",
@@ -20,10 +25,25 @@ dependencies = [
     "prompt-toolkit>=3.0.52",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Jebel-Quant/rhiza-tools"
+Repository = "https://github.com/Jebel-Quant/rhiza-tools"
+
 [dependency-groups]
 dev = [
     "marimo>=0.18.0,<1.0",   # Reactive notebook runtime for book/ examples
     "numpy>=2.4.0,<3.0",     # Numerical computing for notebook data analysis
+]
+test = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    "pytest-mock>=3.0",
+    "pytest-xdist>=3.0",
+    "pytest-timeout>=2.0",
+    "hypothesis>=6.150.0",
+]
+lint = [
+    "ruff>=0.1.0",
 ]
 
 [project.scripts]
