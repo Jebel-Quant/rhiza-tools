@@ -35,7 +35,13 @@ from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import COOL_STYLE, NON_INTERACTIVE_ERRORS, get_current_git_branch, run_git_command
+from rhiza_tools.commands._shared import (
+    COOL_STYLE,
+    NON_INTERACTIVE_ERRORS,
+    get_current_git_branch,
+    get_latest_remote_version,
+    run_git_command,
+)
 from rhiza_tools.config import CONFIG_FILENAME
 
 
@@ -830,6 +836,43 @@ def _restore_original_branch(original_branch: str | None, dry_run: bool) -> None
         run_git_command(["git", "checkout", original_branch], check=False)
 
 
+def _resolve_bump_baseline(current_version_str: str) -> str:
+    """Return the version to bump *from*, never lower than the latest remote tag.
+
+    The local ``pyproject.toml`` can be stale (a branch that diverged before the
+    previous release was merged), which historically caused relative bumps to
+    generate already-released version numbers (issue #1126). When the highest
+    semver tag on the remote is newer than the local version, that remote
+    version is used as the baseline instead and the discrepancy is reported.
+
+    The remote is queried best-effort: if it cannot be reached (offline, no
+    remote configured) the local version is used unchanged.
+
+    Args:
+        current_version_str: The version read from the local project files.
+
+    Returns:
+        The version string to use as the basis for relative bumps.
+    """
+    latest_remote = get_latest_remote_version()
+    if latest_remote is None:
+        return current_version_str
+
+    try:
+        local_version = semver.Version.parse(current_version_str)
+    except ValueError:
+        local_version = None
+
+    if local_version is None or latest_remote > local_version:
+        console.warning(
+            f"Local version {current_version_str} is behind the latest remote tag v{latest_remote}; "
+            f"bumping from v{latest_remote} instead to avoid releasing an older version."
+        )
+        return str(latest_remote)
+
+    return current_version_str
+
+
 def bump_command(options: BumpOptions) -> None:
     """Bump version using bump-my-version.
 
@@ -901,11 +944,18 @@ def bump_command(options: BumpOptions) -> None:
     console.info(f"Current branch: {typer.style(current_git_branch, fg=typer.colors.CYAN, bold=True)}")
     console.info(f"Current version: {typer.style(current_version_str, fg=typer.colors.CYAN, bold=True)}")
 
+    # Reconcile the bump baseline with the remote so a stale local pyproject.toml
+    # (e.g. a branch that diverged before the previous release merged) cannot
+    # produce a version lower than what is already published (issue #1126).
+    # Explicit target versions are honoured as-is; only relative bumps
+    # (patch/minor/major/prerelease) follow the remote-aware baseline.
+    bump_baseline = _resolve_bump_baseline(current_version_str)
+
     # Determine new version string
     if options.version:
-        new_version_str = _parse_version_argument(options.version, current_version_str)
+        new_version_str = _parse_version_argument(options.version, bump_baseline)
     else:
-        new_version_str = get_interactive_bump_type(current_version_str)
+        new_version_str = get_interactive_bump_type(bump_baseline)
 
     console.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
 

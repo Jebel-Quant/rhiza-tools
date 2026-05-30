@@ -17,6 +17,22 @@ import pytest
 GIT = shutil.which("git") or "git"
 
 
+@pytest.fixture(autouse=True)
+def _no_remote_version(monkeypatch):
+    """Stub remote-version lookups so tests never hit the network.
+
+    ``get_latest_remote_version`` shells out to ``git ls-remote`` against the
+    real ``origin``. Defaulting it to ``None`` keeps the suite hermetic and
+    preserves pre-existing behaviour (bump baseline = local version, release
+    monotonicity guard skipped). Tests that exercise the remote-aware paths
+    override these with ``monkeypatch.setattr`` to return a specific version.
+    """
+    from rhiza_tools.commands import bump, release
+
+    for module in (bump, release):
+        monkeypatch.setattr(module, "get_latest_remote_version", lambda *args, **kwargs: None)
+
+
 @pytest.fixture
 def temp_project(tmp_path, monkeypatch):
     """Create a temporary project directory with git and pyproject.toml.
