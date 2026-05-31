@@ -232,6 +232,11 @@ def release(
     language: str | None = typer.Option(
         None, "--language", "-l", help="Programming language (python or go). Auto-detected if not specified."
     ),
+    allow_older: bool = typer.Option(
+        False,
+        "--allow-older",
+        help="Allow releasing a version not newer than the latest remote release (maintenance/back-branch).",
+    ),
     config: Path | None = CONFIG_OPTION,
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
@@ -250,6 +255,7 @@ def release(
         dry_run: If True, show what would happen without actually pushing the tag.
         non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
         language: Programming language (python or go). Auto-detected if not specified.
+        allow_older: If True, allow releasing a version not newer than the latest remote release.
         config: Path to the .cfg.toml bumpversion config file. Passed through to bump when --with-bump is used.
         verbose: If True, enable verbose debug output.
 
@@ -294,7 +300,7 @@ def release(
             console.error("Supported languages: python, go")
             raise typer.Exit(code=1) from None
 
-    release_command(bump, push, dry_run, non_interactive, with_bump, lang_enum, config)
+    release_command(bump, push, dry_run, non_interactive, with_bump, lang_enum, config, allow_older)
 
 
 @app.command()

@@ -31,11 +31,13 @@ from loguru import logger
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
     NON_INTERACTIVE_ERRORS,
+    get_latest_remote_version,
     run_git_command,
 )
 from rhiza_tools.commands.bump import (
     BumpOptions,
     Language,
+    _resolve_bump_baseline,
     bump_command,
     get_bumped_version_from_type,
     get_current_version,
@@ -276,7 +278,7 @@ def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[boo
     Raises:
         typer.Exit: If the current version is invalid or the bump type is unsupported.
     """
-    current_version_str = get_current_version(language)
+    current_version_str = _resolve_bump_baseline(get_current_version(language))
     try:
         current_semver = semver.Version.parse(current_version_str)
     except ValueError:
@@ -303,11 +305,11 @@ def _resolve_with_bump_flag(non_interactive: bool, language: Language) -> tuple[
     """
     if non_interactive:
         console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-        current_version_str = get_current_version(language)
+        current_version_str = _resolve_bump_baseline(get_current_version(language))
         current_semver = semver.Version.parse(current_version_str)
         return True, str(current_semver.bump_patch())
 
-    current_version_str = get_current_version(language)
+    current_version_str = _resolve_bump_baseline(get_current_version(language))
     try:
         new_version = get_interactive_bump_type(current_version_str)
     except _EXIT_OR_NON_INTERACTIVE:
@@ -338,7 +340,7 @@ def _resolve_interactive_prompt(language: Language) -> tuple[bool, str | None]:
     if not should_bump:
         return False, None
 
-    current_version_str = get_current_version(language)
+    current_version_str = _resolve_bump_baseline(get_current_version(language))
     try:
         new_version = get_interactive_bump_type(current_version_str)
     except _EXIT_OR_NON_INTERACTIVE:
@@ -558,6 +560,59 @@ def _handle_tag_validation(dry_run: bool, bumped_new_version: str | None, tag: s
         _validate_tag_state(tag, current_version)
 
 
+def _check_release_version_monotonic(version_str: str, allow_older: bool) -> None:
+    """Ensure the version being released is newer than the latest remote release.
+
+    This is the authoritative guard against issue #1126: it refuses to push a
+    tag whose version is not strictly greater than the highest version already
+    published on the remote, regardless of what the (possibly stale) local
+    ``pyproject.toml`` says.
+
+    When the remote has no published version tags (first release) or cannot be
+    reached, the check is skipped so normal first releases and offline dry-runs
+    still work.
+
+    Args:
+        version_str: The version that is about to be released (with or without a
+            leading ``v``).
+        allow_older: If True, downgrade the hard error to a warning so that
+            intentional maintenance / back-branch releases can proceed.
+
+    Raises:
+        typer.Exit: If the version is not newer than the latest remote release
+            and ``allow_older`` is False.
+    """
+    latest_remote = get_latest_remote_version()
+    if latest_remote is None:
+        return
+
+    try:
+        candidate = semver.Version.parse(version_str[1:] if version_str.startswith("v") else version_str)
+    except ValueError:
+        console.error(f"Invalid semantic version: {version_str}")
+        raise typer.Exit(code=1) from None
+
+    if candidate > latest_remote:
+        console.success(f"Preflight: v{candidate} is newer than the latest remote release v{latest_remote}")
+        return
+
+    relation = "the same as" if candidate == latest_remote else "older than"
+    if allow_older:
+        console.warning(
+            f"Version v{candidate} is {relation} the latest remote release v{latest_remote}; "
+            "proceeding because --allow-older was set."
+        )
+        return
+
+    console.error(f"Refusing to release v{candidate}: it is {relation} the latest remote release v{latest_remote}.")
+    console.error("Your branch likely diverged before a newer release was merged (issue #1126).")
+    console.error("To resolve:")
+    console.error("  Sync with the latest release, e.g.:  git pull --rebase origin <default-branch>")
+    console.error(f"  Then bump again so the new version is higher than v{latest_remote}.")
+    console.error("For an intentional maintenance/back-branch release, re-run with --allow-older.")
+    raise typer.Exit(code=1)
+
+
 def release_command(
     bump_type: str | None = None,
     push: bool = False,
@@ -566,6 +621,7 @@ def release_command(
     with_bump: bool = False,
     language: Language | None = None,
     config: Path | None = None,
+    allow_older: bool = False,
 ) -> None:
     """Push a release tag to remote.
 
@@ -585,6 +641,9 @@ def release_command(
         with_bump: If True, enable interactive bump selection (works with dry-run).
         language: Programming language (python or go). Auto-detected if not specified.
         config: Optional path to the .cfg.toml bumpversion config file.
+        allow_older: If True, permit releasing a version that is not strictly
+            greater than the latest version already published on the remote.
+            Required for intentional back-branch / maintenance releases.
 
     Raises:
         typer.Exit: If no supported project files are found, repository is not clean,
@@ -640,6 +699,12 @@ def release_command(
     # ── Preflight validation: check everything BEFORE making any changes ──
     default_branch = get_default_branch()
     _check_repository_state(dry_run, current_branch, default_branch)
+
+    # Ensure the version we are about to release is strictly newer than the
+    # latest version already published on the remote (issue #1126). Runs in all
+    # modes (including dry-run) and before any mutation.
+    prospective_version = new_version if (should_bump and new_version) else get_current_version(language)
+    _check_release_version_monotonic(prospective_version, allow_older)
 
     # If bumping, pre-validate that the new tag won't conflict with remote
     if should_bump and new_version and not dry_run:

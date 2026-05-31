@@ -62,29 +62,29 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config)
-    mock_release_command.assert_called_once_with(None, False, True, False, False, None, None)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config, allow_older)
+    mock_release_command.assert_called_once_with(None, False, True, False, False, None, None, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config)
-    mock_release_command.assert_called_once_with(None, False, False, False, False, None, None)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config, allow_older)
+    mock_release_command.assert_called_once_with(None, False, False, False, False, None, None, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release", "--non-interactive"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config)
-    mock_release_command.assert_called_once_with(None, False, False, True, False, None, None)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config, allow_older)
+    mock_release_command.assert_called_once_with(None, False, False, True, False, None, None, False)
 
     mock_release_command.reset_mock()
 
     result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config)
-    mock_release_command.assert_called_once_with(None, True, True, False, True, None, None)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config, allow_older)
+    mock_release_command.assert_called_once_with(None, True, True, False, True, None, None, False)
 
     mock_release_command.reset_mock()
 
@@ -92,8 +92,8 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--language", "go", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config)
-    mock_release_command.assert_called_once_with(None, False, True, False, False, Language.GO, None)
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config, allow_older)
+    mock_release_command.assert_called_once_with(None, False, True, False, False, Language.GO, None, False)
 
     mock_release_command.reset_mock()
 
@@ -108,8 +108,10 @@ def test_release_command(monkeypatch):
 
     result = runner.invoke(app, ["release", "--config", "/custom/.cfg.toml", "--dry-run"])
     assert result.exit_code == 0
-    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config)
-    mock_release_command.assert_called_once_with(None, False, True, False, False, None, Path("/custom/.cfg.toml"))
+    # release_command(bump, push, dry_run, non_interactive, with_bump, language, config, allow_older)
+    mock_release_command.assert_called_once_with(
+        None, False, True, False, False, None, Path("/custom/.cfg.toml"), False
+    )
 
 
 def test_update_readme(monkeypatch):

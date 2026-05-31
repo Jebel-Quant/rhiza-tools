@@ -8,6 +8,7 @@ Utilities:
     - run_git_command: Execute git commands with standard error handling
     - get_current_version: Read the project version from pyproject.toml
     - get_current_git_branch: Safely determine the current git branch
+    - get_latest_remote_version: Highest semver tag published on the remote
     - validate_pyproject_exists: Guard against missing pyproject.toml
 """
 
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import questionary as qs
+import semver
 import tomlkit
 import typer
 
@@ -111,6 +113,54 @@ def get_current_git_branch() -> str:
     """
     result = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], check=False)
     return result.stdout.strip() if result.returncode == 0 else "unknown"
+
+
+def get_latest_remote_version(remote: str = "origin") -> semver.Version | None:
+    """Return the highest semantic-version tag published on *remote*.
+
+    This reads ``v*``-style tags directly from the remote with ``git ls-remote``
+    (no local fetch, no working-tree changes) and returns the greatest valid
+    semver among them. It is the source of truth for "what is the latest
+    released version" and exists to stop the release tooling from trusting a
+    potentially stale local ``pyproject.toml`` (see issue #1126).
+
+    Tags that are not valid semantic versions are ignored. The function never
+    raises for the common failure modes (no remote configured, no tags, network
+    unavailable); it returns ``None`` so callers can degrade gracefully.
+
+    Args:
+        remote: The git remote to query. Defaults to ``"origin"``.
+
+    Returns:
+        The highest :class:`semver.Version` found on the remote, or ``None`` if
+        the remote cannot be reached or has no valid version tags.
+
+    Example:
+        >>> latest = get_latest_remote_version()  # doctest: +SKIP
+        >>> print(latest)  # doctest: +SKIP
+        0.4.0
+    """
+    result = run_git_command(["git", "ls-remote", "--tags", remote], check=False)
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+
+    versions: list[semver.Version] = []
+    for line in result.stdout.splitlines():
+        # Each line is "<sha>\trefs/tags/<tag>"; annotated tags also appear
+        # peeled as "refs/tags/<tag>^{}" which we normalise away.
+        ref = line.split("\t")[-1].strip()
+        if not ref.startswith("refs/tags/"):
+            continue
+        tag = ref[len("refs/tags/") :].removesuffix("^{}")
+        if tag.startswith("v"):
+            tag = tag[1:]
+        try:
+            versions.append(semver.Version.parse(tag))
+        except ValueError:
+            # Non-semver tags (e.g. "latest", date stamps) are not releases.
+            continue
+
+    return max(versions) if versions else None
 
 
 def validate_pyproject_exists() -> None:
