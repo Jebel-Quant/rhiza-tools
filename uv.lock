@@ -1205,7 +1205,7 @@ wheels = [
 
 [[package]]
 name = "rhiza-tools"
-version = "0.5.1"
+version = "0.5.2"
 source = { editable = "." }
 dependencies = [
     { name = "bump-my-version" },
