@@ -17,6 +17,11 @@ import typer
 from rhiza_tools import console
 from rhiza_tools.commands._shared import run_git_command
 
+# Number of fields in the `%H|%ci|%s` git-show format (commit hash, date, subject).
+_TAG_DETAIL_FIELDS = 3
+# Cap on how many commits are listed when previewing a release.
+_MAX_COMMITS_SHOWN = 10
+
 
 def get_current_branch() -> str:
     """Get the current git branch name for the release flow.
@@ -89,25 +94,24 @@ def check_branch_status(current_branch: str) -> None:
             console.error("Pull the latest changes before releasing:")
             console.error(f"  git pull origin {current_branch}")
             raise typer.Exit(code=1)
+        # Either local is ahead of remote OR branches have diverged
+        # Check if remote == base to distinguish between the two cases
+        elif remote == base:
+            # Local is ahead of remote (need to push)
+            console.warning(f"Your branch is ahead of '{upstream}'.")
+            console.info("Unpushed commits:")
+            result = run_git_command(["git", "log", "--oneline", "--graph", "--decorate", f"{upstream}..HEAD"])
+            console.info(result.stdout)
+            console.warning("Please push changes to remote before releasing.")
+            raise typer.Exit(code=1)
         else:
-            # Either local is ahead of remote OR branches have diverged
-            # Check if remote == base to distinguish between the two cases
-            if remote == base:
-                # Local is ahead of remote (need to push)
-                console.warning(f"Your branch is ahead of '{upstream}'.")
-                console.info("Unpushed commits:")
-                result = run_git_command(["git", "log", "--oneline", "--graph", "--decorate", f"{upstream}..HEAD"])
-                console.info(result.stdout)
-                console.warning("Please push changes to remote before releasing.")
-                raise typer.Exit(code=1)
-            else:
-                # Branches have diverged (need to merge or rebase)
-                console.error(f"Your branch has diverged from '{upstream}'.")
-                console.error("To reconcile, choose one of:")
-                console.error(f"  Rebase: git pull --rebase origin {current_branch}")
-                console.error(f"  Merge:  git merge origin/{current_branch}")
-                console.error("Then resolve any conflicts and retry.")
-                raise typer.Exit(code=1)
+            # Branches have diverged (need to merge or rebase)
+            console.error(f"Your branch has diverged from '{upstream}'.")
+            console.error("To reconcile, choose one of:")
+            console.error(f"  Rebase: git pull --rebase origin {current_branch}")
+            console.error(f"  Merge:  git merge origin/{current_branch}")
+            console.error("Then resolve any conflicts and retry.")
+            raise typer.Exit(code=1)
 
 
 def get_default_branch() -> str:
@@ -253,7 +257,7 @@ def _validate_tag_state(tag: str, current_version: str) -> None:
     result = run_git_command(["git", "show", "-s", "--format=%H|%ci|%s", tag], check=False)
     if result.returncode == 0 and result.stdout.strip():
         parts = result.stdout.strip().split("|")
-        if len(parts) == 3:
+        if len(parts) == _TAG_DETAIL_FIELDS:
             commit_hash, commit_date, commit_msg = parts
             console.info(f"  Commit: {commit_hash[:8]}")
             console.info(f"  Date: {commit_date}")
@@ -284,10 +288,10 @@ def _show_commits_since_last_tag(tag: str) -> None:
     if log_result.returncode == 0 and log_result.stdout.strip():
         commits = log_result.stdout.strip().split("\n")
         console.info(f"\nCommits included in this release (since {last_tag}):")
-        for commit in commits[:10]:  # Show first 10
+        for commit in commits[:_MAX_COMMITS_SHOWN]:
             console.info(f"  • {commit}")
-        if len(commits) > 10:
-            console.info(f"  ... and {len(commits) - 10} more")
+        if len(commits) > _MAX_COMMITS_SHOWN:
+            console.info(f"  ... and {len(commits) - _MAX_COMMITS_SHOWN} more")
 
 
 def _confirm_and_push_tag(
