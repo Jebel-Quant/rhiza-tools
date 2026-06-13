@@ -15,15 +15,19 @@ from typing import Any
 import typer
 from bumpversion.bump import do_bump
 from bumpversion.config import get_configuration
+from bumpversion.config.models import Config as BumpConfig
+from bumpversion.exceptions import BumpVersionError
 from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
 from rhiza_tools.config import CONFIG_FILENAME
 
-# bump-my-version's configuration object (``bumpversion.config.models.Config``).
-# Kept as ``Any`` so static typing stays permissive while documenting intent.
-BumpConfig = Any  # bump-my-version's bumpversion.config.models.Config
+# ``BumpConfig`` is bump-my-version's concrete ``bumpversion.config.models.Config``.
+# It is used directly (rather than ``Any`` or a structural Protocol) because
+# ``do_bump`` requires this exact type, so the adapter must hold a real ``Config``
+# anyway. Importing it keeps every helper below fully typed under strict ``ty``.
+# The companion ``tests/test_bumpversion_contract.py`` pins the attributes used.
 
 
 def _build_configuration(
@@ -56,7 +60,10 @@ def _build_configuration(
 
     try:
         config = get_configuration(config_file=config_path, **overrides)
-    except Exception as e:
+    # Config loading fails in a few distinct ways: a malformed TOML file raises
+    # tomlkit's ``ParseError`` (a ``ValueError``), bump-my-version validation
+    # raises ``BumpVersionError``, and an unreadable file raises ``OSError``.
+    except (BumpVersionError, ValueError, OSError) as e:
         console.error(f"Failed to load bumpversion configuration: {e}")
         console.error(f"Check your bumpversion config at: {config_path}")
         console.error("Ensure the [tool.bumpversion] section is valid TOML with correct version patterns.")
@@ -112,8 +119,10 @@ def _get_files_to_modify(config: BumpConfig) -> list[Path]:
     files = []
     if hasattr(config, "files_to_modify"):
         for file_config in config.files_to_modify:
-            if hasattr(file_config, "filename"):
-                files.append(Path(file_config.filename))
+            # ``filename`` is typed ``str | None`` upstream; skip unnamed entries.
+            filename = file_config.filename
+            if filename:
+                files.append(Path(filename))
     return files
 
 
@@ -144,7 +153,8 @@ def _show_file_changes(file_path: Path, current_version: str, new_version: str) 
                 console.info(f"    Line {line_num}:")
                 console.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
                 console.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
-    except Exception as e:
+    except OSError as e:
+        # Previewing is best-effort; an unreadable file should not abort the bump.
         logger.debug(f"Could not preview changes for {file_path}: {e}")
 
 
@@ -200,7 +210,9 @@ def _preflight_bump(new_version_str: str, config: BumpConfig, config_path: Path)
             config_file=config_path,
             dry_run=True,
         )
-    except Exception as e:
+    # do_bump surfaces version/format/hook problems as ``BumpVersionError`` and
+    # file-access problems as ``OSError``; both mean the bump cannot proceed.
+    except (BumpVersionError, OSError) as e:
         console.error(f"Preflight validation failed: {e}")
         console.error("No changes were made.")
         raise typer.Exit(code=1) from None
@@ -231,7 +243,9 @@ def _execute_bump(new_version_str: str, config: BumpConfig, config_path: Path, d
             config_file=config_path,
             dry_run=dry_run,
         )
-    except Exception as e:
+    # do_bump surfaces version/format/hook problems as ``BumpVersionError`` and
+    # file-access problems as ``OSError``; both can leave files partially edited.
+    except (BumpVersionError, OSError) as e:
         console.error(f"bump-my-version failed: {e}")
         if not dry_run:
             console.error("Files may have been partially modified. To recover:")

@@ -461,7 +461,7 @@ class TestInteractiveReleaseWithBump:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="MINOR", push=True, dry_run=True)
 
@@ -519,7 +519,7 @@ class TestNonInteractiveReleaseBumpPush:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="MINOR", push=True, dry_run=True)
 
@@ -535,7 +535,7 @@ class TestNonInteractiveReleaseBumpPush:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="PATCH", push=True, dry_run=True)
 
@@ -551,7 +551,7 @@ class TestNonInteractiveReleaseBumpPush:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="MAJOR", push=True, dry_run=True)
 
@@ -707,7 +707,7 @@ class TestDryRunVersionCalculation:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
         ):
             # This should succeed - it should look for tag v0.2.0, not v0.1.0
             release_command(bump_type="MINOR", push=True, dry_run=True)
@@ -742,7 +742,7 @@ class TestDryRunVersionCalculation:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
         ):
             # Should succeed: tag v0.2.0 doesn't exist yet, but that's OK in dry-run
             release_command(bump_type="MINOR", push=True, dry_run=True)
@@ -766,7 +766,7 @@ class TestWithBumpFlag:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
@@ -784,7 +784,7 @@ class TestWithBumpFlag:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
@@ -802,7 +802,7 @@ class TestWithBumpFlag:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
             release_command(with_bump=True, non_interactive=True, push=True, dry_run=True)
 
@@ -836,7 +836,7 @@ class TestWithBumpFlag:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
             # --bump MAJOR should take priority, --with-bump should not trigger prompt
             release_command(bump_type="MAJOR", with_bump=True, push=True, dry_run=True)
@@ -1085,6 +1085,6 @@ class TestNonDefaultBranchRelease:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
         ):
             release_command(bump_type="MINOR", push=True, dry_run=True)

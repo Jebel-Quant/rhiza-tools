@@ -1,15 +1,18 @@
 """Module-size gate keeping command modules small enough to navigate.
 
-Issue #207 split the oversized ``bump.py`` into focused modules. This gate
-prevents regression: every command module must stay at or below an 800-line
-ceiling, so future growth is split out rather than accreted into one file.
+Issue #207 split the oversized ``bump.py`` into focused modules, and #223 gave
+``release.py`` (-> ``release_versioning.py``) and ``rollback.py`` (->
+``rollback_git.py``) the same treatment, leaving the largest command module at
+~700 lines. This gate prevents regression: every command module must stay at or
+below a 750-line ceiling, so future growth is split out rather than accreted
+into one file.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-_MAX_LINES = 800
+_MAX_LINES = 750
 _COMMANDS_DIR = Path(__file__).resolve().parent.parent / "src" / "rhiza_tools" / "commands"
 
 
