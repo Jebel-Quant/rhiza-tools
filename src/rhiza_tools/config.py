@@ -63,7 +63,7 @@ class RhizaConfig:
                 default path defined in CONFIG_FILENAME.
         """
         self.config_path = config_path or Path(CONFIG_FILENAME)
-        self._data: dict[str, Any] = {}
+        self._data: tomlkit.TOMLDocument = tomlkit.TOMLDocument()
         self.load()
 
     def load(self) -> None:
@@ -92,6 +92,10 @@ class RhizaConfig:
             raise
 
     @property
+    # Returns the raw ``[tool.bumpversion]`` TOML sub-table. Its keys and value
+    # types are user-defined and open-ended (strings, bools, lists, nested
+    # tables), so ``dict[str, Any]`` is the honest type for this passthrough —
+    # the strongly-typed bump path uses bump-my-version's own ``Config`` model.
     def bumpversion(self) -> dict[str, Any]:
         """Get bumpversion configuration.
 
@@ -107,6 +111,8 @@ class RhizaConfig:
         result: dict[str, Any] = self._data.get("tool", {}).get("bumpversion", {})
         return result
 
+    # Generic accessor over arbitrary top-level TOML keys; the value type is
+    # only known to the caller, so ``Any`` is intentional here (TOML passthrough).
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value.
 
