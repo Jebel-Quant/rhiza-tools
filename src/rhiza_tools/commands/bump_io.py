@@ -16,7 +16,7 @@ import tomllib
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import questionary as qs
 import semver
@@ -28,7 +28,7 @@ from rhiza_tools.commands._shared import (
     COOL_STYLE,
     NON_INTERACTIVE_ERRORS,
 )
-from rhiza_tools.commands.bump_engine import _get_files_to_modify
+from rhiza_tools.commands.bump_engine import BumpConfig, _get_files_to_modify
 from rhiza_tools.commands.bump_versioning import (
     _denormalize_pep440_to_semver,
     get_next_prerelease,
@@ -262,7 +262,7 @@ def _validate_project_exists(language: Language) -> None:
         raise typer.Exit(code=1)
 
 
-def _log_bump_success(current_version_str: str, config: Any, language: Language) -> None:
+def _log_bump_success(current_version_str: str, config: BumpConfig, language: Language) -> None:
     """Log successful version bump and post-bump instructions.
 
     Args:
