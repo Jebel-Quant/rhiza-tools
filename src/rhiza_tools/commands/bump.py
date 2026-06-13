@@ -179,14 +179,14 @@ def get_current_version(language: Language) -> str:
             # Convert PEP 440 format back to semver format for compatibility
             # e.g., 0.1.1a1 -> 0.1.1-alpha.1
             return _denormalize_pep440_to_semver(str(data["project"]["version"]))
-        except Exception as e:
+        except (OSError, tomllib.TOMLDecodeError, KeyError, TypeError) as e:
             console.error(f"Failed to read version from pyproject.toml: {e}")
             raise typer.Exit(code=1) from None
     elif language == Language.GO:
         try:
             with open("VERSION") as f:
                 version = f.read().strip()
-        except Exception as e:
+        except OSError as e:
             console.error(f"Failed to read version from VERSION file: {e}")
             raise typer.Exit(code=1) from None
 
@@ -342,7 +342,7 @@ def _log_bump_success(current_version_str: str, config: Any, language: Language)
                     content = file_path.read_text()
                     if updated_version in content:
                         console.info(f"  • {file_path}")
-                except Exception:  # nosec B110 - safe to ignore file read errors  # noqa: S110
+                except OSError:  # nosec B110 - safe to ignore file read errors
                     pass
 
     console.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
