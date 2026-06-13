@@ -1,6 +1,6 @@
 """Tests for the update-readme Python command."""
 
-import subprocess
+from subprocess import SubprocessError
 from unittest.mock import Mock, patch
 
 import pytest
@@ -144,7 +144,7 @@ def test_get_make_help_output_make_not_found():
 
 def test_get_make_help_output_subprocess_error():
     """Test _get_make_help_output handles other subprocess errors."""
-    with patch("subprocess.run", side_effect=subprocess.SubprocessError("Test error")):
+    with patch("subprocess.run", side_effect=SubprocessError("Test error")):
         with pytest.raises(typer.Exit) as exc_info:
             _get_make_help_output()
         assert exc_info.value.exit_code == 1
