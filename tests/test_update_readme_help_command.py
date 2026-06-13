@@ -1,6 +1,6 @@
 """Tests for the update-readme Python command."""
 
-from subprocess import SubprocessError
+from subprocess import SubprocessError  # nosec B404
 from unittest.mock import Mock, patch
 
 import pytest
