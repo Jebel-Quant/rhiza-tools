@@ -274,9 +274,8 @@ def _execute_rollback(
             if not dry_run:
                 console.warning("Bump revert failed. Tags were still deleted.")
                 console.warning("You may need to manually revert the bump commit.")
-        else:
-            if not _push_revert(dry_run, non_interactive):
-                success = False
+        elif not _push_revert(dry_run, non_interactive):
+            success = False
 
     return success
 

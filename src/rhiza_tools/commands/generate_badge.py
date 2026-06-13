@@ -11,6 +11,19 @@ from pathlib import Path
 
 from rhiza_tools import console
 
+# Coverage percentage bounds and the (minimum coverage, shields.io color) ladder,
+# ordered from highest to lowest. Higher coverage gets "greener" colors.
+MIN_COVERAGE = 0
+MAX_COVERAGE = 100
+_COLOR_THRESHOLDS: list[tuple[int, str]] = [
+    (90, "brightgreen"),
+    (80, "green"),
+    (70, "yellowgreen"),
+    (60, "yellow"),
+    (50, "orange"),
+]
+_DEFAULT_COLOR = "red"
+
 
 def get_badge_color(coverage: int) -> str:
     """Determine badge color based on coverage percentage.
@@ -32,18 +45,10 @@ def get_badge_color(coverage: int) -> str:
         >>> print(color)
         red
     """
-    if coverage >= 90:
-        return "brightgreen"
-    elif coverage >= 80:
-        return "green"
-    elif coverage >= 70:
-        return "yellowgreen"
-    elif coverage >= 60:
-        return "yellow"
-    elif coverage >= 50:
-        return "orange"
-    else:
-        return "red"
+    for threshold, color in _COLOR_THRESHOLDS:
+        if coverage >= threshold:
+            return color
+    return _DEFAULT_COLOR
 
 
 def generate_coverage_badge_command(
@@ -102,7 +107,7 @@ def generate_coverage_badge_command(
     # Round to nearest integer
     coverage = round(percent)
 
-    if not 0 <= coverage <= 100:
+    if not MIN_COVERAGE <= coverage <= MAX_COVERAGE:
         console.error(f"Coverage percentage {coverage} is out of valid range 0-100")
         sys.exit(1)
 
