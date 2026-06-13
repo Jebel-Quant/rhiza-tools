@@ -13,12 +13,11 @@ Utilities:
 """
 
 import subprocess  # nosec B404 - subprocess needed for git operations
+import tomllib
 from pathlib import Path
-from typing import Any, cast
 
 import questionary as qs
 import semver
-import tomlkit
 import typer
 
 from rhiza_tools import console
@@ -92,10 +91,9 @@ def get_current_version() -> str:
         0.1.0
     """
     try:
-        with open("pyproject.toml") as f:
-            data = tomlkit.parse(f.read())
-            project = cast(dict[str, Any], data["project"])
-            return str(project["version"])
+        with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+        return str(data["project"]["version"])
     except Exception as e:
         console.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None

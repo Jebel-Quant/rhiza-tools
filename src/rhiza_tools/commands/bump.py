@@ -19,6 +19,7 @@ Example:
         bump_command(None)
 """
 
+import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -27,7 +28,6 @@ from typing import Any, cast
 
 import questionary as qs
 import semver
-import tomlkit
 import typer
 from bumpversion.bump import do_bump
 from bumpversion.config import get_configuration
@@ -198,13 +198,11 @@ def get_current_version(language: Language) -> str:
     """
     if language == Language.PYTHON:
         try:
-            with open("pyproject.toml") as f:
-                data = tomlkit.parse(f.read())
-                project = cast(dict[str, Any], data["project"])
-                version = str(project["version"])
-                # Convert PEP 440 format back to semver format for compatibility
-                # e.g., 0.1.1a1 -> 0.1.1-alpha.1
-                return _denormalize_pep440_to_semver(version)
+            with open("pyproject.toml", "rb") as f:
+                data = tomllib.load(f)
+            # Convert PEP 440 format back to semver format for compatibility
+            # e.g., 0.1.1a1 -> 0.1.1-alpha.1
+            return _denormalize_pep440_to_semver(str(data["project"]["version"]))
         except Exception as e:
             console.error(f"Failed to read version from pyproject.toml: {e}")
             raise typer.Exit(code=1) from None
