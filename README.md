@@ -121,6 +121,32 @@ rhiza-tools release --bump PATCH --push --non-interactive
 *   `--dry-run` - Show what would happen without making any changes.
 *   `--non-interactive`, `-y` - Skip all confirmation prompts (for CI/CD).
 
+### `rollback`
+
+Reverse a release and/or version bump. Deletes the release tag locally and on the
+remote, and optionally reverts the version-bump commit. Uses `git revert` (not
+`git reset`), so it is safe even after the changes have been pushed.
+
+**Usage:**
+
+```bash
+# Interactive (choose from recent tags)
+rhiza-tools rollback
+
+# Preview a specific tag's rollback
+rhiza-tools rollback v1.2.3 --dry-run
+
+# Also revert the version-bump commit, no prompts (for CI/CD)
+rhiza-tools rollback v1.2.3 --revert-bump --non-interactive
+```
+
+**Options:**
+
+*   `--revert-bump` - Also revert the version-bump commit associated with the tag.
+*   `--dry-run` - Show what would happen without making any changes.
+*   `--non-interactive`, `-y` - Skip all confirmation prompts (for CI/CD).
+*   `--verbose` - Enable verbose debug output.
+
 ### `update-readme`
 
 Update `README.md` with the current output from `make help`.

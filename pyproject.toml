@@ -60,6 +60,11 @@ tools = "rhiza_tools.__main__:app"
 [tool.hatch.build.targets.wheel]
 packages = ["src/rhiza_tools"]
 
+[tool.ty.terminal]
+# Strict type-checking gate: any ty warning fails `make typecheck` / CI, not just
+# hard errors. Keeps the type surface honest as the code evolves.
+error-on-warning = true
+
 [tool.deptry.package_module_name_map]
 "bump-my-version" = "bumpversion"
 "loguru" = "loguru"

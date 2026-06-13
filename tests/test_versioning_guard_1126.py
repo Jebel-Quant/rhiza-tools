@@ -114,6 +114,16 @@ def test_baseline_falls_back_to_local_when_remote_unknown(monkeypatch):
     assert _resolve_bump_baseline("0.3.2") == "0.3.2"
 
 
+def test_baseline_uses_remote_when_local_version_is_unparseable(monkeypatch):
+    """An unparseable local version falls back to the remote tag as the baseline.
+
+    A corrupt or non-semver ``version`` in pyproject.toml must not crash the bump
+    or let a relative bump compute from nothing — the remote tag is authoritative.
+    """
+    monkeypatch.setattr(bump_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
+    assert _resolve_bump_baseline("not-a-semver") == "0.4.0"
+
+
 def test_bump_patch_from_stale_branch_jumps_past_remote(bump_project, monkeypatch):
     """End-to-end: `bump patch` on a stale 0.3.2 branch yields 0.4.1, not 0.3.3."""
     pyproject = bump_project / "pyproject.toml"
@@ -160,6 +170,18 @@ def test_monotonic_skipped_when_no_remote_tags(monkeypatch):
     """First release (no remote tags) is always allowed."""
     _patch_remote_latest(monkeypatch, None)
     release_mod._check_release_version_monotonic("0.1.0", allow_older=False)  # no raise
+
+
+def test_monotonic_rejects_unparseable_candidate(monkeypatch):
+    """An unparseable candidate version is a hard error, not a silent pass.
+
+    Once a remote release exists the guard must be able to compare against it; a
+    version string it cannot parse is treated as a fatal misconfiguration.
+    """
+    _patch_remote_latest(monkeypatch, "0.4.0")
+    with pytest.raises(typer.Exit) as excinfo:
+        release_mod._check_release_version_monotonic("not-a-semver", allow_older=False)
+    assert excinfo.value.exit_code == 1
 
 
 # ── release_command integration ───────────────────────────────────────────────
