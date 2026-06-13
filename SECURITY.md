@@ -21,8 +21,8 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 Instead, please report them via one of the following methods:
 
 1. **GitHub Security Advisories** (Preferred)
-   - Go to the Security Advisories page of this repository
-   - Click "New draft security advisory"
+   - Open a private report at https://github.com/Jebel-Quant/rhiza-tools/security/advisories/new
+   - If you need the repository security overview first, visit https://github.com/Jebel-Quant/rhiza-tools/security
    - Fill in the details and submit
 
 2. **Email**
