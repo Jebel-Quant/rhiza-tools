@@ -1,0 +1,55 @@
+# This file is part of the jebel-quant/rhiza repository
+# (https://github.com/jebel-quant/rhiza).
+#
+# Workflow: ClusterFuzzLite
+#
+# Purpose: Add continuous fuzzing integration so OSSF Scorecard's
+#          Fuzzing check can detect an active fuzzer setup.
+
+name: "(RHIZA) FUZZING"
+
+on:
+  pull_request:
+    branches: [ "main", "master" ]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  fuzzing:
+    name: ClusterFuzzLite
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Build fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+        with:
+          language: python
+          sanitizer: address
+
+      - name: Run PR fuzzing
+        if: github.event_name == 'pull_request'
+        uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+        with:
+          language: python
+          mode: code-change
+          sanitizer: address
+          fuzz-seconds: 600
+
+      - name: Run scheduled fuzzing
+        if: github.event_name != 'pull_request'
+        uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+        with:
+          language: python
+          mode: batch
+          sanitizer: address
+          fuzz-seconds: 1800
