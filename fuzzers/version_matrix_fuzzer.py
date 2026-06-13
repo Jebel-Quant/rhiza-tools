@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from importlib import import_module
 from pathlib import Path
@@ -26,15 +27,11 @@ def test_one_input(data: bytes) -> None:
     version = provider.ConsumeUnicodeNoSurrogates(64)
     specifier = provider.ConsumeUnicodeNoSurrogates(128)
 
-    try:
+    with contextlib.suppress(version_specifier_error):
         parse_version(version)
-    except version_specifier_error:
-        pass
 
-    try:
+    with contextlib.suppress(version_specifier_error):
         satisfies(version, specifier)
-    except version_specifier_error:
-        pass
 
 
 def main() -> None:
