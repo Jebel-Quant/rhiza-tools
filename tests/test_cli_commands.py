@@ -1,6 +1,6 @@
 """Tests for CLI commands in rhiza_tools.cli.py."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -167,3 +167,45 @@ requires-python = ">=3.11"
     result = runner.invoke(app, ["version-matrix", "--pyproject", str(pyproject), "--candidates", "3.10,3.11,3.12"])
     assert result.exit_code == 0
     mock_version_matrix.assert_called_once_with(pyproject_path=pyproject, candidates=["3.10", "3.11", "3.12"])
+
+
+# ---------------------------------------------------------------------------
+# Branch coverage relocated from the former test_coverage_100.py
+# ---------------------------------------------------------------------------
+
+
+class TestCLI:
+    """Tests for uncovered branches in cli.py."""
+
+    def test_apply_verbose_true(self):
+        """cli.py:62 – configure_console called with verbose=True."""
+        from rhiza_tools.cli import _apply_verbose
+
+        with patch("rhiza_tools.cli.configure_console") as mock_configure:
+            _apply_verbose(True)
+            mock_configure.assert_called_once_with(verbose=True)
+
+    def test_bump_invalid_language(self):
+        """cli.py:146-151 – invalid language exits with code 1."""
+        result = runner.invoke(app, ["bump", "--language", "ruby"])
+        assert result.exit_code == 1
+
+    def test_release_invalid_language(self):
+        """cli.py:272-276 – invalid language in release exits with code 1."""
+        result = runner.invoke(app, ["release", "--language", "ruby"])
+        assert result.exit_code == 1
+
+    def test_analyze_benchmarks_cli(self, monkeypatch):
+        """cli.py:459-460 – analyze-benchmarks command invokes analyze_benchmarks_command."""
+        mock_cmd = MagicMock()
+        monkeypatch.setattr("rhiza_tools.cli.analyze_benchmarks_command", mock_cmd)
+        result = runner.invoke(app, ["analyze-benchmarks"])
+        assert result.exit_code == 0
+        mock_cmd.assert_called_once()
+
+    def test_analyze_benchmarks_cli_verbose(self, monkeypatch):
+        """cli.py:459 – _apply_verbose is triggered for analyze-benchmarks --verbose."""
+        mock_cmd = MagicMock()
+        monkeypatch.setattr("rhiza_tools.cli.analyze_benchmarks_command", mock_cmd)
+        result = runner.invoke(app, ["analyze-benchmarks", "--verbose"])
+        assert result.exit_code == 0

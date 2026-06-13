@@ -1,6 +1,8 @@
 """Tests for the bump command."""
 
 import os
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 import tomlkit
@@ -1282,3 +1284,274 @@ def test_bump_missing_custom_config_path(temp_project):
     nonexistent_path = temp_project / "nonexistent" / "config.toml"
     with pytest.raises(typer.Exit):
         bump_command(BumpOptions(version="patch", config=nonexistent_path))
+
+
+# ---------------------------------------------------------------------------
+# Branch/edge-case coverage relocated from the former test_coverage_100.py
+# ---------------------------------------------------------------------------
+
+
+class TestDenormalizePep440:
+    """bump.py:70-81 – PEP 440 prerelease match path."""
+
+    def test_alpha_long_form(self):
+        """Converts 1.0.0alpha1 -> 1.0.0-alpha.1."""
+        from rhiza_tools.commands.bump import _denormalize_pep440_to_semver
+
+        assert _denormalize_pep440_to_semver("1.0.0alpha1") == "1.0.0-alpha.1"
+
+    def test_alpha_short_form(self):
+        """Converts 1.0.0a1 -> 1.0.0-alpha.1."""
+        from rhiza_tools.commands.bump import _denormalize_pep440_to_semver
+
+        assert _denormalize_pep440_to_semver("1.0.0a1") == "1.0.0-alpha.1"
+
+    def test_beta_short_form(self):
+        """Converts 1.0.0b2 -> 1.0.0-beta.2."""
+        from rhiza_tools.commands.bump import _denormalize_pep440_to_semver
+
+        assert _denormalize_pep440_to_semver("1.0.0b2") == "1.0.0-beta.2"
+
+    def test_beta_long_form(self):
+        """Converts 1.0.0beta2 -> 1.0.0-beta.2."""
+        from rhiza_tools.commands.bump import _denormalize_pep440_to_semver
+
+        assert _denormalize_pep440_to_semver("1.0.0beta2") == "1.0.0-beta.2"
+
+    def test_rc_form(self):
+        """Converts 1.0.0rc3 -> 1.0.0-rc.3."""
+        from rhiza_tools.commands.bump import _denormalize_pep440_to_semver
+
+        assert _denormalize_pep440_to_semver("1.0.0rc3") == "1.0.0-rc.3"
+
+    def test_dev_form(self):
+        """Converts 1.0.0dev1 -> 1.0.0-dev.1."""
+        from rhiza_tools.commands.bump import _denormalize_pep440_to_semver
+
+        assert _denormalize_pep440_to_semver("1.0.0dev1") == "1.0.0-dev.1"
+
+
+class TestLanguageGetVersionFile:
+    """Tests for Language.get_version_file() for each language variant."""
+
+    def test_python_version_file(self):
+        """bump.py:129 – Language.PYTHON returns Path('pyproject.toml')."""
+        from rhiza_tools.commands.bump import Language
+
+        assert Language.PYTHON.get_version_file() == Path("pyproject.toml")
+
+    def test_go_version_file(self):
+        """bump.py:131 – Language.GO returns Path('VERSION')."""
+        from rhiza_tools.commands.bump import Language
+
+        assert Language.GO.get_version_file() == Path("VERSION")
+
+
+class TestGetCurrentVersionBump:
+    """Tests for uncovered branches in bump.py get_current_version."""
+
+    def test_go_version_read_exception(self, tmp_path, monkeypatch):
+        """bump.py:207-209 – exits when VERSION file doesn't exist."""
+        monkeypatch.chdir(tmp_path)
+        from rhiza_tools.commands.bump import Language, get_current_version
+
+        with pytest.raises(typer.Exit):
+            get_current_version(Language.GO)
+
+    def test_go_version_empty_file(self, tmp_path, monkeypatch):
+        """bump.py:211-213 – exits when VERSION file is empty."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "VERSION").write_text("")
+        from rhiza_tools.commands.bump import Language, get_current_version
+
+        with pytest.raises(typer.Exit):
+            get_current_version(Language.GO)
+
+    def test_go_version_whitespace_only_defensive_check(self, tmp_path, monkeypatch):
+        """bump.py:217-218 – defensive check exits when version is whitespace-only."""
+        monkeypatch.chdir(tmp_path)
+        from rhiza_tools.commands.bump import Language, get_current_version
+
+        # Build a mock where f.read().strip() returns a truthy value with isspace()=True.
+        # This covers the defensive check that can't be reached via normal file I/O
+        # (strip() always yields either "" or a non-whitespace-bounded string).
+        stripped = MagicMock()
+        stripped.isspace.return_value = True
+
+        read_val = MagicMock()
+        read_val.strip.return_value = stripped
+
+        file_ctx = MagicMock()
+        file_ctx.__enter__ = lambda s: file_ctx
+        file_ctx.__exit__ = MagicMock(return_value=False)
+        file_ctx.read.return_value = read_val
+
+        with patch("builtins.open", return_value=file_ctx), pytest.raises(typer.Exit):
+            get_current_version(Language.GO)
+
+    def test_unsupported_language_exits(self, tmp_path, monkeypatch):
+        """bump.py:222-223 – exits for unsupported language value."""
+        monkeypatch.chdir(tmp_path)
+        from rhiza_tools.commands.bump import get_current_version
+
+        with pytest.raises(typer.Exit):
+            get_current_version("ruby")  # type: ignore[arg-type]
+
+
+class TestValidateProjectExists:
+    """Tests for uncovered branches in _validate_project_exists."""
+
+    def test_python_missing_pyproject(self, tmp_path, monkeypatch):
+        """bump.py:456-458 – exits when pyproject.toml is missing for Python."""
+        monkeypatch.chdir(tmp_path)
+        from rhiza_tools.commands.bump import Language, _validate_project_exists
+
+        with pytest.raises(typer.Exit):
+            _validate_project_exists(Language.PYTHON)
+
+    def test_go_missing_go_mod(self, tmp_path, monkeypatch):
+        """bump.py:461-463 – exits when go.mod is missing for Go."""
+        monkeypatch.chdir(tmp_path)
+        from rhiza_tools.commands.bump import Language, _validate_project_exists
+
+        with pytest.raises(typer.Exit):
+            _validate_project_exists(Language.GO)
+
+    def test_go_has_go_mod_but_missing_version_file(self, tmp_path, monkeypatch):
+        """bump.py:465-470 – exits when VERSION file is missing despite go.mod."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "go.mod").write_text("module example.com/mymod\ngo 1.21\n")
+        from rhiza_tools.commands.bump import Language, _validate_project_exists
+
+        with pytest.raises(typer.Exit):
+            _validate_project_exists(Language.GO)
+
+    def test_unsupported_language_exits(self, tmp_path, monkeypatch):
+        """bump.py:468-470 – exits for unknown language in _validate_project_exists."""
+        monkeypatch.chdir(tmp_path)
+        from rhiza_tools.commands.bump import _validate_project_exists
+
+        with pytest.raises(typer.Exit):
+            _validate_project_exists("ruby")  # type: ignore[arg-type]
+
+
+class TestExecuteBump:
+    """Tests for uncovered exception paths in _execute_bump."""
+
+    def test_do_bump_exception_not_dry_run(self):
+        """bump.py:636-644 – error messages printed and Exit raised when do_bump fails."""
+        from rhiza_tools.commands.bump import _execute_bump
+
+        mock_config = MagicMock()
+        mock_config_path = MagicMock()
+
+        with (
+            patch("rhiza_tools.commands.bump.do_bump", side_effect=Exception("bump failed")),
+            pytest.raises(typer.Exit),
+        ):
+            _execute_bump("1.0.1", mock_config, mock_config_path, dry_run=False)
+
+    def test_do_bump_exception_dry_run(self):
+        """bump.py:636-637,644 – Exit raised in dry_run mode when do_bump fails."""
+        from rhiza_tools.commands.bump import _execute_bump
+
+        mock_config = MagicMock()
+        mock_config_path = MagicMock()
+
+        with (
+            patch("rhiza_tools.commands.bump.do_bump", side_effect=Exception("bump failed")),
+            pytest.raises(typer.Exit),
+        ):
+            _execute_bump("1.0.1", mock_config, mock_config_path, dry_run=True)
+
+
+class TestShowInteractivePreview:
+    """Tests for uncovered branches in _show_interactive_preview."""
+
+    def test_user_does_not_proceed(self):
+        """bump.py:757 – returns (False, False, False) when user cancels."""
+        from rhiza_tools.commands.bump import _show_interactive_preview
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.return_value = False
+
+        with patch("questionary.confirm", return_value=mock_confirm):
+            result = _show_interactive_preview("1.0.0", "1.0.1", "main")
+
+        assert result == (False, False, False)
+
+
+class TestHandlePushToRemote:
+    """Tests for uncovered branches in _handle_push_to_remote."""
+
+    def test_user_cancels_interactive_push(self):
+        """bump.py:791-792 – user says No to push prompt returns early."""
+        from rhiza_tools.commands.bump import _handle_push_to_remote
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.return_value = False
+
+        with patch("questionary.confirm", return_value=mock_confirm):
+            _handle_push_to_remote(None)  # version=None triggers interactive prompt
+
+    def test_push_succeeds(self):
+        """bump.py:799-802 – successful git push prints success message."""
+        from rhiza_tools.commands.bump import _handle_push_to_remote
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+
+        with patch("rhiza_tools.commands.bump.run_git_command", return_value=mock_result):
+            _handle_push_to_remote("1.0.1")  # version set -> no interactive prompt
+
+    def test_push_fails(self):
+        """bump.py:803-809 – git push failure raises Exit."""
+        from rhiza_tools.commands.bump import _handle_push_to_remote
+
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stderr = "remote: permission denied"
+
+        with (
+            patch("rhiza_tools.commands.bump.run_git_command", return_value=mock_result),
+            pytest.raises(typer.Exit),
+        ):
+            _handle_push_to_remote("1.0.1")
+
+
+class TestBumpCommandCancelled:
+    """Tests for interactive cancellation and dry-run log paths in bump_command."""
+
+    def test_bump_cancelled_by_user(self, temp_project):
+        """bump.py:914-915 – bump cancelled in interactive mode raises Exit(0)."""
+        from rhiza_tools.commands.bump import BumpOptions, bump_command
+
+        with (
+            patch("rhiza_tools.commands.bump.get_interactive_bump_type", return_value="1.0.1"),
+            patch("rhiza_tools.commands.bump._show_interactive_preview", return_value=(False, False, False)),
+            patch("rhiza_tools.commands.bump._build_configuration") as mock_build,
+            patch("rhiza_tools.commands.bump._preview_file_modifications"),
+            patch("rhiza_tools.commands.bump.get_current_git_branch", return_value="main"),
+        ):
+            mock_config = MagicMock()
+            mock_build.return_value = (mock_config, Path(".bumpversion.toml"))
+            options = BumpOptions(version=None, dry_run=False)
+            with pytest.raises(typer.Exit) as exc_info:
+                bump_command(options)
+            assert exc_info.value.exit_code == 0
+
+    def test_dry_run_with_commit_and_push(self, temp_project):
+        """bump.py:930,932 – dry_run logs 'Would commit' and 'Would push'."""
+        from rhiza_tools.commands.bump import BumpOptions, bump_command
+
+        with (
+            patch("rhiza_tools.commands.bump._build_configuration") as mock_build,
+            patch("rhiza_tools.commands.bump._preview_file_modifications"),
+            patch("rhiza_tools.commands.bump.get_current_git_branch", return_value="main"),
+            patch("rhiza_tools.commands.bump._execute_bump"),
+            patch("rhiza_tools.commands.bump._parse_version_argument", return_value="1.0.1"),
+        ):
+            mock_config = MagicMock()
+            mock_build.return_value = (mock_config, Path(".bumpversion.toml"))
+            options = BumpOptions(version="1.0.1", dry_run=True, commit=True, push=True)
+            bump_command(options)  # Should not raise
