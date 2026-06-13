@@ -48,9 +48,17 @@ The committed JSON is the source of truth: change it in a PR, then re-`PUT` it.
 
 ## Notes for a solo maintainer
 
-The required approving review means GitHub will not let you merge your **own** PR
-without a second account approving it (you cannot approve your own PR). If you
-need to bypass this temporarily you can, as a repository admin, either add a
-bypass actor to the ruleset or set its `enforcement` to `evaluate` in
-**Settings → Rules**. Managing the ruleset itself is never blocked by the
-ruleset.
+The required approving review means GitHub will not let a non-admin merge a PR
+without a second account approving it (you cannot approve your own PR). To keep
+the gate in place for everyone else while letting the maintainer move when
+needed, the ruleset grants the **repository admin** role a bypass:
+
+```json
+"bypass_actors": [
+  { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+]
+```
+
+With `bypass_mode: always`, a repository admin can merge their own PRs (and push
+directly) without the rules blocking them; the rules still apply to everyone
+else. Managing the ruleset itself is never blocked by the ruleset.
