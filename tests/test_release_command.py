@@ -73,7 +73,7 @@ def test_check_clean_working_tree_clean(monkeypatch):
     mock_result.stdout = ""
     mock_result.returncode = 0
 
-    with patch("rhiza_tools.commands.release.run_git_command", return_value=mock_result):
+    with patch("rhiza_tools.commands.release_git.run_git_command", return_value=mock_result):
         check_clean_working_tree()  # Should not raise
 
 
@@ -83,7 +83,7 @@ def test_check_clean_working_tree_dirty(monkeypatch):
     mock_result.stdout = " M file.txt\n"
     mock_result.returncode = 0
 
-    with patch("rhiza_tools.commands.release.run_git_command", return_value=mock_result), pytest.raises(typer.Exit):
+    with patch("rhiza_tools.commands.release_git.run_git_command", return_value=mock_result), pytest.raises(typer.Exit):
         check_clean_working_tree()
 
 
@@ -100,7 +100,7 @@ def test_check_branch_status_up_to_date(monkeypatch):
             result.stdout = commit_hash
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         check_branch_status("main")  # Should not raise
 
 
@@ -121,7 +121,7 @@ def test_check_branch_status_behind(monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         check_branch_status("main")
@@ -146,7 +146,7 @@ def test_check_branch_status_ahead(monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         check_branch_status("main")
@@ -169,7 +169,7 @@ def test_check_branch_status_diverged(monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         check_branch_status("main")
@@ -184,7 +184,7 @@ def test_get_default_branch():
         result.stdout = "* remote origin\n  HEAD branch: main\n  Remote branch: main\n"
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         branch = get_default_branch()
         assert branch == "main"
 
@@ -199,7 +199,7 @@ def test_get_default_branch_failure():
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         get_default_branch()
@@ -216,7 +216,7 @@ def test_check_tag_exists():
             result.returncode = 1  # doesn't exist remotely
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         local, remote = check_tag_exists("v1.0.0")
         assert local is True
         assert remote is False
@@ -229,7 +229,7 @@ def test_push_tag(monkeypatch):
     mock_result.stdout = "https://github.com/user/repo.git"
     mock_run_git.return_value = mock_result
 
-    with patch("rhiza_tools.commands.release.run_git_command", mock_run_git):
+    with patch("rhiza_tools.commands.release_git.run_git_command", mock_run_git):
         push_tag("v1.0.0", dry_run=False)
 
         # Should call git push
@@ -245,7 +245,7 @@ def test_push_tag_dry_run(monkeypatch):
     mock_result.stdout = "https://github.com/user/repo.git"
     mock_run_git.return_value = mock_result
 
-    with patch("rhiza_tools.commands.release.run_git_command", mock_run_git):
+    with patch("rhiza_tools.commands.release_git.run_git_command", mock_run_git):
         push_tag("v1.0.0", dry_run=True)
 
         # Should not push in dry-run
@@ -293,7 +293,7 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
         patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
     ):
@@ -324,7 +324,7 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit),
     ):
@@ -353,7 +353,7 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit),
     ):
@@ -370,7 +370,7 @@ def test_check_branch_status_no_upstream(monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         check_branch_status("main")
@@ -398,7 +398,7 @@ def test_check_branch_status_ahead_of_remote(monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         check_branch_status("main")
@@ -414,7 +414,7 @@ def test_get_default_branch_no_head_branch(monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         pytest.raises(typer.Exit),
     ):
         get_default_branch()
@@ -428,7 +428,7 @@ def test_push_tag_ssh_url(monkeypatch):
     mock_result.stdout = "git@github.com:user/repo.git"
     mock_run_git.return_value = mock_result
 
-    with patch("rhiza_tools.commands.release.run_git_command", mock_run_git):
+    with patch("rhiza_tools.commands.release_git.run_git_command", mock_run_git):
         push_tag("v1.0.0", dry_run=False, non_interactive=True)
 
         # Should push the tag
@@ -467,7 +467,7 @@ def test_release_command_non_default_branch_non_interactive(mock_pyproject, monk
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         # Should not raise in non-interactive mode
         release_command(dry_run=True, non_interactive=True)
 
@@ -502,7 +502,7 @@ def test_release_command_with_commit_count(mock_pyproject, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         release_command(dry_run=True, non_interactive=True)
 
 
@@ -535,7 +535,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
         patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit) as exc_info,
@@ -574,7 +574,7 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         # Should complete successfully in non-interactive mode
         release_command(dry_run=False, non_interactive=True)
 
@@ -604,7 +604,7 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
         return result
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
         patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
         pytest.raises(typer.Exit) as exc_info,
@@ -657,7 +657,7 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
             f.write(tomlkit.dumps(data))
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, dry_run=True)
@@ -703,8 +703,8 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
         push_called["called"] = True
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands.release.push_tag", side_effect=mock_push_tag),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.push_tag", side_effect=mock_push_tag),
         patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
     ):
         release_command(push=True)
@@ -738,7 +738,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
             f.write(tomlkit.dumps(data))
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="MINOR", push=True, non_interactive=True)
@@ -856,7 +856,7 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
             f.write(tomlkit.dumps(data))
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, non_interactive=True)
@@ -884,7 +884,7 @@ def test_release_with_bump_dry_run_does_not_push_commit(mock_pyproject, monkeypa
     )
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release_versioning.bump_command"),
     ):
         release_command(bump_type="PATCH", push=True, dry_run=True)
@@ -906,7 +906,7 @@ def test_push_tag_dry_run_with_tag_details(monkeypatch):
             result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         push_tag("v1.0.0", dry_run=True)
         # Should complete without errors
 
@@ -928,8 +928,8 @@ def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists),
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.check_tag_exists", side_effect=mock_check_tag_exists),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
     ):
         _validate_tag_state("v1.2.3", "1.2.3")
         # Should complete and show tag details
@@ -953,8 +953,8 @@ def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
         return result
 
     with (
-        patch("rhiza_tools.commands.release.check_tag_exists", side_effect=mock_check_tag_exists),
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.check_tag_exists", side_effect=mock_check_tag_exists),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
     ):
         _validate_tag_state("v1.2.3", "1.2.3")
         # Should complete without showing tag details
@@ -1009,7 +1009,7 @@ def test_show_commits_since_last_tag_with_commits(monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         _show_commits_since_last_tag("v1.2.3")
         # Should complete and show commits
 
@@ -1024,7 +1024,7 @@ def test_show_commits_since_last_tag_no_tags(monkeypatch):
         result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         _show_commits_since_last_tag("v1.2.3")
         # Should complete without showing anything
 
@@ -1044,7 +1044,7 @@ def test_show_commits_since_last_tag_no_previous_tags(monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         _show_commits_since_last_tag("v1.2.3")
         # Should complete without showing commits
 
@@ -1061,7 +1061,7 @@ def test_push_tag_with_ssh_url(monkeypatch):
             result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         push_tag("v1.0.0", dry_run=False)
         # Should complete and show GitHub Actions URL
 
@@ -1078,7 +1078,7 @@ def test_push_tag_with_non_github_url(monkeypatch):
             result.stdout = ""
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         push_tag("v1.0.0", dry_run=False)
         # Should complete without showing GitHub Actions URL
 
@@ -1121,7 +1121,7 @@ class TestReleasePreflightValidation:
             return result
 
         with (
-            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
             patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
@@ -1158,7 +1158,7 @@ class TestReleasePreflightValidation:
             return result
 
         with (
-            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
             patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
@@ -1175,7 +1175,7 @@ class TestReleasePreflightValidation:
         )
 
         with (
-            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release_versioning.bump_command"),
         ):
             # Should complete without error in dry-run
@@ -1200,7 +1200,7 @@ class TestReleasePreflightValidation:
         )
 
         with (
-            patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
         ):
             release_command(bump_type="PATCH", push=True, non_interactive=True)
@@ -1250,7 +1250,7 @@ def test_release_command_go_project_dry_run(mock_go_project, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         # Auto-detect should find Go project
         release_command(dry_run=True, non_interactive=True)
 
@@ -1283,7 +1283,7 @@ def test_release_command_go_project_explicit_language(mock_go_project, monkeypat
 
         return result
 
-    with patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
         release_command(dry_run=True, non_interactive=True, language=Language.GO)
 
 
@@ -1332,7 +1332,7 @@ def test_release_command_go_with_bump(mock_go_project, monkeypatch):
         (mock_go_project / "VERSION").write_text("1.2.4\n")
 
     with (
-        patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, dry_run=True, language=Language.GO)
@@ -1395,7 +1395,7 @@ class TestValidateTagState:
 
     def test_shows_tag_details_when_git_show_succeeds(self):
         """release.py:408-413 – tag details are displayed when git show succeeds."""
-        import rhiza_tools.commands.release as release_mod
+        import rhiza_tools.commands.release_git as release_git_mod
         from rhiza_tools.commands.release import _validate_tag_state
 
         mock_exists = MagicMock(return_value=(True, False))
@@ -1404,8 +1404,8 @@ class TestValidateTagState:
         mock_git.stdout = "abc1234567890|2024-01-01 12:00:00|Bump version to 1.0.1\n"
 
         with (
-            patch.object(release_mod, "check_tag_exists", mock_exists),
-            patch.object(release_mod, "run_git_command", return_value=mock_git),
+            patch.object(release_git_mod, "check_tag_exists", mock_exists),
+            patch.object(release_git_mod, "run_git_command", return_value=mock_git),
         ):
             _validate_tag_state("v1.0.1", "1.0.1")  # should not raise
 
