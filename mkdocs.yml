@@ -29,3 +29,4 @@ nav:
     - 0005 command module split: adr/0005-command-module-split.md
   - Contributing:
     - Recording decisions: development/DECISIONS.md
+    - Branch protection: development/branch-protection.md
