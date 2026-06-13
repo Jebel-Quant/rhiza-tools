@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import tomlkit
+import tomlkit.exceptions
 from loguru import logger
 
 from rhiza_tools import console
