@@ -254,6 +254,14 @@ make install
 make test
 ```
 
+## Community
+
+- [Contributing guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Architecture decisions](docs/development/DECISIONS.md)
+- [Testing guide](docs/development/TESTS.md)
+- [Release guide](docs/RELEASING.md)
+
 ## License
 
 This project is licensed under the MIT License.
