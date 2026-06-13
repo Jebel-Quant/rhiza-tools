@@ -7,6 +7,7 @@ import typer
 
 import rhiza_tools.commands.rollback as rollback_mod
 import rhiza_tools.commands.rollback_git as rollback_git_mod
+import rhiza_tools.commands.rollback_io as rollback_io_mod
 from rhiza_tools.commands.rollback import (
     RollbackOptions,
     _confirm_rollback,
@@ -469,7 +470,7 @@ class TestPushRevert:
         mock_result.returncode = 1
         mock_result.stderr = "error: failed to push"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_io_mod, "run_git_command", return_value=mock_result):
             assert not _push_revert(dry_run=False, non_interactive=True)
 
 

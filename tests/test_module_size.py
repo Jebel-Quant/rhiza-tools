@@ -2,17 +2,18 @@
 
 Issue #207 split the oversized ``bump.py`` into focused modules, and #223 gave
 ``release.py`` (-> ``release_versioning.py``) and ``rollback.py`` (->
-``rollback_git.py``) the same treatment, leaving the largest command module at
-~700 lines. This gate prevents regression: every command module must stay at or
-below a 750-line ceiling, so future growth is split out rather than accreted
-into one file.
+``rollback_git.py``) the same treatment. Issue #237 completed the split by
+extracting ``bump_io``, ``bump_git``, ``release_git``, and ``rollback_io``,
+bringing every command module below 500 lines. This gate prevents regression:
+every command module must stay at or below a 500-line ceiling, so future growth
+is split out rather than accreted into one file.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-_MAX_LINES = 750
+_MAX_LINES = 500
 _COMMANDS_DIR = Path(__file__).resolve().parent.parent / "src" / "rhiza_tools" / "commands"
 
 
