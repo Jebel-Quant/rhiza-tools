@@ -1,0 +1,11 @@
+# Code owners for rhiza-tools.
+#
+# Pull requests that modify matching paths request a review from a listed owner.
+# When a branch-protection ruleset enables `require_code_owner_review`, this also
+# feeds the OpenSSF Scorecard Code-Review and Branch-Protection checks.
+#
+# Listing the maintainer as the default owner documents review ownership; a
+# repository admin can still self-merge unless a ruleset removes that bypass.
+
+# Default owner for everything in the repository.
+*       @tschm
