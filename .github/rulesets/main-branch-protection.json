@@ -1,0 +1,63 @@
+{
+  "name": "main-branch-protection",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "required_linear_history" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["squash", "merge", "rebase"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "ci / Pre-commit hooks" },
+          { "context": "ci / Security scanning" },
+          { "context": "ci / validation" },
+          { "context": "ci / generate-matrix" },
+          { "context": "ci / Check dependencies with deptry" },
+          { "context": "ci / License compliance scan" },
+          { "context": "ci / docs-coverage" },
+          { "context": "ci / Lowest-direct dependency compatibility" },
+          { "context": "ci / Type checking (Python 3.11)" },
+          { "context": "ci / Type checking (Python 3.12)" },
+          { "context": "ci / Type checking (Python 3.13)" },
+          { "context": "ci / Type checking (Python 3.14)" },
+          { "context": "ci / test (3.11, ubuntu-latest)" },
+          { "context": "ci / test (3.11, macos-latest)" },
+          { "context": "ci / test (3.11, windows-latest)" },
+          { "context": "ci / test (3.12, ubuntu-latest)" },
+          { "context": "ci / test (3.12, macos-latest)" },
+          { "context": "ci / test (3.12, windows-latest)" },
+          { "context": "ci / test (3.13, ubuntu-latest)" },
+          { "context": "ci / test (3.13, macos-latest)" },
+          { "context": "ci / test (3.13, windows-latest)" },
+          { "context": "ci / test (3.14, ubuntu-latest)" },
+          { "context": "ci / test (3.14, macos-latest)" },
+          { "context": "ci / test (3.14, windows-latest)" },
+          { "context": "codeql / Analyze (python)" },
+          { "context": "codeql / Analyze (actions)" }
+        ]
+      }
+    }
+  ]
+}
