@@ -497,6 +497,64 @@ def test_bump_with_commit_flag(bump_project, monkeypatch):
     assert called_with_params.get("commit") is True
 
 
+def test_build_changelog_hooks_returns_empty_without_cliff_config(bump_project):
+    """No changelog hooks are produced when the project has no git-cliff config."""
+    from rhiza_tools.commands.bump import _build_changelog_hooks
+
+    assert _build_changelog_hooks("1.2.3") == []
+
+
+def test_build_changelog_hooks_present_with_cliff_config(bump_project):
+    """A cliff.toml turns on git-cliff hooks that fold CHANGELOG.md into the bump commit."""
+    from pathlib import Path
+
+    from rhiza_tools.commands.bump import _build_changelog_hooks
+
+    Path("cliff.toml").write_text("[changelog]\n")
+    assert _build_changelog_hooks("1.2.3") == [
+        "uvx git-cliff --tag v1.2.3 --output CHANGELOG.md",
+        "git add CHANGELOG.md",
+    ]
+
+
+def test_bump_folds_changelog_hook_into_commit(bump_project, monkeypatch):
+    """Committing with a cliff.toml present appends the git-cliff hook to the bump commit."""
+    from pathlib import Path
+
+    Path("cliff.toml").write_text("[changelog]\n")
+
+    captured = {}
+
+    def mock_do_bump(*args, **kwargs):
+        # Capture the config used for the real (non-dry-run) bump commit.
+        if kwargs.get("dry_run") is False:
+            captured["config"] = kwargs.get("config")
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.do_bump", mock_do_bump)
+
+    bump_command(BumpOptions(version="patch", commit=True))
+
+    hooks = list(captured["config"].pre_commit_hooks)
+    assert "uvx git-cliff --tag v0.1.1 --output CHANGELOG.md" in hooks
+    assert "git add CHANGELOG.md" in hooks
+
+
+def test_bump_without_cliff_config_adds_no_changelog_hook(bump_project, monkeypatch):
+    """Without a cliff.toml, committing injects no git-cliff hook."""
+    captured = {}
+
+    def mock_do_bump(*args, **kwargs):
+        if kwargs.get("dry_run") is False:
+            captured["config"] = kwargs.get("config")
+
+    monkeypatch.setattr("rhiza_tools.commands.bump.do_bump", mock_do_bump)
+
+    bump_command(BumpOptions(version="patch", commit=True))
+
+    hooks = list(captured["config"].pre_commit_hooks)
+    assert not any("git-cliff" in hook for hook in hooks)
+
+
 def test_bump_configuration_load_failure(bump_project, monkeypatch):
     """Test bump command when configuration loading fails."""
 

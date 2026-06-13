@@ -517,6 +517,41 @@ def _build_configuration(
         return config, config_path
 
 
+def _build_changelog_hooks(new_version: str) -> list[str]:
+    """Build git-cliff pre-commit hooks that fold CHANGELOG.md into the bump commit.
+
+    bump-my-version commits whatever is staged when it runs its ``pre_commit_hooks`` —
+    the same mechanism the project config already uses to include ``uv.lock``.
+    Regenerating the changelog there means the version bump, the lockfile and the
+    changelog land in a single commit and tag, with no separate push to the default
+    branch. That separate push is undesirable: it is blocked by branch-protection
+    rulesets and counts as an unreviewed change against the OpenSSF Scorecard
+    Code-Review check.
+
+    The hooks are only emitted when the project is configured for git-cliff (a
+    ``cliff.toml`` is present), so projects without changelog tooling are unaffected.
+    The new version is passed with ``--tag`` because the release tag does not exist
+    yet when the hooks run; otherwise git-cliff would file the new entries under
+    "unreleased".
+
+    Args:
+        new_version: The version being bumped to (without a leading ``v``).
+
+    Returns:
+        The git-cliff hook commands, or an empty list when git-cliff is not configured.
+
+    Example:
+        >>> _build_changelog_hooks("1.2.3")  # doctest: +SKIP
+        ['uvx git-cliff --tag v1.2.3 --output CHANGELOG.md', 'git add CHANGELOG.md']
+    """
+    if not (Path("cliff.toml").exists() or Path(".cliff.toml").exists()):
+        return []
+    return [
+        f"uvx git-cliff --tag v{new_version} --output CHANGELOG.md",
+        "git add CHANGELOG.md",
+    ]
+
+
 def _get_files_to_modify(config: Any) -> list[Path]:
     """Get list of files that will be modified by bump-my-version.
 
@@ -980,6 +1015,13 @@ def bump_command(options: BumpOptions) -> None:
         _preflight_bump(new_version_str, config, config_path)
         # Rebuild configuration to avoid stale state from dry-run
         config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
+
+    # When we are about to create a real commit, fold a freshly generated
+    # CHANGELOG.md into it via git-cliff (mirroring how uv.lock is included). This
+    # keeps the changelog current as part of the bump commit, avoiding a separate
+    # unreviewed push to the default branch. No-op for projects without a cliff.toml.
+    if commit and not options.dry_run:
+        config.pre_commit_hooks = list(config.pre_commit_hooks) + _build_changelog_hooks(new_version_str)
 
     _execute_bump(new_version_str, config, config_path, options.dry_run)
 
