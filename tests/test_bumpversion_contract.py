@@ -21,6 +21,27 @@ def test_config_exposes_pre_commit_hooks_field():
     assert "pre_commit_hooks" in Config.model_fields
 
 
+def test_config_exposes_files_to_modify_attribute():
+    """``Config`` must expose ``files_to_modify`` (read by the engine's preview).
+
+    It is a computed property (not a declared model field), so the engine reads
+    it via ``hasattr``; if upstream renames it, the change preview breaks.
+    """
+    assert hasattr(Config, "files_to_modify")
+
+
+def test_bumpversion_error_base_is_importable():
+    """``BumpVersionError`` must remain the importable base the engine catches.
+
+    The engine narrows its ``do_bump``/config error handling to this type; if a
+    future release removes or relocates it, this fails here rather than letting a
+    real failure escape the adapter's clean ``typer.Exit`` boundary.
+    """
+    from bumpversion.exceptions import BumpVersionError
+
+    assert issubclass(BumpVersionError, Exception)
+
+
 def test_pre_commit_hooks_is_list_typed():
     """``pre_commit_hooks`` must be a list type whose default factory yields a list."""
     field = Config.model_fields["pre_commit_hooks"]

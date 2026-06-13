@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import tomlkit
 import typer
+from bumpversion.exceptions import BumpVersionError
 
 from rhiza_tools.commands.bump import (
     BumpOptions,
@@ -561,7 +562,9 @@ def test_bump_configuration_load_failure(bump_project, monkeypatch):
     """Test bump command when configuration loading fails."""
 
     def mock_get_config(*args, **kwargs):
-        raise Exception("Configuration load error")  # noqa: TRY002, TRY003
+        from bumpversion.exceptions import ConfigurationError
+
+        raise ConfigurationError("Configuration load error")  # noqa: TRY003
 
     monkeypatch.setattr("rhiza_tools.commands.bump_engine.get_configuration", mock_get_config)
 
@@ -575,7 +578,7 @@ def test_bump_operation_failure(bump_project, monkeypatch):
     """Test bump command when the bump operation fails."""
 
     def mock_do_bump(*args, **kwargs):
-        raise Exception("Bump operation failed")  # noqa: TRY002, TRY003
+        raise BumpVersionError("Bump operation failed")  # noqa: TRY003
 
     monkeypatch.setattr("rhiza_tools.commands.bump_engine.do_bump", mock_do_bump)
 
@@ -902,9 +905,11 @@ class TestPreflightValidation:
         original_content = (bump_project / "pyproject.toml").read_text()
 
         def mock_do_bump(*args, **kwargs):
+            from bumpversion.exceptions import BumpVersionError
+
             # Fail on the preflight (dry_run=True) call
             if kwargs.get("dry_run", False):
-                raise Exception("Simulated preflight failure")  # noqa: TRY002, TRY003
+                raise BumpVersionError("Simulated preflight failure")  # noqa: TRY003
             # Should never reach the real call
             raise AssertionError("Real bump should not be called after preflight failure")  # noqa: TRY003
 
@@ -1446,7 +1451,7 @@ class TestExecuteBump:
         mock_config_path = MagicMock()
 
         with (
-            patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=Exception("bump failed")),
+            patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=BumpVersionError("bump failed")),
             pytest.raises(typer.Exit),
         ):
             _execute_bump("1.0.1", mock_config, mock_config_path, dry_run=False)
@@ -1459,7 +1464,7 @@ class TestExecuteBump:
         mock_config_path = MagicMock()
 
         with (
-            patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=Exception("bump failed")),
+            patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=BumpVersionError("bump failed")),
             pytest.raises(typer.Exit),
         ):
             _execute_bump("1.0.1", mock_config, mock_config_path, dry_run=True)
