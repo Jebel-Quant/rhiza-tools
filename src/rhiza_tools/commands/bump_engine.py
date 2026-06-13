@@ -10,7 +10,6 @@ interface this adapter relies on.
 """
 
 from pathlib import Path
-from typing import Any
 
 import typer
 from bumpversion.bump import do_bump
@@ -52,7 +51,7 @@ def _build_configuration(
     """
     if config_path is None:
         config_path = Path(CONFIG_FILENAME)
-    overrides: dict[str, Any] = {"current_version": current_version_str}
+    overrides: dict[str, str | bool] = {"current_version": current_version_str}
     if allow_dirty:
         overrides["allow_dirty"] = True
     if commit:
