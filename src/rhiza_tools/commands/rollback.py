@@ -511,6 +511,49 @@ def _should_revert_bump(options: RollbackOptions, exists_locally: bool, is_bump:
         return False
 
 
+def _delete_rollback_tags(
+    tag: str,
+    exists_locally: bool,
+    exists_remotely: bool,
+    dry_run: bool,
+) -> bool:
+    """Delete the remote then local tag for a rollback.
+
+    The remote tag is deleted first to stop any in-progress release. A failure
+    to delete the remote tag aborts the rollback in non-dry-run mode.
+
+    Args:
+        tag: The tag to delete.
+        exists_locally: Whether the tag exists locally.
+        exists_remotely: Whether the tag exists on remote.
+        dry_run: If True, only simulate changes.
+
+    Returns:
+        True if all attempted deletions succeeded.
+
+    Raises:
+        typer.Exit: If the remote tag deletion fails (non-dry-run).
+    """
+    success = True
+
+    # Delete remote tag first to stop any in-progress release
+    if exists_remotely and not _delete_remote_tag(tag, dry_run):
+        success = False
+        if not dry_run:
+            console.error("Failed to delete remote tag. Aborting remaining steps.")
+            console.error("You can retry or manually delete with:")
+            console.error(f"  git push origin :refs/tags/{tag}")
+            raise typer.Exit(code=1)
+
+    # Delete local tag
+    if exists_locally and not _delete_local_tag(tag, dry_run):
+        success = False
+        if not dry_run:
+            console.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
+
+    return success
+
+
 def _execute_rollback(
     tag: str,
     exists_locally: bool,
@@ -537,8 +580,6 @@ def _execute_rollback(
     Raises:
         typer.Exit: If the remote tag deletion fails (non-dry-run).
     """
-    success = True
-
     # Get commit hash BEFORE deleting tags (needed for revert)
     tag_commit = None
     if revert_bump and is_bump and exists_locally:
@@ -548,20 +589,7 @@ def _execute_rollback(
             console.error("Skipping bump revert but proceeding with tag deletion.")
             revert_bump = False
 
-    # Delete remote tag first to stop any in-progress release
-    if exists_remotely and not _delete_remote_tag(tag, dry_run):
-        success = False
-        if not dry_run:
-            console.error("Failed to delete remote tag. Aborting remaining steps.")
-            console.error("You can retry or manually delete with:")
-            console.error(f"  git push origin :refs/tags/{tag}")
-            raise typer.Exit(code=1)
-
-    # Delete local tag
-    if exists_locally and not _delete_local_tag(tag, dry_run):
-        success = False
-        if not dry_run:
-            console.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
+    success = _delete_rollback_tags(tag, exists_locally, exists_remotely, dry_run)
 
     # Revert bump commit and push (if requested)
     if revert_bump and is_bump and tag_commit:
