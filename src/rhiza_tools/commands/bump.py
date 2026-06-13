@@ -19,8 +19,6 @@ Example:
         bump_command(None)
 """
 
-from typing import Any
-
 import semver
 import typer
 
@@ -33,6 +31,7 @@ from rhiza_tools.commands._shared import (
 # Re-export the bump-my-version adapter helpers for the same reason. Names called
 # directly inside this module (bump_command) need no alias; pure re-exports use one.
 from rhiza_tools.commands.bump_engine import (
+    BumpConfig,
     _build_changelog_hooks,
     _build_configuration,
     _execute_bump,
@@ -176,7 +175,7 @@ def _resolve_language(options: BumpOptions) -> Language:
 def _finalize_bump(
     options: BumpOptions,
     current_version_str: str,
-    config: Any,
+    config: BumpConfig,
     language: Language,
     commit: bool,
     push: bool,
