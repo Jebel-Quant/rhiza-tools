@@ -658,7 +658,7 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, dry_run=True)
 
@@ -739,7 +739,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="MINOR", push=True, non_interactive=True)
 
@@ -857,7 +857,7 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, non_interactive=True)
 
@@ -885,7 +885,7 @@ def test_release_with_bump_dry_run_does_not_push_commit(mock_pyproject, monkeypa
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-        patch("rhiza_tools.commands.release.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
     ):
         release_command(bump_type="PATCH", push=True, dry_run=True)
 
@@ -983,7 +983,7 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
     def mock_bump_command(options):
         bump_called["called"] = True
 
-    with patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command):
+    with patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command):
         new_version = _perform_version_bump("1.3.0", dry_run=True, language=Language.PYTHON)
 
     assert bump_called["called"]
@@ -1122,7 +1122,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
-            patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+            patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
             release_command(bump_type="PATCH", push=True, non_interactive=True)
@@ -1159,7 +1159,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
-            patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+            patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
             release_command(bump_type="PATCH", push=True, non_interactive=True)
@@ -1176,7 +1176,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
         ):
             # Should complete without error in dry-run
             release_command(bump_type="PATCH", push=True, dry_run=True)
@@ -1201,7 +1201,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+            patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
         ):
             release_command(bump_type="PATCH", push=True, non_interactive=True)
 
@@ -1333,7 +1333,7 @@ def test_release_command_go_with_bump(mock_go_project, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands.release.bump_command", side_effect=mock_bump_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, dry_run=True, language=Language.GO)
 
@@ -1359,9 +1359,9 @@ class TestResolveInteractivePromptBumpExit:
 
         with (
             patch("questionary.confirm", return_value=mock_confirm),
-            patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+            patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
             patch(
-                "rhiza_tools.commands.release.get_interactive_bump_type",
+                "rhiza_tools.commands.release_versioning.get_interactive_bump_type",
                 side_effect=typer.Exit(),
             ),
         ):
@@ -1379,9 +1379,9 @@ class TestResolveInteractivePromptBumpExit:
 
         with (
             patch("questionary.confirm", return_value=mock_confirm),
-            patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+            patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
             patch(
-                "rhiza_tools.commands.release.get_interactive_bump_type",
+                "rhiza_tools.commands.release_versioning.get_interactive_bump_type",
                 side_effect=EOFError,
             ),
         ):
@@ -1475,7 +1475,7 @@ class TestHandleTagValidation:
 def test_resolve_explicit_bump_type_invalid_semver():
     """Test _resolve_explicit_bump_type raises Exit when current version is not valid semver."""
     with (
-        patch("rhiza_tools.commands.release.get_current_version", return_value="not-a-semver"),
+        patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="not-a-semver"),
         pytest.raises(typer.Exit),
     ):
         _resolve_explicit_bump_type("MINOR", Language.PYTHON)
@@ -1484,7 +1484,7 @@ def test_resolve_explicit_bump_type_invalid_semver():
 def test_resolve_explicit_bump_type_invalid_bump_type():
     """Test _resolve_explicit_bump_type raises Exit when bump type is unrecognized."""
     with (
-        patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+        patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
         pytest.raises(typer.Exit),
     ):
         _resolve_explicit_bump_type("INVALID", Language.PYTHON)
@@ -1519,8 +1519,8 @@ def test_resolve_interactive_prompt_bump_success():
 
     with (
         patch("questionary.confirm", return_value=mock_confirm),
-        patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
-        patch("rhiza_tools.commands.release.get_interactive_bump_type", return_value="1.1.0"),
+        patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.1.0"),
     ):
         result = _resolve_interactive_prompt(Language.PYTHON)
 

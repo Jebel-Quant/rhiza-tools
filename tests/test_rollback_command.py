@@ -6,6 +6,7 @@ import pytest
 import typer
 
 import rhiza_tools.commands.rollback as rollback_mod
+import rhiza_tools.commands.rollback_git as rollback_git_mod
 from rhiza_tools.commands.rollback import (
     RollbackOptions,
     _confirm_rollback,
@@ -175,7 +176,7 @@ class TestGetTagCommit:
         mock_result.returncode = 0
         mock_result.stdout = "abc123def456\n"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             commit = _get_tag_commit("v1.2.3")
             assert commit == "abc123def456"
 
@@ -185,7 +186,7 @@ class TestGetTagCommit:
         mock_result.returncode = 1
         mock_result.stdout = ""
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             commit = _get_tag_commit("v9.9.9")
             assert commit is None
 
@@ -204,7 +205,7 @@ class TestGetTagDetails:
         mock_result.returncode = 0
         mock_result.stdout = "abc123|2025-01-01 12:00:00|Bump version: 1.2.2 → 1.2.3"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             details = _get_tag_details("v1.2.3")
             assert details["hash"] == "abc123"
             assert details["date"] == "2025-01-01 12:00:00"
@@ -216,7 +217,7 @@ class TestGetTagDetails:
         mock_result.returncode = 1
         mock_result.stdout = ""
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             details = _get_tag_details("v9.9.9")
             assert details == {}
 
@@ -243,7 +244,7 @@ class TestIsBumpCommit:
             mock_result.returncode = 0
             mock_result.stdout = msg
 
-            with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+            with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
                 assert _is_bump_commit("v1.2.3"), f"Should detect: {msg}"
 
     def test_rejects_non_bump_commit(self):
@@ -252,7 +253,7 @@ class TestIsBumpCommit:
         mock_result.returncode = 0
         mock_result.stdout = "Add new feature X"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             assert not _is_bump_commit("v1.2.3")
 
     def test_returns_false_on_failure(self):
@@ -261,7 +262,7 @@ class TestIsBumpCommit:
         mock_result.returncode = 1
         mock_result.stdout = ""
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             assert not _is_bump_commit("v9.9.9")
 
 
@@ -279,7 +280,7 @@ class TestGetPreviousVersionFromTags:
         mock_result.returncode = 0
         mock_result.stdout = "v1.2.3\nv1.2.2\nv1.2.1\n"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             prev = _get_previous_version_from_tags("v1.2.3")
             assert prev == "v1.2.2"
 
@@ -289,7 +290,7 @@ class TestGetPreviousVersionFromTags:
         mock_result.returncode = 0
         mock_result.stdout = "v0.1.0\n"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             prev = _get_previous_version_from_tags("v0.1.0")
             assert prev is None
 
@@ -299,7 +300,7 @@ class TestGetPreviousVersionFromTags:
         mock_result.returncode = 0
         mock_result.stdout = "v1.2.3\nv1.2.2\n"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             prev = _get_previous_version_from_tags("v9.9.9")
             assert prev is None
 
@@ -309,7 +310,7 @@ class TestGetPreviousVersionFromTags:
         mock_result.returncode = 1
         mock_result.stdout = ""
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             prev = _get_previous_version_from_tags("v1.2.3")
             assert prev is None
 
@@ -327,12 +328,12 @@ class TestDeleteLocalTag:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             assert _delete_local_tag("v1.2.3", dry_run=False)
 
     def test_dry_run_does_not_delete(self):
         """Should not actually delete in dry-run mode."""
-        with patch.object(rollback_mod, "run_git_command") as mock_cmd:
+        with patch.object(rollback_git_mod, "run_git_command") as mock_cmd:
             assert _delete_local_tag("v1.2.3", dry_run=True)
             mock_cmd.assert_not_called()
 
@@ -342,7 +343,7 @@ class TestDeleteLocalTag:
         mock_result.returncode = 1
         mock_result.stderr = "error: tag 'v1.2.3' not found."
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             assert not _delete_local_tag("v1.2.3", dry_run=False)
 
 
@@ -359,12 +360,12 @@ class TestDeleteRemoteTag:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             assert _delete_remote_tag("v1.2.3", dry_run=False)
 
     def test_dry_run_does_not_delete(self):
         """Should not actually delete in dry-run mode."""
-        with patch.object(rollback_mod, "run_git_command") as mock_cmd:
+        with patch.object(rollback_git_mod, "run_git_command") as mock_cmd:
             assert _delete_remote_tag("v1.2.3", dry_run=True)
             mock_cmd.assert_not_called()
 
@@ -374,7 +375,7 @@ class TestDeleteRemoteTag:
         mock_result.returncode = 1
         mock_result.stderr = "error: unable to delete 'v1.2.3'"
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_git_mod, "run_git_command", return_value=mock_result):
             assert not _delete_remote_tag("v1.2.3", dry_run=False)
 
 
@@ -396,7 +397,7 @@ class TestRevertBumpCommit:
                 return mock_revert
             return MagicMock(returncode=0, stdout="")
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
+        with patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git):
             assert _revert_bump_commit("abc123def456", dry_run=False)
 
     def test_dry_run_does_not_revert(self):
@@ -410,7 +411,7 @@ class TestRevertBumpCommit:
                 return mock_log
             return MagicMock(returncode=0, stdout="")
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
+        with patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git):
             assert _revert_bump_commit("abc123def456", dry_run=True)
 
     def test_handles_revert_failure(self):
@@ -424,7 +425,7 @@ class TestRevertBumpCommit:
                 return mock_revert
             return MagicMock(returncode=0, stdout="")
 
-        with patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git):
+        with patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git):
             assert not _revert_bump_commit("abc123def456", dry_run=False)
 
 
@@ -628,6 +629,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(False, False)),
             pytest.raises(typer.Exit) as exc_info,
         ):
@@ -653,6 +655,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
         ):
             rollback_command(RollbackOptions(tag="v1.2.3", dry_run=True, non_interactive=True))
@@ -678,6 +681,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
         ):
             rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, dry_run=True, non_interactive=True))
@@ -703,6 +707,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
         ):
             rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
@@ -732,6 +737,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
             pytest.raises(typer.Exit) as exc_info,
         ):
@@ -760,6 +766,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
             pytest.raises(typer.Exit) as exc_info,
         ):
@@ -785,6 +792,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)) as mock_check,
         ):
             rollback_command(RollbackOptions(tag="1.2.3", dry_run=True, non_interactive=True))
@@ -810,6 +818,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)),
         ):
             rollback_command(RollbackOptions(tag="v1.2.3", non_interactive=True))
@@ -833,6 +842,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, False)),
         ):
             rollback_command(RollbackOptions(non_interactive=True))
@@ -852,6 +862,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             pytest.raises(typer.Exit) as exc_info,
         ):
             rollback_command(RollbackOptions(non_interactive=True))
@@ -880,6 +891,7 @@ class TestRollbackCommand:
 
         with (
             patch.object(rollback_mod, "run_git_command", side_effect=mock_run_git),
+            patch.object(rollback_git_mod, "run_git_command", side_effect=mock_run_git),
             patch.object(rollback_mod, "check_tag_exists", return_value=(True, True)),
         ):
             rollback_command(RollbackOptions(tag="v1.2.3", revert_bump=True, non_interactive=True))
