@@ -30,6 +30,8 @@ import typer
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
     get_latest_remote_version,
+)
+from rhiza_tools.commands._shared import (
     run_git_command as run_git_command,
 )
 from rhiza_tools.commands.bump import (

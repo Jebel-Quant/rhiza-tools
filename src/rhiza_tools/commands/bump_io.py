@@ -47,7 +47,7 @@ class Language(StrEnum):
     GO = "go"
 
     @classmethod
-    def detect(cls) -> "Language | None":
+    def detect(cls) -> Language | None:
         """Detect the project language based on files present.
 
         Returns:

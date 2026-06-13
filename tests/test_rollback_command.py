@@ -440,7 +440,7 @@ class TestPushRevert:
 
     def test_dry_run(self):
         """Should not push in dry-run mode."""
-        with patch.object(rollback_mod, "run_git_command") as mock_cmd:
+        with patch.object(rollback_io_mod, "run_git_command") as mock_cmd:
             assert _push_revert(dry_run=True, non_interactive=False)
             mock_cmd.assert_not_called()
 
@@ -449,7 +449,7 @@ class TestPushRevert:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch.object(rollback_mod, "run_git_command", return_value=mock_result):
+        with patch.object(rollback_io_mod, "run_git_command", return_value=mock_result):
             assert _push_revert(dry_run=False, non_interactive=True)
 
     def test_user_declines_push(self, monkeypatch):
@@ -973,7 +973,7 @@ class TestPushRevertEOF:
 
     def test_eof_in_confirm_proceeds_with_push(self):
         """rollback.py:325-327 – EOFError during confirm causes push to proceed."""
-        import rhiza_tools.commands.rollback as rollback_mod
+        import rhiza_tools.commands.rollback_io as rollback_io_mod
         from rhiza_tools.commands.rollback import _push_revert
 
         mock_confirm = MagicMock()
@@ -984,7 +984,7 @@ class TestPushRevertEOF:
 
         with (
             patch("questionary.confirm", return_value=mock_confirm),
-            patch.object(rollback_mod, "run_git_command", return_value=mock_git),
+            patch.object(rollback_io_mod, "run_git_command", return_value=mock_git),
         ):
             result = _push_revert(dry_run=False, non_interactive=False)
 
