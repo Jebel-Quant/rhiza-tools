@@ -8,6 +8,8 @@ import typer
 
 from rhiza_tools.commands.bump import BumpOptions, Language, get_current_version
 from rhiza_tools.commands.release import (
+    _resolve_explicit_bump_type,
+    _resolve_interactive_prompt,
     check_branch_status,
     check_clean_working_tree,
     check_tag_exists,
@@ -1337,3 +1339,189 @@ def test_release_command_go_with_bump(mock_go_project, monkeypatch):
 
     assert bump_called["called"]
     assert bump_called["language"] == Language.GO
+
+
+# ---------------------------------------------------------------------------
+# Branch/edge-case coverage relocated from the former test_coverage_100.py
+# ---------------------------------------------------------------------------
+
+
+class TestResolveInteractivePromptBumpExit:
+    """Tests for exception paths in release._resolve_interactive_prompt."""
+
+    def test_get_interactive_bump_raises_exit(self):
+        """release.py:338-339 – returns (False, None) when get_interactive_bump_type raises Exit."""
+        from rhiza_tools.commands.bump import Language
+        from rhiza_tools.commands.release import _resolve_interactive_prompt
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.return_value = True
+
+        with (
+            patch("questionary.confirm", return_value=mock_confirm),
+            patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+            patch(
+                "rhiza_tools.commands.release.get_interactive_bump_type",
+                side_effect=typer.Exit(),
+            ),
+        ):
+            result = _resolve_interactive_prompt(Language.PYTHON)
+
+        assert result == (False, None)
+
+    def test_get_interactive_bump_raises_eof(self):
+        """release.py:338-339 – returns (False, None) when get_interactive_bump_type raises EOFError."""
+        from rhiza_tools.commands.bump import Language
+        from rhiza_tools.commands.release import _resolve_interactive_prompt
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.return_value = True
+
+        with (
+            patch("questionary.confirm", return_value=mock_confirm),
+            patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+            patch(
+                "rhiza_tools.commands.release.get_interactive_bump_type",
+                side_effect=EOFError,
+            ),
+        ):
+            result = _resolve_interactive_prompt(Language.PYTHON)
+
+        assert result == (False, None)
+
+
+class TestValidateTagState:
+    """Tests for tag detail display path in release._validate_tag_state."""
+
+    def test_shows_tag_details_when_git_show_succeeds(self):
+        """release.py:408-413 – tag details are displayed when git show succeeds."""
+        import rhiza_tools.commands.release as release_mod
+        from rhiza_tools.commands.release import _validate_tag_state
+
+        mock_exists = MagicMock(return_value=(True, False))
+        mock_git = MagicMock()
+        mock_git.returncode = 0
+        mock_git.stdout = "abc1234567890|2024-01-01 12:00:00|Bump version to 1.0.1\n"
+
+        with (
+            patch.object(release_mod, "check_tag_exists", mock_exists),
+            patch.object(release_mod, "run_git_command", return_value=mock_git),
+        ):
+            _validate_tag_state("v1.0.1", "1.0.1")  # should not raise
+
+
+class TestShowCommitsSinceLastTag:
+    """Tests for commit display in release._show_commits_since_last_tag."""
+
+    def test_shows_commits_with_previous_tag(self):
+        """release.py:430-443 – commits since last tag are displayed."""
+        import rhiza_tools.commands.release as release_mod
+        from rhiza_tools.commands.release import _show_commits_since_last_tag
+
+        tags_result = MagicMock()
+        tags_result.returncode = 0
+        tags_result.stdout = "v1.0.1\nv1.0.0\n"
+
+        commits_result = MagicMock()
+        commits_result.returncode = 0
+        commits_result.stdout = "abc1234 feat: add feature\ndef5678 fix: fix bug\n"
+
+        with patch.object(release_mod, "run_git_command", side_effect=[tags_result, commits_result]):
+            _show_commits_since_last_tag("v1.0.1")  # should not raise
+
+    def test_shows_more_than_10_commits(self):
+        """release.py:442-443 – truncation message shown when >10 commits."""
+        import rhiza_tools.commands.release as release_mod
+        from rhiza_tools.commands.release import _show_commits_since_last_tag
+
+        tags_result = MagicMock()
+        tags_result.returncode = 0
+        tags_result.stdout = "v1.0.1\nv1.0.0\n"
+
+        many_commits = "\n".join(f"abc{i:04d} commit {i}" for i in range(12))
+        commits_result = MagicMock()
+        commits_result.returncode = 0
+        commits_result.stdout = many_commits
+
+        with patch.object(release_mod, "run_git_command", side_effect=[tags_result, commits_result]):
+            _show_commits_since_last_tag("v1.0.1")
+
+
+class TestHandleTagValidation:
+    """Tests for dry-run tag validation in release._handle_tag_validation."""
+
+    def test_dry_run_with_bump_tag_already_on_remote(self):
+        """release.py:543-547 – dry_run with bump raises Exit when tag already on remote."""
+        import rhiza_tools.commands.release as release_mod
+        from rhiza_tools.commands.release import _handle_tag_validation
+
+        with (
+            patch.object(release_mod, "check_tag_exists", return_value=(False, True)),
+            pytest.raises(typer.Exit),
+        ):
+            _handle_tag_validation(
+                dry_run=True,
+                bumped_new_version="1.0.1",
+                tag="v1.0.1",
+                current_version="1.0.0",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Release-helper coverage relocated from the former test_coverage_gaps.py
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_explicit_bump_type_invalid_semver():
+    """Test _resolve_explicit_bump_type raises Exit when current version is not valid semver."""
+    with (
+        patch("rhiza_tools.commands.release.get_current_version", return_value="not-a-semver"),
+        pytest.raises(typer.Exit),
+    ):
+        _resolve_explicit_bump_type("MINOR", Language.PYTHON)
+
+
+def test_resolve_explicit_bump_type_invalid_bump_type():
+    """Test _resolve_explicit_bump_type raises Exit when bump type is unrecognized."""
+    with (
+        patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+        pytest.raises(typer.Exit),
+    ):
+        _resolve_explicit_bump_type("INVALID", Language.PYTHON)
+
+
+def test_resolve_interactive_prompt_user_declines():
+    """Test _resolve_interactive_prompt returns (False, None) when user declines bump."""
+    mock_confirm = MagicMock()
+    mock_confirm.ask.return_value = False
+
+    with patch("questionary.confirm", return_value=mock_confirm):
+        result = _resolve_interactive_prompt(Language.PYTHON)
+
+    assert result == (False, None)
+
+
+def test_resolve_interactive_prompt_bump_eof():
+    """Test _resolve_interactive_prompt returns (False, None) on EOFError."""
+    mock_confirm = MagicMock()
+    mock_confirm.ask.side_effect = EOFError
+
+    with patch("questionary.confirm", return_value=mock_confirm):
+        result = _resolve_interactive_prompt(Language.PYTHON)
+
+    assert result == (False, None)
+
+
+def test_resolve_interactive_prompt_bump_success():
+    """Test _resolve_interactive_prompt returns (True, new_version) when user accepts."""
+    mock_confirm = MagicMock()
+    mock_confirm.ask.return_value = True
+
+    with (
+        patch("questionary.confirm", return_value=mock_confirm),
+        patch("rhiza_tools.commands.release.get_current_version", return_value="1.0.0"),
+        patch("rhiza_tools.commands.release.get_interactive_bump_type", return_value="1.1.0"),
+    ):
+        result = _resolve_interactive_prompt(Language.PYTHON)
+
+    assert result == (True, "1.1.0")

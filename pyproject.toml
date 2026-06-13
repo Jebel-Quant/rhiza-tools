@@ -46,6 +46,7 @@ test = [
     "pytest-xdist>=3.0",
     "pytest-timeout>=2.0",
     "hypothesis>=6.150.0",
+    "mutmut>=2.4,<3",   # mutation testing (`make mutation`); 2.x matches the run-flags the target uses
 ]
 lint = [
     "ruff>=0.1.0",

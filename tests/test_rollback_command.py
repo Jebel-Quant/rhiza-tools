@@ -948,3 +948,212 @@ class TestRollbackCLI:
         options = mock_rollback.call_args[0][0]
         assert options.tag is None
         assert options.dry_run is True
+
+
+# ---------------------------------------------------------------------------
+# Branch/edge-case coverage relocated from the former test_coverage_100.py
+# ---------------------------------------------------------------------------
+
+
+class TestPushRevertEOF:
+    """Tests for EOFError handling in rollback._push_revert."""
+
+    def test_eof_in_confirm_proceeds_with_push(self):
+        """rollback.py:325-327 – EOFError during confirm causes push to proceed."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import _push_revert
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.side_effect = EOFError
+
+        mock_git = MagicMock()
+        mock_git.returncode = 0
+
+        with (
+            patch("questionary.confirm", return_value=mock_confirm),
+            patch.object(rollback_mod, "run_git_command", return_value=mock_git),
+        ):
+            result = _push_revert(dry_run=False, non_interactive=False)
+
+        assert result is True
+
+
+class TestResolveTag:
+    """Tests for tag resolution paths in rollback._resolve_tag."""
+
+    def test_non_interactive_with_recent_tag(self):
+        """rollback.py:463-469 – non_interactive mode picks most recent tag."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import RollbackOptions, _resolve_tag
+
+        with patch.object(rollback_mod, "_get_recent_tags", return_value=["v1.2.3"]):
+            result = _resolve_tag(RollbackOptions(tag=None, non_interactive=True))
+
+        assert result == "v1.2.3"
+
+    def test_non_interactive_no_tags_exits(self):
+        """rollback.py:465-467 – non_interactive with no tags raises Exit."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import RollbackOptions, _resolve_tag
+
+        with patch.object(rollback_mod, "_get_recent_tags", return_value=[]), pytest.raises(typer.Exit):
+            _resolve_tag(RollbackOptions(tag=None, non_interactive=True))
+
+    def test_interactive_selection(self):
+        """rollback.py:471-472 – interactive mode calls _select_tag_interactively."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import RollbackOptions, _resolve_tag
+
+        with (
+            patch.object(rollback_mod, "_get_recent_tags", return_value=["v1.2.3", "v1.2.2"]),
+            patch.object(rollback_mod, "_select_tag_interactively", return_value="v1.2.3"),
+        ):
+            result = _resolve_tag(RollbackOptions(tag=None, non_interactive=False))
+
+        assert result == "v1.2.3"
+
+
+class TestShouldRevertBump:
+    """Tests for interactive confirm paths in rollback._should_revert_bump."""
+
+    def test_interactive_user_confirms_revert(self):
+        """rollback.py:500-507 – interactive confirm returns True."""
+        from rhiza_tools.commands.rollback import RollbackOptions, _should_revert_bump
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.return_value = True
+
+        with patch("questionary.confirm", return_value=mock_confirm):
+            result = _should_revert_bump(
+                options=RollbackOptions(revert_bump=False, non_interactive=False, dry_run=False),
+                exists_locally=True,
+                is_bump=True,
+            )
+
+        assert result is True
+
+    def test_interactive_eof_returns_false(self):
+        """rollback.py:508-510 – EOFError during confirm returns False."""
+        from rhiza_tools.commands.rollback import RollbackOptions, _should_revert_bump
+
+        mock_confirm = MagicMock()
+        mock_confirm.ask.side_effect = EOFError
+
+        with patch("questionary.confirm", return_value=mock_confirm):
+            result = _should_revert_bump(
+                options=RollbackOptions(revert_bump=False, non_interactive=False, dry_run=False),
+                exists_locally=True,
+                is_bump=True,
+            )
+
+        assert result is False
+
+
+class TestExecuteRollback:
+    """Tests for edge-case branches in rollback._execute_rollback."""
+
+    def test_tag_commit_not_found_skips_revert(self):
+        """rollback.py:546-548 – missing tag commit skips revert but continues."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import _execute_rollback
+
+        with (
+            patch.object(rollback_mod, "_get_tag_commit", return_value=None),
+            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_mod, "_delete_local_tag", return_value=True),
+        ):
+            result = _execute_rollback(
+                tag="v1.0.0",
+                exists_locally=True,
+                exists_remotely=True,
+                revert_bump=True,
+                is_bump=True,
+                dry_run=False,
+                non_interactive=True,
+            )
+
+        assert result is True
+
+    def test_delete_local_tag_fails_not_dry_run(self):
+        """rollback.py:561-563 – warning shown when local tag deletion fails."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import _execute_rollback
+
+        with (
+            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_mod, "_delete_local_tag", return_value=False),
+        ):
+            result = _execute_rollback(
+                tag="v1.0.0",
+                exists_locally=True,
+                exists_remotely=True,
+                revert_bump=False,
+                is_bump=False,
+                dry_run=False,
+                non_interactive=True,
+            )
+
+        assert result is False
+
+    def test_revert_bump_fails_not_dry_run(self):
+        """rollback.py:568-571 – warning shown when bump revert fails."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import _execute_rollback
+
+        with (
+            patch.object(rollback_mod, "_get_tag_commit", return_value="abc1234"),
+            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_mod, "_delete_local_tag", return_value=True),
+            patch.object(rollback_mod, "_revert_bump_commit", return_value=False),
+        ):
+            result = _execute_rollback(
+                tag="v1.0.0",
+                exists_locally=True,
+                exists_remotely=True,
+                revert_bump=True,
+                is_bump=True,
+                dry_run=False,
+                non_interactive=True,
+            )
+
+        assert result is False
+
+    def test_push_revert_fails(self):
+        """rollback.py:573-574 – success=False when push revert fails."""
+        import rhiza_tools.commands.rollback as rollback_mod
+        from rhiza_tools.commands.rollback import _execute_rollback
+
+        with (
+            patch.object(rollback_mod, "_get_tag_commit", return_value="abc1234"),
+            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_mod, "_delete_local_tag", return_value=True),
+            patch.object(rollback_mod, "_revert_bump_commit", return_value=True),
+            patch.object(rollback_mod, "_push_revert", return_value=False),
+        ):
+            result = _execute_rollback(
+                tag="v1.0.0",
+                exists_locally=True,
+                exists_remotely=True,
+                revert_bump=True,
+                is_bump=True,
+                dry_run=False,
+                non_interactive=True,
+            )
+
+        assert result is False
+
+
+class TestPrintRollbackSummary:
+    """Tests for both branches in rollback._print_rollback_summary."""
+
+    def test_success_with_previous_tag(self):
+        """rollback.py:595-598 – previous version displayed on success."""
+        from rhiza_tools.commands.rollback import _print_rollback_summary
+
+        _print_rollback_summary(dry_run=False, success=True, previous_tag="v1.0.0")
+
+    def test_failure_prints_warning(self):
+        """rollback.py:592-593 – warning printed when success=False."""
+        from rhiza_tools.commands.rollback import _print_rollback_summary
+
+        _print_rollback_summary(dry_run=False, success=False, previous_tag=None)
