@@ -42,6 +42,7 @@ class TestRootFixture:
             "pyproject.toml",
             "README.md",
             "Makefile",
+            "SECURITY.md",
         ]
         optional_files = [
             "ruff.toml",
