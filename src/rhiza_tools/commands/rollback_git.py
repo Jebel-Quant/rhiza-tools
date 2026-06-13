@@ -11,6 +11,9 @@ from __future__ import annotations
 from rhiza_tools import console
 from rhiza_tools.commands._shared import run_git_command
 
+# Number of fields in the `%H|%ci|%s` git-show format (commit hash, date, subject).
+_TAG_DETAIL_FIELDS = 3
+
 
 def _get_tag_commit(tag: str) -> str | None:
     """Get the commit hash that a tag points to.
@@ -43,7 +46,7 @@ def _get_tag_details(tag: str) -> dict[str, str]:
     )
     if result.returncode == 0 and result.stdout.strip():
         parts = result.stdout.strip().split("|")
-        if len(parts) == 3:
+        if len(parts) == _TAG_DETAIL_FIELDS:
             details["hash"] = parts[0]
             details["date"] = parts[1]
             details["message"] = parts[2]

@@ -36,7 +36,7 @@ def configure(*, verbose: bool = False) -> None:
     Args:
         verbose: If True, enable loguru debug output on stderr.
     """
-    global _verbose
+    global _verbose  # noqa: PLW0603 - module-level verbosity flag set once from the CLI callback
     _verbose = verbose
 
     # Remove all default loguru handlers (the default one logs to stderr at DEBUG)

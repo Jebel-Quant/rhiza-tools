@@ -135,8 +135,8 @@ def satisfies(version: str, specifier: str) -> bool:
     version_tuple = parse_version(version)
 
     # Split by comma for multiple constraints
-    for spec in specifier.split(","):
-        spec = spec.strip()
+    for raw_spec in specifier.split(","):
+        spec = raw_spec.strip()
         # Match operator and version part
         match = re.match(r"(>=|<=|>|<|==|!=)\s*([\d.]+)", spec)
         if not match:
