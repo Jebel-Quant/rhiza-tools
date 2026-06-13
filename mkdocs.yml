@@ -20,3 +20,12 @@ nav:
     - generate-coverage-badge: commands/generate_coverage_badge.md
     - version-matrix: commands/version_matrix.md
     - analyze-benchmarks: commands/analyze_benchmarks.md
+  - Architecture Decisions:
+    - Overview: adr/README.md
+    - 0001 bump-my-version adapter: adr/0001-bump-my-version-adapter.md
+    - 0002 changelog in bump commit: adr/0002-changelog-in-bump-commit.md
+    - 0003 quality gates: adr/0003-quality-gates.md
+    - 0004 structural meta-tests: adr/0004-structural-meta-tests.md
+    - 0005 command module split: adr/0005-command-module-split.md
+  - Contributing:
+    - Recording decisions: development/DECISIONS.md
