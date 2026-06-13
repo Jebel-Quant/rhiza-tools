@@ -20,7 +20,6 @@ Example:
 """
 
 import tomllib
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -29,9 +28,6 @@ from typing import Any, cast
 import questionary as qs
 import semver
 import typer
-from bumpversion.bump import do_bump
-from bumpversion.config import get_configuration
-from bumpversion.ui import setup_logging
 from loguru import logger
 
 from rhiza_tools import console
@@ -42,52 +38,49 @@ from rhiza_tools.commands._shared import (
     get_latest_remote_version,
     run_git_command,
 )
-from rhiza_tools.config import CONFIG_FILENAME
 
+# Re-export the bump-my-version adapter helpers for the same reason. Names called
+# directly inside this module (bump_command) need no alias; pure re-exports use one.
+from rhiza_tools.commands.bump_engine import (
+    _build_changelog_hooks,
+    _build_configuration,
+    _execute_bump,
+    _get_files_to_modify,
+    _preflight_bump,
+    _preview_file_modifications,
+)
+from rhiza_tools.commands.bump_engine import (
+    _show_file_changes as _show_file_changes,
+)
 
-def _denormalize_pep440_to_semver(version_str: str) -> str:
-    """Convert PEP 440 prerelease format to semver format.
-
-    Converts PEP 440 format (e.g., 0.1.1a1 or 0.1.1alpha1) back to semver format
-    (e.g., 0.1.1-alpha.1) for compatibility with the semver library and bump-my-version.
-
-    Args:
-        version_str: Version string, possibly in PEP 440 format.
-
-    Returns:
-        Version string in semver format.
-
-    Example:
-        >>> _denormalize_pep440_to_semver("0.1.1a1")
-        '0.1.1-alpha.1'
-        >>> _denormalize_pep440_to_semver("0.1.1alpha1")
-        '0.1.1-alpha.1'
-        >>> _denormalize_pep440_to_semver("0.1.1")
-        '0.1.1'
-    """
-    import re
-
-    # Pattern to match PEP 440 prerelease: 0.1.1a1, 0.1.1alpha1, 0.1.1b2, 0.1.1rc3
-    # Captures: major.minor.patch, release letter(s), and pre_n
-    pattern = r"^(\d+\.\d+\.\d+)(a|alpha|b|beta|rc|dev)(\d+)$"
-    match = re.match(pattern, version_str)
-
-    if match:
-        base, release_short, pre_n = match.groups()
-        # Map PEP 440 forms to full names for semver
-        release_map = {
-            "a": "alpha",
-            "alpha": "alpha",
-            "b": "beta",
-            "beta": "beta",
-            "rc": "rc",
-            "dev": "dev",
-        }
-        release_full = release_map.get(release_short, release_short)
-        return f"{base}-{release_full}.{pre_n}"
-
-    # If not a PEP 440 prerelease, return as-is
-    return version_str
+# Re-export pure version-math helpers so external callers and tests that reference
+# ``rhiza_tools.commands.bump.<name>`` (including monkeypatch string paths) keep
+# working after these moved to bump_versioning. The redundant ``as`` aliases mark
+# them as intentional re-exports for ruff (F401).
+from rhiza_tools.commands.bump_versioning import (
+    _CHOICE_PREFIX_TO_BUMP_TYPE as _CHOICE_PREFIX_TO_BUMP_TYPE,
+)
+from rhiza_tools.commands.bump_versioning import (
+    _VALID_BUMP_TYPES as _VALID_BUMP_TYPES,
+)
+from rhiza_tools.commands.bump_versioning import (
+    _denormalize_pep440_to_semver as _denormalize_pep440_to_semver,
+)
+from rhiza_tools.commands.bump_versioning import (
+    _determine_bump_type_from_choice as _determine_bump_type_from_choice,
+)
+from rhiza_tools.commands.bump_versioning import (
+    _parse_version_argument,
+)
+from rhiza_tools.commands.bump_versioning import (
+    _validate_explicit_version as _validate_explicit_version,
+)
+from rhiza_tools.commands.bump_versioning import (
+    get_bumped_version_from_type as get_bumped_version_from_type,
+)
+from rhiza_tools.commands.bump_versioning import (
+    get_next_prerelease as get_next_prerelease,
+)
 
 
 class Language(StrEnum):
@@ -135,23 +128,6 @@ class Language(StrEnum):
             return Path("pyproject.toml")
         # Language.GO
         return Path("VERSION")
-
-
-# Valid bump type keywords
-_VALID_BUMP_TYPES = ["patch", "minor", "major", "prerelease", "build", "alpha", "beta", "rc", "dev"]
-
-# Mapping of choice prefix to bump type for interactive selection
-_CHOICE_PREFIX_TO_BUMP_TYPE = {
-    "Patch": "patch",
-    "Minor": "minor",
-    "Major": "major",
-    "Alpha": "alpha",
-    "Beta": "beta",
-    "RC": "rc",
-    "Dev": "dev",
-    "Prerelease": "prerelease",
-    "Build": "build",
-}
 
 
 @dataclass
@@ -227,52 +203,6 @@ def get_current_version(language: Language) -> str:
     else:
         console.error(f"Unsupported language: {language}")
         raise typer.Exit(code=1)
-
-
-def get_next_prerelease(current_version: semver.Version, token: str) -> semver.Version:
-    """Calculate next prerelease version for a given token.
-
-    Args:
-        current_version: The current semantic version.
-        token: The prerelease token (e.g., "alpha", "beta", "rc", "dev").
-
-    Returns:
-        The next prerelease version with the specified token.
-
-    Example:
-        >>> import semver
-        >>> current = semver.Version.parse("1.0.0")
-        >>> next_alpha = get_next_prerelease(current, "alpha")
-        >>> print(next_alpha)
-        1.0.1-alpha.1
-    """
-    if current_version.prerelease:
-        if current_version.prerelease.startswith(token):
-            return current_version.bump_prerelease()
-        else:
-            return current_version.replace(prerelease=f"{token}.1")
-    else:
-        return current_version.bump_patch().bump_prerelease(token=token)
-
-
-def _determine_bump_type_from_choice(choice: str) -> str:
-    """Extract bump type from interactive choice string.
-
-    Args:
-        choice: The choice string selected by the user (e.g., "Patch (1.0.0 -> 1.0.1)").
-
-    Returns:
-        The bump type extracted from the choice prefix (e.g., "patch").
-
-    Example:
-        >>> bump_type = _determine_bump_type_from_choice("Patch (1.0.0 -> 1.0.1)")
-        >>> print(bump_type)
-        patch
-    """
-    for prefix, bump_type in _CHOICE_PREFIX_TO_BUMP_TYPE.items():
-        if choice.startswith(prefix):
-            return bump_type
-    return ""
 
 
 def get_interactive_bump_type(current_version_str: str) -> str:
@@ -352,102 +282,6 @@ def get_interactive_bump_type(current_version_str: str) -> str:
     return new_version
 
 
-def get_bumped_version_from_type(current_version: semver.Version, version_type: str) -> str:
-    """Get bumped version string from version type keyword.
-
-    Args:
-        current_version: The current semantic version.
-        version_type: The bump type keyword.
-
-    Returns:
-        The bumped version string.
-    """
-    bump_mapping: dict[str, Callable[[], semver.Version]] = {
-        "patch": current_version.bump_patch,
-        "minor": current_version.bump_minor,
-        "major": current_version.bump_major,
-        "prerelease": current_version.bump_prerelease,
-        "build": current_version.bump_build,
-    }
-
-    if version_type in bump_mapping:
-        return str(bump_mapping[version_type]())
-    elif version_type in ["alpha", "beta", "rc", "dev"]:
-        return str(get_next_prerelease(current_version, version_type))
-
-    return ""
-
-
-def _validate_explicit_version(version: str) -> str:
-    """Validate and clean explicit version string.
-
-    Args:
-        version: Version string to validate.
-
-    Returns:
-        Cleaned version string.
-
-    Raises:
-        typer.Exit: If version format is invalid.
-    """
-    # Strip 'v' prefix
-    cleaned_version = version[1:] if version.startswith("v") else version
-
-    # Validate explicit version
-    try:
-        semver.Version.parse(cleaned_version)
-    except ValueError:
-        console.error(f"Invalid version format: {version}")
-        console.error("Please use a valid semantic version.")
-        raise typer.Exit(code=1) from None
-
-    return cleaned_version
-
-
-def _parse_version_argument(version: str | None, current_version_str: str) -> str:
-    """Parse version argument and return explicit version string.
-
-    Converts bump type keywords (patch, minor, major, etc.) to explicit version
-    strings, or validates and returns explicit version strings.
-
-    Args:
-        version: The version argument provided by the user. Can be a bump type
-            keyword or an explicit version string.
-        current_version_str: The current version string.
-
-    Returns:
-        The explicit version string to bump to, or empty string if version is None.
-
-    Raises:
-        typer.Exit: If the version format is invalid.
-
-    Example:
-        >>> version = _parse_version_argument("patch", "1.0.0")
-        >>> print(version)
-        1.0.1
-
-        >>> version = _parse_version_argument("2.0.0", "1.0.0")
-        >>> print(version)
-        2.0.0
-    """
-    if not version:
-        return ""
-
-    try:
-        current_version = semver.Version.parse(current_version_str)
-    except ValueError:
-        console.error(f"Invalid semantic version: {current_version_str}")
-        raise typer.Exit(code=1) from None
-
-    # Try to get bumped version from type keyword
-    bumped_version = get_bumped_version_from_type(current_version, version)
-    if bumped_version:
-        return bumped_version
-
-    # Otherwise, it's an explicit version - validate and return
-    return _validate_explicit_version(version)
-
-
 def _validate_project_exists(language: Language) -> None:
     """Validate that required project files exist for the specified language.
 
@@ -474,222 +308,6 @@ def _validate_project_exists(language: Language) -> None:
     else:
         console.error(f"Unsupported language: {language}")
         raise typer.Exit(code=1)
-
-
-def _build_configuration(
-    current_version_str: str,
-    allow_dirty: bool,
-    commit: bool,
-    config_path: Path | None = None,
-) -> tuple[Any, Path]:
-    """Build bumpversion configuration with appropriate overrides.
-
-    Args:
-        current_version_str: The current version string.
-        allow_dirty: If True, allow bumping even with uncommitted changes.
-        commit: If True, automatically commit the version change to git.
-        config_path: Path to the .cfg.toml config file. Defaults to CONFIG_FILENAME.
-
-    Returns:
-        A tuple of (config object, config_path).
-
-    Raises:
-        typer.Exit: If configuration loading fails.
-    """
-    if config_path is None:
-        config_path = Path(CONFIG_FILENAME)
-    overrides: dict[str, Any] = {"current_version": current_version_str}
-    if allow_dirty:
-        overrides["allow_dirty"] = True
-    if commit:
-        overrides["commit"] = True
-
-    try:
-        config = get_configuration(config_file=config_path, **overrides)
-    except Exception as e:
-        console.error(f"Failed to load bumpversion configuration: {e}")
-        console.error(f"Check your bumpversion config at: {config_path}")
-        console.error("Ensure the [tool.bumpversion] section is valid TOML with correct version patterns.")
-        raise typer.Exit(code=1) from None
-    else:
-        return config, config_path
-
-
-def _build_changelog_hooks(new_version: str) -> list[str]:
-    """Build git-cliff pre-commit hooks that fold CHANGELOG.md into the bump commit.
-
-    bump-my-version commits whatever is staged when it runs its ``pre_commit_hooks`` —
-    the same mechanism the project config already uses to include ``uv.lock``.
-    Regenerating the changelog there means the version bump, the lockfile and the
-    changelog land in a single commit and tag, with no separate push to the default
-    branch. That separate push is undesirable: it is blocked by branch-protection
-    rulesets and counts as an unreviewed change against the OpenSSF Scorecard
-    Code-Review check.
-
-    The hooks are only emitted when the project is configured for git-cliff (a
-    ``cliff.toml`` is present), so projects without changelog tooling are unaffected.
-    The new version is passed with ``--tag`` because the release tag does not exist
-    yet when the hooks run; otherwise git-cliff would file the new entries under
-    "unreleased".
-
-    Args:
-        new_version: The version being bumped to (without a leading ``v``).
-
-    Returns:
-        The git-cliff hook commands, or an empty list when git-cliff is not configured.
-
-    Example:
-        >>> _build_changelog_hooks("1.2.3")  # doctest: +SKIP
-        ['uvx git-cliff --tag v1.2.3 --output CHANGELOG.md', 'git add CHANGELOG.md']
-    """
-    if not (Path("cliff.toml").exists() or Path(".cliff.toml").exists()):
-        return []
-    return [
-        f"uvx git-cliff --tag v{new_version} --output CHANGELOG.md",
-        "git add CHANGELOG.md",
-    ]
-
-
-def _get_files_to_modify(config: Any) -> list[Path]:
-    """Get list of files that will be modified by bump-my-version.
-
-    Args:
-        config: The bumpversion configuration object.
-
-    Returns:
-        List of file paths that will be modified.
-    """
-    files = []
-    if hasattr(config, "files_to_modify"):
-        for file_config in config.files_to_modify:
-            if hasattr(file_config, "filename"):
-                files.append(Path(file_config.filename))
-    return files
-
-
-def _show_file_changes(file_path: Path, current_version: str, new_version: str) -> None:
-    """Show the changes that will be made to a file.
-
-    Args:
-        file_path: Path to the file to preview.
-        current_version: The current version string.
-        new_version: The new version string.
-    """
-    if not file_path.exists():
-        console.warning(f"File not found: {file_path}")
-        return
-
-    try:
-        content = file_path.read_text()
-        lines_with_version = []
-
-        for i, line in enumerate(content.split("\n"), 1):
-            if current_version in line:
-                lines_with_version.append((i, line))
-
-        if lines_with_version:
-            console.info(f"  Changes in {typer.style(str(file_path), fg=typer.colors.CYAN, bold=True)}:")
-            for line_num, old_line in lines_with_version:
-                new_line = old_line.replace(current_version, new_version)
-                console.info(f"    Line {line_num}:")
-                console.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
-                console.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
-    except Exception as e:
-        logger.debug(f"Could not preview changes for {file_path}: {e}")
-
-
-def _preview_file_modifications(config: Any, current_version: str, new_version: str) -> None:
-    """Preview what changes will be made to files.
-
-    Args:
-        config: The bumpversion configuration object.
-        current_version: The current version string.
-        new_version: The new version string.
-    """
-    files = _get_files_to_modify(config)
-
-    if files:
-        console.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
-        for file_path in files:
-            _show_file_changes(file_path, current_version, new_version)
-        console.info("")  # Empty line for spacing
-    else:
-        # Fallback: check common files
-        common_files = [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]
-        console.info(f"\n{typer.style('Files to be modified:', fg=typer.colors.YELLOW, bold=True)}")
-        for file_path in common_files:
-            if file_path.exists():
-                _show_file_changes(file_path, current_version, new_version)
-        console.info("")  # Empty line for spacing
-
-
-def _preflight_bump(new_version_str: str, config: Any, config_path: Path) -> None:
-    """Run a dry-run bump to validate the operation would succeed.
-
-    This preflight check ensures the bump operation will succeed before making
-    any actual changes. It catches configuration errors, file access issues,
-    and version format problems early, preventing partial failures that would
-    leave the repository in a state requiring manual recovery.
-
-    Args:
-        new_version_str: The new version string to validate.
-        config: The bumpversion configuration object.
-        config_path: Path to the bumpversion configuration file.
-
-    Raises:
-        typer.Exit: If the preflight validation fails.
-    """
-    console.info("Running preflight validation (dry-run)...")
-    setup_logging(verbose=1 if console.is_verbose() else 0)
-
-    try:
-        do_bump(
-            version_part=None,
-            new_version=new_version_str,
-            config=config,
-            config_file=config_path,
-            dry_run=True,
-        )
-    except Exception as e:
-        console.error(f"Preflight validation failed: {e}")
-        console.error("No changes were made.")
-        raise typer.Exit(code=1) from None
-
-    console.success("Preflight validation passed")
-
-
-def _execute_bump(new_version_str: str, config: Any, config_path: Path, dry_run: bool) -> None:
-    """Execute the bump operation using bump-my-version.
-
-    Args:
-        new_version_str: The new version string to bump to.
-        config: The bumpversion configuration object.
-        config_path: Path to the bumpversion configuration file.
-        dry_run: If True, show what would change without actually changing anything.
-
-    Raises:
-        typer.Exit: If the bump operation fails.
-    """
-    console.info("Running bump-my-version...")
-    setup_logging(verbose=1 if console.is_verbose() else 0)
-
-    try:
-        do_bump(
-            version_part=None,
-            new_version=new_version_str,
-            config=config,
-            config_file=config_path,
-            dry_run=dry_run,
-        )
-    except Exception as e:
-        console.error(f"bump-my-version failed: {e}")
-        if not dry_run:
-            console.error("Files may have been partially modified. To recover:")
-            console.error("  1. Check modified files: git diff")
-            console.error("  2. Restore all changes:  git checkout -- .")
-            console.error("  3. Remove untracked:     git clean -fd")
-            console.error("Or to keep changes, fix the issue and retry.")
-        raise typer.Exit(code=1) from None
 
 
 def _log_bump_success(current_version_str: str, config: Any, language: Language) -> None:
@@ -906,6 +524,68 @@ def _resolve_bump_baseline(current_version_str: str) -> str:
     return current_version_str
 
 
+def _resolve_language(options: BumpOptions) -> Language:
+    """Resolve the project language from options, auto-detecting when unset.
+
+    Args:
+        options: Configuration options for the bump command.
+
+    Returns:
+        The resolved programming language.
+
+    Raises:
+        typer.Exit: If no language is given and none can be detected.
+    """
+    if options.language is None:
+        detected_language = Language.detect()
+        if detected_language is None:
+            console.error("Unable to detect project language.")
+            console.error("Please specify language explicitly with --language option.")
+            console.error("Supported languages: python, go")
+            raise typer.Exit(code=1)
+        language = detected_language
+        console.info(f"Detected language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+    else:
+        language = options.language
+        console.info(f"Using language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+    return language
+
+
+def _finalize_bump(
+    options: BumpOptions,
+    current_version_str: str,
+    config: Any,
+    language: Language,
+    commit: bool,
+    push: bool,
+) -> None:
+    """Report the outcome of a bump and push to remote when requested.
+
+    In dry-run mode this only logs what would have happened; otherwise it logs
+    the successful bump and, if ``push`` is set, pushes the changes to the remote.
+
+    Args:
+        options: Configuration options for the bump command.
+        current_version_str: The original version string before the bump.
+        config: The bumpversion configuration object.
+        language: The programming language (python or go).
+        commit: Whether the bump committed the change.
+        push: Whether to push the change to the remote.
+    """
+    if options.dry_run:
+        console.info("[DRY-RUN] Bump completed (no changes made)")
+        if commit:
+            console.info("[DRY-RUN] Would commit the changes")
+        if push:
+            console.info("[DRY-RUN] Would push changes to remote")
+    else:
+        _log_bump_success(current_version_str, config, language)
+
+        # Handle push
+        if push:
+            _handle_push_to_remote(options.version)
+
+
 def bump_command(options: BumpOptions) -> None:
     """Bump version using bump-my-version.
 
@@ -943,18 +623,7 @@ def bump_command(options: BumpOptions) -> None:
             bump_command(BumpOptions(version="minor", push=True))
     """
     # Detect or use provided language
-    if options.language is None:
-        detected_language = Language.detect()
-        if detected_language is None:
-            console.error("Unable to detect project language.")
-            console.error("Please specify language explicitly with --language option.")
-            console.error("Supported languages: python, go")
-            raise typer.Exit(code=1)
-        language = detected_language
-        console.info(f"Detected language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
-    else:
-        language = options.language
-        console.info(f"Using language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+    language = _resolve_language(options)
 
     _validate_project_exists(language)
 
@@ -1023,18 +692,7 @@ def bump_command(options: BumpOptions) -> None:
 
     _execute_bump(new_version_str, config, config_path, options.dry_run)
 
-    if options.dry_run:
-        console.info("[DRY-RUN] Bump completed (no changes made)")
-        if commit:
-            console.info("[DRY-RUN] Would commit the changes")
-        if push:
-            console.info("[DRY-RUN] Would push changes to remote")
-    else:
-        _log_bump_success(current_version_str, config, language)
-
-        # Handle push
-        if push:
-            _handle_push_to_remote(options.version)
+    _finalize_bump(options, current_version_str, config, language, commit, push)
 
     # Restore original branch if we switched
     _restore_original_branch(original_branch, options.dry_run)

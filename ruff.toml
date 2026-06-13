@@ -77,6 +77,7 @@ extend-select = [
     #"T10",   # flake8-debugger - Check for debugger imports and calls
     "TRY",   # flake8-try-except-raise - Try/except/raise checks
     "ICN",   # flake8-import-conventions - Import convention enforcement
+    "C901",  # mccabe - Flag overly complex functions (cyclomatic complexity)
     #"PIE",   # flake8-pie - Miscellaneous rules
     #"PL",    # Pylint rules
 ]
@@ -86,6 +87,10 @@ ignore = [
     "D203",  # one-blank-line-before-class (conflicts with D211)
     "D213",  # multi-line-summary-second-line (conflicts with D212)
 ]
+
+[lint.mccabe]
+# Maximum cyclomatic complexity allowed before C901 fires.
+max-complexity = 10
 
 [lint.pydocstyle]
 convention = "google"
@@ -113,6 +118,7 @@ line-ending = "auto"
     "PLR2004",  # Allow magic values in project tests
     "RUF002",   # Allow ambiguous unicode in project tests
     "RUF012",   # Allow mutable class attributes in project tests
+    "C901",     # Complexity gate targets production code; tests use elaborate mock setups
 ]
 # Marimo notebooks - allow flexible coding patterns for interactive exploration
 "**/notebooks/*.py" = [
