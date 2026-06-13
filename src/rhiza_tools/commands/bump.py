@@ -342,7 +342,7 @@ def _log_bump_success(current_version_str: str, config: Any, language: Language)
                     content = file_path.read_text()
                     if updated_version in content:
                         console.info(f"  • {file_path}")
-                except OSError:  # nosec B110 - safe to ignore file read errors  # noqa: S110
+                except OSError:  # nosec B110 - safe to ignore file read errors
                     pass
 
     console.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
