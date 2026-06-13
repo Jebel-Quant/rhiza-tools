@@ -72,7 +72,7 @@ def _get_make_help_output() -> str:
     except FileNotFoundError:
         console.error("make command not found")
         raise typer.Exit(code=1) from None
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         console.error(f"Failed to run 'make help': {e}")
         raise typer.Exit(code=1) from None
 
@@ -94,7 +94,7 @@ def _read_readme_content(readme_path: Path) -> str:
     except FileNotFoundError:
         console.error(f"README file not found: {readme_path}")
         raise typer.Exit(code=1) from None
-    except Exception as e:
+    except OSError as e:
         console.error(f"Failed to read README: {e}")
         raise typer.Exit(code=1) from None
 
@@ -111,7 +111,7 @@ def _write_readme_content(readme_path: Path, content: str) -> None:
     """
     try:
         readme_path.write_text(content)
-    except Exception as e:
+    except OSError as e:
         console.error(f"Failed to write README: {e}")
         raise typer.Exit(code=1) from None
 

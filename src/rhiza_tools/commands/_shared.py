@@ -94,7 +94,7 @@ def get_current_version() -> str:
         with open("pyproject.toml", "rb") as f:
             data = tomllib.load(f)
         return str(data["project"]["version"])
-    except Exception as e:
+    except (OSError, tomllib.TOMLDecodeError, KeyError, TypeError) as e:
         console.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None
 

@@ -72,7 +72,8 @@ class RhizaConfig:
         the configuration will be empty. Logs errors if parsing fails.
 
         Raises:
-            Exception: If the configuration file exists but cannot be parsed.
+            tomlkit.exceptions.ParseError: If the configuration file exists but contains invalid TOML.
+            OSError: If the configuration file cannot be read.
 
         Example:
             config = RhizaConfig(Path("custom/.cfg.toml"))
@@ -85,7 +86,7 @@ class RhizaConfig:
         try:
             with open(self.config_path) as f:
                 self._data = tomlkit.parse(f.read())
-        except Exception as e:
+        except (tomlkit.exceptions.ParseError, OSError) as e:
             console.error(f"Failed to parse configuration file {self.config_path}: {e}")
             raise
 
