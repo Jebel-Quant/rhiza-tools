@@ -22,9 +22,11 @@ import typer
 
 from rhiza_tools import console
 
+# The win32 import only succeeds on Windows, so exactly one platform exercises
+# each side of this branch; the fallback can never be covered on Windows.
 try:
     from prompt_toolkit.output.win32 import NoConsoleScreenBufferError as _WinConsoleError
-except (ImportError, AssertionError):
+except (ImportError, AssertionError):  # pragma: no cover
 
     class _WinConsoleError(Exception):  # type: ignore[no-redef]
         """Sentinel: never raised outside of Windows environments."""
