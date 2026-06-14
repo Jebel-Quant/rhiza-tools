@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com),
 and entries are generated from [Conventional Commits](https://www.conventionalcommits.org).
 
+## [0.7.3] - 2026-06-14
+
+### Other Changes
+- Strip SLSA provenance from dist/ before PyPI publish (#267)
+
+## [0.7.2] - 2026-06-14
+
+### Other Changes
+- Bump version 0.7.1 → 0.7.2
+
 ## [0.7.1] - 2026-06-14
 
 ### Maintenance
