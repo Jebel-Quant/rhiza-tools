@@ -2,7 +2,7 @@
 
 These tests exercise the full command workflows as described in the TESTING_GUIDE.md,
 covering interactive and non-interactive modes, dry-run, push, branch operations,
-and the --with-bump release flag.
+and the always-bump release behavior.
 """
 
 import shutil
@@ -19,7 +19,7 @@ from rhiza_tools.commands.bump import (
     get_current_version,
 )
 from rhiza_tools.commands.release import (
-    _get_bump_type_interactively,
+    _resolve_required_bump,
     release_command,
 )
 
@@ -422,6 +422,8 @@ class TestInteractiveRelease:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             release_command(dry_run=True)
 
@@ -437,6 +439,8 @@ class TestInteractiveRelease:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("typer.confirm", return_value=False),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
             pytest.raises(typer.Exit) as exc_info,
         ):
             release_command()
@@ -563,22 +567,26 @@ class TestNonInteractiveReleaseBumpPush:
 # ──────────────────────────────────────────────
 
 
-class TestReleaseWithoutBump:
-    """Test 11: Release without bump - just push existing tag."""
+class TestReleasePushFlow:
+    """Test 11: Release push flow (always bumps before pushing the tag)."""
 
-    def test_release_push_existing_tag_dry_run(self, e2e_project):
-        """Push existing tag in dry-run mode."""
+    def test_release_push_dry_run(self, e2e_project):
+        """Push flow in dry-run mode."""
         subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git):
+        with (
+            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+        ):
             release_command(push=True, dry_run=True)
 
         assert get_current_version(Language.PYTHON) == "0.1.0"
 
     def test_release_push_non_interactive(self, e2e_project):
-        """Non-interactive push of existing tag."""
+        """Non-interactive push (defaults to a patch bump)."""
         subprocess.run([GIT, "tag", "v0.1.0"], check=True, capture_output=True)  # nosec B603
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
@@ -591,6 +599,7 @@ class TestReleaseWithoutBump:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release_git.push_tag", side_effect=mock_push_tag),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
         ):
             release_command(push=True, non_interactive=True)
 
@@ -614,6 +623,8 @@ class TestReleaseCommitListing:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             # Should complete without errors
             release_command(dry_run=True)
@@ -659,6 +670,8 @@ class TestReleaseMissingTag:
 
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
             pytest.raises(typer.Exit),
         ):
             release_command()
@@ -681,6 +694,8 @@ class TestReleaseExistingRemoteTag:
 
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
             pytest.raises(typer.Exit),
         ):
             release_command()
@@ -728,6 +743,8 @@ class TestDryRunVersionCalculation:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             # Should NOT fail even with dirty working tree in dry-run
             release_command(dry_run=True)
@@ -749,15 +766,15 @@ class TestDryRunVersionCalculation:
 
 
 # ──────────────────────────────────────────────
-# --with-bump Feature Tests
+# Always-bump Release Tests (release always bumps the version)
 # ──────────────────────────────────────────────
 
 
-class TestWithBumpFlag:
-    """Tests for the --with-bump interactive release flag."""
+class TestAlwaysBump:
+    """Tests for the always-bump release behavior."""
 
-    def test_with_bump_prompts_for_type(self, e2e_project):
-        """--with-bump should prompt user for bump type (same as bump command)."""
+    def test_interactive_prompts_for_type(self, e2e_project):
+        """An interactive release should prompt the user for the bump type."""
         mock_git = _make_mock_git_for_release(
             tag_exists_locally=False,
             tag_exists_remotely=False,
@@ -770,12 +787,12 @@ class TestWithBumpFlag:
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
-            release_command(with_bump=True, push=True, dry_run=True)
+            release_command(push=True, dry_run=True)
 
         mock_select.assert_called_once()
 
-    def test_with_bump_dry_run_full_flow(self, e2e_project):
-        """--with-bump --push --dry-run: full interactive flow."""
+    def test_interactive_dry_run_full_flow(self, e2e_project):
+        """Interactive --push --dry-run: full bump flow."""
         mock_git = _make_mock_git_for_release(
             tag_exists_locally=False,
             tag_exists_remotely=False,
@@ -788,12 +805,12 @@ class TestWithBumpFlag:
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
-            release_command(with_bump=True, push=True, dry_run=True)
+            release_command(push=True, dry_run=True)
 
         mock_bump.assert_called_once()
 
-    def test_with_bump_non_interactive_defaults_to_patch(self, e2e_project):
-        """--with-bump in non-interactive mode without --bump should default to PATCH."""
+    def test_non_interactive_defaults_to_patch(self, e2e_project):
+        """Non-interactive release without --bump should default to PATCH."""
         mock_git = _make_mock_git_for_release(
             tag_exists_locally=False,
             tag_exists_remotely=False,
@@ -804,7 +821,7 @@ class TestWithBumpFlag:
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
         ):
-            release_command(with_bump=True, non_interactive=True, push=True, dry_run=True)
+            release_command(non_interactive=True, push=True, dry_run=True)
 
         mock_bump.assert_called_once()
         # Should have been called with BumpOptions containing the explicit version string
@@ -813,21 +830,20 @@ class TestWithBumpFlag:
         assert isinstance(options, BumpOptions)
         assert options.version == "0.1.1"
 
-    def test_with_bump_user_cancels_selection(self, e2e_project):
-        """--with-bump: user cancels bump type selection."""
+    def test_interactive_cancel_aborts_release(self, e2e_project):
+        """Cancelling the interactive bump-type selection aborts the release."""
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = None
-            # Should proceed without bump
-            release_command(with_bump=True, dry_run=True)
+            with pytest.raises(typer.Exit):
+                release_command(dry_run=True)
 
-    def test_with_bump_explicit_type_takes_priority(self, e2e_project):
-        """--bump MAJOR takes priority over --with-bump."""
+    def test_explicit_type_skips_prompt(self, e2e_project):
+        """An explicit --bump type should be used without prompting."""
         mock_git = _make_mock_git_for_release(
             tag_exists_locally=False,
             tag_exists_remotely=False,
@@ -837,10 +853,11 @@ class TestWithBumpFlag:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("questionary.select") as mock_select,
         ):
-            # --bump MAJOR should take priority, --with-bump should not trigger prompt
-            release_command(bump_type="MAJOR", with_bump=True, push=True, dry_run=True)
+            release_command(bump_type="MAJOR", push=True, dry_run=True)
 
+        mock_select.assert_not_called()
         mock_bump.assert_called_once()
         # Should have been called with BumpOptions containing the explicit version string
         call_args = mock_bump.call_args[0]
@@ -848,58 +865,49 @@ class TestWithBumpFlag:
         assert isinstance(options, BumpOptions)
         assert options.version == "1.0.0"
 
-    def test_with_bump_eoferror_handled(self, e2e_project):
-        """--with-bump should handle EOFError gracefully (non-tty)."""
+    def test_interactive_eoferror_aborts_release(self, e2e_project):
+        """A non-tty (EOFError) during interactive selection aborts the release."""
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.side_effect = EOFError
-            # Should not crash, just skip bump
-            release_command(with_bump=True, dry_run=True)
+            with pytest.raises(typer.Exit):
+                release_command(dry_run=True)
 
 
 # ──────────────────────────────────────────────
-# _get_bump_type_interactively Tests
+# _resolve_required_bump Tests
 # ──────────────────────────────────────────────
 
 
-class TestGetBumpTypeInteractively:
-    """Tests for _get_bump_type_interactively with with_bump parameter."""
+class TestResolveRequiredBump:
+    """Tests for _resolve_required_bump."""
 
-    def test_explicit_bump_type_takes_priority(self, e2e_project):
-        """Explicit bump_type should be converted to version string."""
-        should_bump, new_version = _get_bump_type_interactively(
-            non_interactive=False, bump_type="MINOR", dry_run=False, with_bump=False, language=Language.PYTHON
+    def test_explicit_bump_type(self, e2e_project):
+        """Explicit bump_type should be converted to a version string."""
+        should_bump, new_version = _resolve_required_bump(
+            non_interactive=False, bump_type="MINOR", language=Language.PYTHON
         )
         assert should_bump is True
         assert new_version == "0.2.0"
 
-    def test_with_bump_non_interactive_defaults_patch(self, e2e_project):
-        """with_bump + non_interactive should default to patch version."""
-        should_bump, new_version = _get_bump_type_interactively(
-            non_interactive=True, bump_type=None, dry_run=True, with_bump=True, language=Language.PYTHON
+    def test_non_interactive_defaults_patch(self, e2e_project):
+        """non_interactive without a bump type should default to patch version."""
+        should_bump, new_version = _resolve_required_bump(
+            non_interactive=True, bump_type=None, language=Language.PYTHON
         )
         assert should_bump is True
         assert new_version == "0.1.1"
 
-    def test_dry_run_without_with_bump_skips_prompts(self):
-        """dry_run without with_bump should not prompt."""
-        should_bump, bump_type = _get_bump_type_interactively(
-            non_interactive=False, bump_type=None, dry_run=True, with_bump=False, language=Language.PYTHON
-        )
-        assert should_bump is False
-        assert bump_type is None
-
-    def test_with_bump_prompts_interactively(self, e2e_project):
-        """with_bump should use bump's interactive selection."""
+    def test_interactive_prompts(self, e2e_project):
+        """Interactive mode should use the interactive bump-type selection."""
         with patch("questionary.select") as mock_select:
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
-            should_bump, new_version = _get_bump_type_interactively(
-                non_interactive=False, bump_type=None, dry_run=True, with_bump=True, language=Language.PYTHON
+            should_bump, new_version = _resolve_required_bump(
+                non_interactive=False, bump_type=None, language=Language.PYTHON
             )
         assert should_bump is True
         assert new_version == "0.2.0"
@@ -913,8 +921,8 @@ class TestGetBumpTypeInteractively:
 class TestCLIIntegration:
     """Tests for CLI command invocation via typer runner."""
 
-    def test_release_with_bump_cli_flag(self, monkeypatch):
-        """Test --with-bump flag is passed correctly via CLI."""
+    def test_release_push_dry_run_cli_flags(self, monkeypatch):
+        """Test --push --dry-run flags are passed correctly via CLI."""
         from typer.testing import CliRunner
 
         from rhiza_tools.cli import app
@@ -923,12 +931,13 @@ class TestCLIIntegration:
         mock_release = MagicMock()
         monkeypatch.setattr("rhiza_tools.cli.release_command", mock_release)
 
-        result = runner.invoke(app, ["release", "--with-bump", "--push", "--dry-run"])
+        result = runner.invoke(app, ["release", "--push", "--dry-run"])
         assert result.exit_code == 0
-        mock_release.assert_called_once_with(None, True, True, False, True, None, None, False)
+        # release_command(bump, push, dry_run, non_interactive, language, config, allow_older)
+        mock_release.assert_called_once_with(None, True, True, False, None, None, False)
 
-    def test_release_bump_and_with_bump_cli(self, monkeypatch):
-        """Test --bump MINOR --with-bump together via CLI."""
+    def test_release_explicit_bump_cli(self, monkeypatch):
+        """Test --bump MINOR --push via CLI."""
         from typer.testing import CliRunner
 
         from rhiza_tools.cli import app
@@ -937,9 +946,10 @@ class TestCLIIntegration:
         mock_release = MagicMock()
         monkeypatch.setattr("rhiza_tools.cli.release_command", mock_release)
 
-        result = runner.invoke(app, ["release", "--bump", "MINOR", "--with-bump", "--push"])
+        result = runner.invoke(app, ["release", "--bump", "MINOR", "--push"])
         assert result.exit_code == 0
-        mock_release.assert_called_once_with("MINOR", True, False, False, True, None, None, False)
+        # release_command(bump, push, dry_run, non_interactive, language, config, allow_older)
+        mock_release.assert_called_once_with("MINOR", True, False, False, None, None, False)
 
     def test_bump_cli_all_flags(self, monkeypatch):
         """Test bump CLI with all flags."""
@@ -995,6 +1005,8 @@ class TestSequentialBumpRelease:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.1"),
         ):
             release_command(dry_run=True)
 
@@ -1070,6 +1082,8 @@ class TestNonDefaultBranchRelease:
         with (
             patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
+            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             release_command(dry_run=True)
 

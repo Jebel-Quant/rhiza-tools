@@ -1,8 +1,8 @@
 """Bump-type resolution for the release command.
 
-The release command can optionally bump the version before tagging. Working out
-*which* version to bump to — from an explicit ``--bump`` type, the ``--with-bump``
-flag, or an interactive prompt — is a self-contained concern with no git
+A release always bumps the version before tagging. Working out *which* version
+to bump to — from an explicit ``--bump`` type, an interactive prompt, or a patch
+default in non-interactive mode — is a self-contained concern with no git
 plumbing, so it lives here rather than in ``release.py``. ``release.py``
 re-exports these helpers, so the public import surface is unchanged.
 """
@@ -11,10 +11,8 @@ from pathlib import Path
 
 import semver
 import typer
-from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import NON_INTERACTIVE_ERRORS
 from rhiza_tools.commands.bump import (
     BumpOptions,
     Language,
@@ -25,43 +23,39 @@ from rhiza_tools.commands.bump import (
     get_interactive_bump_type,
 )
 
-# Combined tuple for catching both typer.Exit and non-interactive environment errors.
-_EXIT_OR_NON_INTERACTIVE: tuple[type[BaseException], ...] = (typer.Exit, *NON_INTERACTIVE_ERRORS)
 
+def _resolve_required_bump(non_interactive: bool, bump_type: str | None, *, language: Language) -> tuple[bool, str]:
+    """Resolve the version bump to apply before releasing.
 
-def _get_bump_type_interactively(
-    non_interactive: bool, bump_type: str | None, dry_run: bool, with_bump: bool = False, *, language: Language
-) -> tuple[bool, str | None]:
-    """Get bump version interactively or from parameters.
-
-    Uses the same interactive selection as the bump command to ensure consistent
-    behavior between ``rhiza-tools bump`` and ``rhiza-tools release --with-bump``.
+    A release always bumps, so this never returns "no bump". The bump target is
+    resolved, in order of precedence, from: an explicit ``bump_type``; a patch
+    default when running non-interactively without one; or an interactive prompt
+    for the bump type. Cancelling the interactive prompt raises ``typer.Exit``
+    (via :func:`get_interactive_bump_type`), aborting the release.
 
     Args:
-        non_interactive: If True, skip interactive prompts.
-        bump_type: Explicit bump type provided (e.g., "MAJOR", "MINOR", "PATCH").
-        dry_run: If True, the bump will be simulated (handled by caller).
-        with_bump: If True, enable interactive bump selection directly.
+        non_interactive: If True, skip prompts and default to a patch bump.
+        bump_type: Explicit bump type (e.g., "MAJOR", "MINOR", "PATCH"), if given.
         language: The programming language for version reading.
 
     Returns:
-        Tuple of (should_bump, new_version_string). The version string is the
-        explicit new version (not a bump type keyword).
+        Tuple of ``(True, new_version_string)`` — the explicit new version to
+        bump to (not a bump-type keyword).
     """
     if bump_type:
         return _resolve_explicit_bump_type(bump_type, language)
 
-    if with_bump:
-        return _resolve_with_bump_flag(non_interactive, language)
+    current_version_str = _resolve_bump_baseline(get_current_version(language))
 
-    if not non_interactive:
-        return _resolve_interactive_prompt(language)
+    if non_interactive:
+        console.warning("No --bump type given in non-interactive mode, defaulting to patch")
+        current_semver = semver.Version.parse(current_version_str)
+        return True, str(current_semver.bump_patch())
 
-    # Non-interactive without --with-bump or --bump: no bump
-    return False, None
+    return True, get_interactive_bump_type(current_version_str)
 
 
-def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[bool, str | None]:
+def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[bool, str]:
     """Resolve version from an explicitly provided bump type.
 
     Args:
@@ -84,63 +78,6 @@ def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[boo
     if not new_version:
         console.error(f"Invalid bump type: {bump_type}")
         raise typer.Exit(code=1)
-    return True, new_version
-
-
-def _resolve_with_bump_flag(non_interactive: bool, language: Language) -> tuple[bool, str | None]:
-    """Resolve version when --with-bump flag is set.
-
-    In non-interactive mode defaults to patch; otherwise prompts interactively.
-
-    Args:
-        non_interactive: If True, default to a patch bump.
-        language: The programming language for version reading.
-
-    Returns:
-        Tuple of (should_bump, new_version_string).
-    """
-    if non_interactive:
-        console.warning("--with-bump in non-interactive mode without --bump type, defaulting to patch")
-        current_version_str = _resolve_bump_baseline(get_current_version(language))
-        current_semver = semver.Version.parse(current_version_str)
-        return True, str(current_semver.bump_patch())
-
-    current_version_str = _resolve_bump_baseline(get_current_version(language))
-    try:
-        new_version = get_interactive_bump_type(current_version_str)
-    except _EXIT_OR_NON_INTERACTIVE:
-        return False, None
-    return True, new_version
-
-
-def _resolve_interactive_prompt(language: Language) -> tuple[bool, str | None]:
-    """Prompt the user interactively whether to bump before releasing.
-
-    Args:
-        language: The programming language for version reading.
-
-    Returns:
-        Tuple of (should_bump, new_version_string).
-    """
-    import questionary as qs
-
-    try:
-        should_bump = qs.confirm(
-            "Would you like to bump the version before releasing?",
-            default=False,
-        ).ask()
-    except NON_INTERACTIVE_ERRORS:
-        logger.debug("Running in non-interactive environment")
-        return False, None
-
-    if not should_bump:
-        return False, None
-
-    current_version_str = _resolve_bump_baseline(get_current_version(language))
-    try:
-        new_version = get_interactive_bump_type(current_version_str)
-    except _EXIT_OR_NON_INTERACTIVE:
-        return False, None
     return True, new_version
 
 

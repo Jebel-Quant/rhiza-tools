@@ -73,17 +73,11 @@ from rhiza_tools.commands.release_git import (
 # Bump-type resolution lives in release_versioning; re-exported here so the
 # public import surface (and existing tests) keep using ``release.<helper>``.
 from rhiza_tools.commands.release_versioning import (
-    _get_bump_type_interactively,
     _perform_version_bump,
+    _resolve_required_bump,
 )
 from rhiza_tools.commands.release_versioning import (
     _resolve_explicit_bump_type as _resolve_explicit_bump_type,
-)
-from rhiza_tools.commands.release_versioning import (
-    _resolve_interactive_prompt as _resolve_interactive_prompt,
-)
-from rhiza_tools.commands.release_versioning import (
-    _resolve_with_bump_flag as _resolve_with_bump_flag,
 )
 
 
@@ -209,27 +203,30 @@ def release_command(
     push: bool = False,
     dry_run: bool = False,
     non_interactive: bool = False,
-    with_bump: bool = False,
     language: Language | None = None,
     config: Path | None = None,
     allow_older: bool = False,
 ) -> None:
-    """Push a release tag to remote.
+    """Bump the version and push a release tag to remote.
 
-    This command performs the following steps:
+    A release always bumps the version before tagging — there is no tag-only
+    path. This command performs the following steps:
     1. Detects the project language (Python or Go) unless explicitly specified
-    2. Optionally bumps the version if bump_type is provided or with_bump is True
+    2. Resolves the bump (explicit ``bump_type``, interactive prompt, or a patch
+       default in non-interactive mode) and bumps the version
     3. Reads the current version from pyproject.toml (Python) or VERSION file (Go)
     4. Validates the git repository state (clean working tree, up-to-date with remote)
     5. Checks that a tag exists for the current version (created by bump-my-version)
     6. Pushes the tag to remote, triggering the release workflow
 
     Args:
-        bump_type: Optional bump type (MAJOR, MINOR, PATCH) to apply before release.
+        bump_type: Optional bump type (MAJOR, MINOR, PATCH) to apply. When omitted,
+            the bump type is selected interactively (or defaults to patch in
+            non-interactive mode).
         push: If True, push changes without prompting.
         dry_run: If True, show what would be done without making any changes.
-        non_interactive: If True, skip all confirmation prompts.
-        with_bump: If True, enable interactive bump selection (works with dry-run).
+        non_interactive: If True, skip all confirmation prompts and default the
+            bump to patch when no ``bump_type`` is given.
         language: Programming language (python or go). Auto-detected if not specified.
         config: Optional path to the .cfg.toml bumpversion config file.
         allow_older: If True, permit releasing a version that is not strictly
@@ -241,7 +238,7 @@ def release_command(
             tag doesn't exist, or any git operations fail.
 
     Example:
-        Push a release tag::
+        Bump (interactive) and release::
 
             release_command()
 
@@ -249,17 +246,13 @@ def release_command(
 
             release_command(dry_run=True)
 
-        Non-interactive mode::
+        Non-interactive patch release::
 
             release_command(non_interactive=True)
 
-        Bump and release::
+        Explicit bump and release::
 
             release_command(bump_type="MINOR", push=True)
-
-        Interactive bump with dry-run::
-
-            release_command(with_bump=True, push=True, dry_run=True)
 
         Release a Go project::
 
@@ -279,10 +272,9 @@ def release_command(
     current_branch = get_current_branch()
     console.info(f"Current branch: {typer.style(current_branch, fg=typer.colors.CYAN, bold=True)}")
 
-    # Interactive mode: ask if user wants to bump version
-    should_bump, new_version = _get_bump_type_interactively(
-        non_interactive, bump_type, dry_run, with_bump, language=language
-    )
+    # A release always bumps: resolve the bump target (explicit, interactive, or
+    # patch default in non-interactive mode).
+    _, new_version = _resolve_required_bump(non_interactive, bump_type, language=language)
 
     # ── Preflight validation: check everything BEFORE making any changes ──
     default_branch = get_default_branch()
@@ -291,11 +283,10 @@ def release_command(
     # Ensure the version we are about to release is strictly newer than the
     # latest version already published on the remote (issue #1126). Runs in all
     # modes (including dry-run) and before any mutation.
-    prospective_version = new_version if (should_bump and new_version) else get_current_version(language)
-    _check_release_version_monotonic(prospective_version, allow_older)
+    _check_release_version_monotonic(new_version, allow_older)
 
-    # If bumping, pre-validate that the new tag won't conflict with remote
-    if should_bump and new_version and not dry_run:
+    # Pre-validate that the new tag won't conflict with remote
+    if not dry_run:
         new_tag = f"v{new_version}"
         _, exists_remotely = check_tag_exists(new_tag)
         if exists_remotely:
@@ -309,10 +300,8 @@ def release_command(
 
     # ── Execute: all preflight checks passed, safe to make changes ──
 
-    # Perform bump if requested (bump_command runs its own internal preflight)
-    bumped_new_version: str | None = None
-    if should_bump and new_version:
-        bumped_new_version = _perform_version_bump(new_version, dry_run, language, config)
+    # Perform the bump (bump_command runs its own internal preflight)
+    bumped_new_version = _perform_version_bump(new_version, dry_run, language, config)
 
     # Get current version and tag
     current_version, tag = _get_release_version(dry_run, bumped_new_version, language)
