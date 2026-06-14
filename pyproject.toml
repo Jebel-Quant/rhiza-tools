@@ -24,7 +24,11 @@ dependencies = [
     "semver>=3.0.4,<4.0",
     "tomlkit>=0.13.3,<1.0",
     "typer>=0.16.0,<1.0",
-    "bump-my-version==1.3.0",
+    "bump-my-version>=1.3.0,<1.4",   # patch-floating: pick up 1.3.x fixes, hold the minor we test against
+    # pandas + plotly back only the optional `analyze-benchmarks` visualization
+    # command, where they are imported lazily (see commands/analyze_benchmarks.py).
+    # The >=3 floor is the version pinned at introduction, not a code requirement
+    # (only DataFrame/sort_values/to_string are used); <3.1 holds the tested minor.
     "pandas>=3,<3.1",
     "plotly>=6.5.0,<7.0",
     "prompt-toolkit>=3.0.52,<4.0",
