@@ -72,12 +72,21 @@ error-on-warning = true
 
 [tool.deptry.package_module_name_map]
 "bump-my-version" = "bumpversion"
+"hypothesis" = "hypothesis"
 "loguru" = "loguru"
 "marimo" = "marimo"
+"mutmut" = "mutmut"
 "numpy" = "numpy"
 "pandas" = "pandas"
 "plotly" = "plotly"
+"prompt-toolkit" = "prompt_toolkit"
+"pytest" = "pytest"
+"pytest-cov" = "pytest_cov"
+"pytest-mock" = "pytest_mock"
+"pytest-timeout" = "pytest_timeout"
+"pytest-xdist" = "xdist"   # plugin imports as `xdist`, not `pytest_xdist`
 "questionary" = "questionary"
+"ruff" = "ruff"
 "semver" = "semver"
 "tomlkit" = "tomlkit"
 "typer" = "typer"
