@@ -7,7 +7,9 @@ fast failures surface before the slow test suite — and collect results:
 
 1. `make fmt` — pre-commit hooks + linting (ruff).
 2. `make typecheck` — `ty` type checking.
-3. `make test` — full test suite.
+3. `make docs-coverage` — docstring coverage (interrogate).
+4. `make validate` — validate project structure against the Rhiza template.
+5. `make test` — full test suite.
 
 Then report:
 
