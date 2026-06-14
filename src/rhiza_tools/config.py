@@ -55,7 +55,7 @@ class RhizaConfig:
             config.load()
     """
 
-    def __init__(self, config_path: Path | None = None):
+    def __init__(self, config_path: Path | None = None) -> None:
         """Initialize RhizaConfig.
 
         Args:
@@ -113,7 +113,7 @@ class RhizaConfig:
 
     # Generic accessor over arbitrary top-level TOML keys; the value type is
     # only known to the caller, so ``Any`` is intentional here (TOML passthrough).
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: Any = None) -> Any:  # noqa: ANN401
         """Get configuration value.
 
         Args:

@@ -121,7 +121,10 @@ class TestSelectTagInteractively:
 
         monkeypatch.setattr(rollback_mod.qs, "select", lambda *a, **kw: MockQuestion())
 
-        with patch.object(rollback_mod, "check_tag_exists", side_effect=mock_check_tag_exists):
+        # _select_tag_interactively lives in rollback_io and looks up check_tag_exists
+        # in its own module namespace, so patch it there (not on the rollback re-export)
+        # to exercise the local/remote marker branches.
+        with patch.object(rollback_io_mod, "check_tag_exists", side_effect=mock_check_tag_exists):
             result = _select_tag_interactively(["v1.2.3", "v1.2.2"])
             assert result == "v1.2.3"
 

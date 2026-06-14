@@ -1404,13 +1404,25 @@ class TestValidateTagState:
         ):
             _validate_tag_state("v1.0.1", "1.0.1")  # should not raise
 
+    def test_exits_when_tag_already_on_remote(self):
+        """release_git.py:239-244 – exits when the tag already exists on remote."""
+        import rhiza_tools.commands.release_git as release_git_mod
+        from rhiza_tools.commands.release import _validate_tag_state
+
+        with (
+            patch.object(release_git_mod, "check_tag_exists", return_value=(False, True)),
+            pytest.raises(typer.Exit) as exc_info,
+        ):
+            _validate_tag_state("v1.0.1", "1.0.1")
+        assert exc_info.value.exit_code == 1
+
 
 class TestShowCommitsSinceLastTag:
     """Tests for commit display in release._show_commits_since_last_tag."""
 
     def test_shows_commits_with_previous_tag(self):
-        """release.py:430-443 – commits since last tag are displayed."""
-        import rhiza_tools.commands.release as release_mod
+        """release_git.py:288-294 – commits since last tag are displayed."""
+        import rhiza_tools.commands.release_git as release_git_mod
         from rhiza_tools.commands.release import _show_commits_since_last_tag
 
         tags_result = MagicMock()
@@ -1421,12 +1433,14 @@ class TestShowCommitsSinceLastTag:
         commits_result.returncode = 0
         commits_result.stdout = "abc1234 feat: add feature\ndef5678 fix: fix bug\n"
 
-        with patch.object(release_mod, "run_git_command", side_effect=[tags_result, commits_result]):
+        # The function runs in release_git and resolves run_git_command in that
+        # module's namespace, so patch it there (not on the release re-export).
+        with patch.object(release_git_mod, "run_git_command", side_effect=[tags_result, commits_result]):
             _show_commits_since_last_tag("v1.0.1")  # should not raise
 
     def test_shows_more_than_10_commits(self):
-        """release.py:442-443 – truncation message shown when >10 commits."""
-        import rhiza_tools.commands.release as release_mod
+        """release_git.py:293-294 – truncation message shown when >10 commits."""
+        import rhiza_tools.commands.release_git as release_git_mod
         from rhiza_tools.commands.release import _show_commits_since_last_tag
 
         tags_result = MagicMock()
@@ -1438,7 +1452,7 @@ class TestShowCommitsSinceLastTag:
         commits_result.returncode = 0
         commits_result.stdout = many_commits
 
-        with patch.object(release_mod, "run_git_command", side_effect=[tags_result, commits_result]):
+        with patch.object(release_git_mod, "run_git_command", side_effect=[tags_result, commits_result]):
             _show_commits_since_last_tag("v1.0.1")
 
 
