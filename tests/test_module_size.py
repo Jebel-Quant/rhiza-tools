@@ -7,6 +7,14 @@ extracting ``bump_io``, ``bump_git``, ``release_git``, and ``rollback_io``,
 bringing every command module below 500 lines. This gate prevents regression:
 every command module must stay at or below a 500-line ceiling, so future growth
 is split out rather than accreted into one file.
+
+Issue #261 re-assessed the largest remaining modules (``bump_io`` ~352 lines,
+``release_git`` ~337 lines, ``rollback`` ~378 lines). They sit comfortably under
+the ceiling and each owns a single, documented responsibility — ``bump_io`` is
+the bump command's project-I/O + interactive-UI layer, ``release_git`` is the
+release command's git plumbing, ``rollback`` is the rollback command flow. Their
+size is intrinsic to that cohesive responsibility, so they are intentionally kept
+whole rather than split further; the line ceiling below is the binding rule.
 """
 
 from __future__ import annotations
