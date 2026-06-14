@@ -81,6 +81,7 @@ extend-select = [
     "C901",  # mccabe - Flag overly complex functions (cyclomatic complexity)
     "PIE",   # flake8-pie - Miscellaneous rules
     "PL",    # Pylint rules
+    "ANN",   # flake8-annotations - Enforce complete type annotations
 ]
 
 # Resolve incompatible pydocstyle rules: prefer D211 and D212 over D203 and D213
@@ -131,6 +132,7 @@ line-ending = "auto"
     "C901",     # Complexity gate targets production code; tests use elaborate mock setups
     "PLR0911",  # Test doubles/dispatchers legitimately have many return branches
     "PLR1714",  # Readability of explicit comparison chains is fine in tests
+    "ANN",      # Type annotations add noise to test functions/fixtures/mocks, not safety
 ]
 # Marimo notebooks - allow flexible coding patterns for interactive exploration
 "**/notebooks/*.py" = [
@@ -141,6 +143,7 @@ line-ending = "auto"
     "B018",    # Allow useless expressions in notebooks
     "RUF001",  # Allow ambiguous unicode in notebooks
     "RUF002",  # Allow ambiguous unicode in notebooks
+    "ANN",     # Annotations are unnecessary noise in interactive notebooks
 ]
 # Internal utility scripts - specific exceptions for internal tooling
 ".rhiza/utils/*.py" = [
