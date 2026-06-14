@@ -220,11 +220,8 @@ def generate_coverage_badge(
 
 @app.command()
 def release(
-    bump: str | None = typer.Option(None, "--bump", help="Bump type (MAJOR, MINOR, PATCH) before release."),
-    with_bump: bool = typer.Option(
-        False,
-        "--with-bump",
-        help="Interactively select bump type before release (works with --dry-run).",
+    bump: str | None = typer.Option(
+        None, "--bump", help="Bump type (MAJOR, MINOR, PATCH). Selected interactively when omitted."
     ),
     push: bool = typer.Option(False, "--push", help="Push changes to remote (default: prompt in interactive mode)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
@@ -240,27 +237,28 @@ def release(
     config: Path | None = CONFIG_OPTION,
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
-    """Push a release tag to remote to trigger the release workflow.
+    """Bump the version and push a release tag to remote to trigger the release workflow.
 
-    This command validates the repository state and pushes the git tag for the
-    current version to the remote repository, which triggers the automated release
-    workflow. Supports Python projects (pyproject.toml) and Go projects
-    (go.mod + VERSION file). The project language is auto-detected when not
-    explicitly specified.
+    A release always bumps the version before tagging: the bump type is taken
+    from ``--bump`` when given, selected interactively otherwise, or defaults to
+    patch in non-interactive mode. The command then validates the repository
+    state and pushes the git tag, which triggers the automated release workflow.
+    Supports Python projects (pyproject.toml) and Go projects (go.mod + VERSION
+    file). The project language is auto-detected when not explicitly specified.
 
     Args:
-        bump: Bump type (MAJOR, MINOR, PATCH) to apply before release.
-        with_bump: If True, interactively select bump type before release.
+        bump: Bump type (MAJOR, MINOR, PATCH) to apply. Selected interactively when omitted.
         push: If True, push changes without prompting (implies non-interactive for push).
         dry_run: If True, show what would happen without actually pushing the tag.
-        non_interactive: If True, skip all confirmation prompts (useful for CI/CD).
+        non_interactive: If True, skip all confirmation prompts and default the bump to
+            patch when no --bump type is given (useful for CI/CD).
         language: Programming language (python or go). Auto-detected if not specified.
         allow_older: If True, allow releasing a version not newer than the latest remote release.
-        config: Path to the .cfg.toml bumpversion config file. Passed through to bump when --with-bump is used.
+        config: Path to the .cfg.toml bumpversion config file. Passed through to the bump.
         verbose: If True, enable verbose debug output.
 
     Example:
-        Push a release tag (with prompts)::
+        Bump (interactive) and release::
 
             $ rhiza-tools release
 
@@ -268,21 +266,17 @@ def release(
 
             $ rhiza-tools release --dry-run
 
-        Non-interactive mode (for CI/CD)::
+        Non-interactive patch release (for CI/CD)::
 
             $ rhiza-tools release --non-interactive
 
-        Bump version and release::
+        Explicit bump and release::
 
             $ rhiza-tools release --bump MINOR --push
 
-        Bump version and release with custom config::
+        Explicit bump and release with custom config::
 
             $ rhiza-tools release --bump MINOR --push --config /path/to/.cfg.toml
-
-        Interactive bump with dry-run preview::
-
-            $ rhiza-tools release --with-bump --push --dry-run
 
         Release a Go project::
 
@@ -300,7 +294,7 @@ def release(
             console.error("Supported languages: python, go")
             raise typer.Exit(code=1) from None
 
-    release_command(bump, push, dry_run, non_interactive, with_bump, lang_enum, config, allow_older)
+    release_command(bump, push, dry_run, non_interactive, lang_enum, config, allow_older)
 
 
 @app.command()

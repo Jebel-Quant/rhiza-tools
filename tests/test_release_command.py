@@ -9,7 +9,7 @@ import typer
 from rhiza_tools.commands.bump import BumpOptions, Language, get_current_version
 from rhiza_tools.commands.release import (
     _resolve_explicit_bump_type,
-    _resolve_interactive_prompt,
+    _resolve_required_bump,
     check_branch_status,
     check_clean_working_tree,
     check_tag_exists,
@@ -295,7 +295,8 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
     with (
         patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
-        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.2.4"),
     ):
         release_command(dry_run=True)  # Should complete without errors
 
@@ -325,7 +326,8 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
-        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.2.3"),
         pytest.raises(typer.Exit),
     ):
         release_command()
@@ -354,7 +356,8 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
-        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.2.3"),
         pytest.raises(typer.Exit),
     ):
         release_command()
@@ -467,7 +470,10 @@ def test_release_command_non_default_branch_non_interactive(mock_pyproject, monk
 
         return result
 
-    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
+    with (
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+    ):
         # Should not raise in non-interactive mode
         release_command(dry_run=True, non_interactive=True)
 
@@ -502,7 +508,10 @@ def test_release_command_with_commit_count(mock_pyproject, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
+    with (
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+    ):
         release_command(dry_run=True, non_interactive=True)
 
 
@@ -537,7 +546,8 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
     with (
         patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
-        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.2.3"),
         pytest.raises(typer.Exit) as exc_info,
     ):
         release_command(dry_run=False, non_interactive=False)
@@ -574,7 +584,10 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
+    with (
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+    ):
         # Should complete successfully in non-interactive mode
         release_command(dry_run=False, non_interactive=True)
 
@@ -606,7 +619,8 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
     with (
         patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
-        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.2.3"),
         pytest.raises(typer.Exit) as exc_info,
     ):
         release_command(dry_run=False, non_interactive=False)
@@ -705,7 +719,8 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
     with (
         patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release_git.push_tag", side_effect=mock_push_tag),
-        patch("questionary.confirm", return_value=MagicMock(ask=MagicMock(return_value=False))),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.2.3"),
     ):
         release_command(push=True)
 
@@ -960,18 +975,36 @@ def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
         # Should complete without showing tag details
 
 
-def test_get_bump_type_interactively_eoferror(monkeypatch):
-    """Test _get_bump_type_interactively handles EOFError."""
-    from rhiza_tools.commands.release import _get_bump_type_interactively
+def test_resolve_required_bump_non_interactive_defaults_to_patch(mock_pyproject, monkeypatch):
+    """Test _resolve_required_bump defaults to a patch bump in non-interactive mode."""
+    should_bump, new_version = _resolve_required_bump(True, None, language=Language.PYTHON)
 
-    # Mock questionary to raise EOFError
-    with patch("questionary.confirm") as mock_confirm:
-        mock_confirm.return_value.ask.side_effect = EOFError
+    assert should_bump is True
+    assert new_version == "1.2.4"
 
-        should_bump, bump_type = _get_bump_type_interactively(False, None, False, language=Language.PYTHON)
 
-        assert should_bump is False
-        assert bump_type is None
+def test_resolve_required_bump_interactive_uses_get_interactive_bump_type(mock_pyproject, monkeypatch):
+    """Test _resolve_required_bump uses get_interactive_bump_type in interactive mode."""
+    with patch(
+        "rhiza_tools.commands.release_versioning.get_interactive_bump_type",
+        return_value="2.0.0",
+    ):
+        should_bump, new_version = _resolve_required_bump(False, None, language=Language.PYTHON)
+
+    assert should_bump is True
+    assert new_version == "2.0.0"
+
+
+def test_resolve_required_bump_interactive_cancel_aborts(mock_pyproject, monkeypatch):
+    """Test _resolve_required_bump aborts when the interactive prompt is cancelled."""
+    with (
+        patch(
+            "rhiza_tools.commands.release_versioning.get_interactive_bump_type",
+            side_effect=typer.Exit(),
+        ),
+        pytest.raises(typer.Exit),
+    ):
+        _resolve_required_bump(False, None, language=Language.PYTHON)
 
 
 def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
@@ -1250,7 +1283,10 @@ def test_release_command_go_project_dry_run(mock_go_project, monkeypatch):
 
         return result
 
-    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
+    with (
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+    ):
         # Auto-detect should find Go project
         release_command(dry_run=True, non_interactive=True)
 
@@ -1283,7 +1319,10 @@ def test_release_command_go_project_explicit_language(mock_go_project, monkeypat
 
         return result
 
-    with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command):
+    with (
+        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands.release_versioning.bump_command"),
+    ):
         release_command(dry_run=True, non_interactive=True, language=Language.GO)
 
 
@@ -1344,50 +1383,6 @@ def test_release_command_go_with_bump(mock_go_project, monkeypatch):
 # ---------------------------------------------------------------------------
 # Branch/edge-case coverage relocated from the former test_coverage_100.py
 # ---------------------------------------------------------------------------
-
-
-class TestResolveInteractivePromptBumpExit:
-    """Tests for exception paths in release._resolve_interactive_prompt."""
-
-    def test_get_interactive_bump_raises_exit(self):
-        """release.py:338-339 – returns (False, None) when get_interactive_bump_type raises Exit."""
-        from rhiza_tools.commands.bump import Language
-        from rhiza_tools.commands.release import _resolve_interactive_prompt
-
-        mock_confirm = MagicMock()
-        mock_confirm.ask.return_value = True
-
-        with (
-            patch("questionary.confirm", return_value=mock_confirm),
-            patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
-            patch(
-                "rhiza_tools.commands.release_versioning.get_interactive_bump_type",
-                side_effect=typer.Exit(),
-            ),
-        ):
-            result = _resolve_interactive_prompt(Language.PYTHON)
-
-        assert result == (False, None)
-
-    def test_get_interactive_bump_raises_eof(self):
-        """release.py:338-339 – returns (False, None) when get_interactive_bump_type raises EOFError."""
-        from rhiza_tools.commands.bump import Language
-        from rhiza_tools.commands.release import _resolve_interactive_prompt
-
-        mock_confirm = MagicMock()
-        mock_confirm.ask.return_value = True
-
-        with (
-            patch("questionary.confirm", return_value=mock_confirm),
-            patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
-            patch(
-                "rhiza_tools.commands.release_versioning.get_interactive_bump_type",
-                side_effect=EOFError,
-            ),
-        ):
-            result = _resolve_interactive_prompt(Language.PYTHON)
-
-        assert result == (False, None)
 
 
 class TestValidateTagState:
@@ -1490,38 +1485,12 @@ def test_resolve_explicit_bump_type_invalid_bump_type():
         _resolve_explicit_bump_type("INVALID", Language.PYTHON)
 
 
-def test_resolve_interactive_prompt_user_declines():
-    """Test _resolve_interactive_prompt returns (False, None) when user declines bump."""
-    mock_confirm = MagicMock()
-    mock_confirm.ask.return_value = False
-
-    with patch("questionary.confirm", return_value=mock_confirm):
-        result = _resolve_interactive_prompt(Language.PYTHON)
-
-    assert result == (False, None)
-
-
-def test_resolve_interactive_prompt_bump_eof():
-    """Test _resolve_interactive_prompt returns (False, None) on EOFError."""
-    mock_confirm = MagicMock()
-    mock_confirm.ask.side_effect = EOFError
-
-    with patch("questionary.confirm", return_value=mock_confirm):
-        result = _resolve_interactive_prompt(Language.PYTHON)
-
-    assert result == (False, None)
-
-
-def test_resolve_interactive_prompt_bump_success():
-    """Test _resolve_interactive_prompt returns (True, new_version) when user accepts."""
-    mock_confirm = MagicMock()
-    mock_confirm.ask.return_value = True
-
+def test_resolve_required_bump_interactive_success():
+    """Test _resolve_required_bump returns (True, new_version) from the interactive prompt."""
     with (
-        patch("questionary.confirm", return_value=mock_confirm),
         patch("rhiza_tools.commands.release_versioning.get_current_version", return_value="1.0.0"),
         patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="1.1.0"),
     ):
-        result = _resolve_interactive_prompt(Language.PYTHON)
+        result = _resolve_required_bump(False, None, language=Language.PYTHON)
 
     assert result == (True, "1.1.0")
