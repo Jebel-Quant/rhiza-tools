@@ -9,7 +9,13 @@ fast failures surface before the slow test suite — and collect results:
 2. `make typecheck` — `ty` type checking.
 3. `make docs-coverage` — docstring coverage (interrogate).
 4. `make validate` — validate project structure against the Rhiza template.
-5. `make test` — full test suite.
+5. `make deptry` — dependency analysis (missing, unused, misplaced deps).
+6. `make test` — full test suite.
+
+> **Local experiment:** step 5 (`make deptry`) is wired in here locally to trial
+> it. Feed its result into the dependency & security hygiene subcategory: a clean
+> run is positive evidence; any missing/unused/transitive findings are an
+> in-scope gap to flag.
 
 **Coverage expectation: 100%.** Treat anything below 100% line coverage on
 locally-owned `src/` as a gap to flag, not an acceptable baseline — the gate is
