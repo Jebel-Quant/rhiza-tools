@@ -14,6 +14,7 @@ and entries are generated from [Conventional Commits](https://www.conventionalco
 
 ### Other Changes
 - Cliff and rhiza_release (#258)
+- Bump version 0.7.0 → 0.7.1
 
 ## [0.7.0] - 2026-06-14
 
