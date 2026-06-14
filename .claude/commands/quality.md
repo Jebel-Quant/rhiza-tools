@@ -11,6 +11,12 @@ fast failures surface before the slow test suite — and collect results:
 4. `make validate` — validate project structure against the Rhiza template.
 5. `make test` — full test suite.
 
+**Coverage expectation: 100%.** Treat anything below 100% line coverage on
+locally-owned `src/` as a gap to flag, not an acceptable baseline — the gate is
+set to 100 (`COVERAGE_FAIL_UNDER`). When scoring the test-coverage subcategory,
+100% is the bar for a 10; report every uncovered line (file:line) and what test
+would close it.
+
 Then report:
 
 - A pass/fail summary per step.
