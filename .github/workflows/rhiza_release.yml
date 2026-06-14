@@ -1,17 +1,6 @@
 # This file is part of the jebel-quant/rhiza repository
 # (https://github.com/jebel-quant/rhiza).
 #
-# ⚠️  WHY THIS WORKFLOW CANNOT USE A STUB
-#
-# Rhiza normally distributes workflows as thin stubs that delegate to a reusable
-# workflow in this repository via `workflow_call`. That pattern cannot be used here
-# because PyPI Trusted Publishing (OIDC) validates the *exact* workflow file path
-# and repository that invokes `pypa/gh-action-pypi-publish`. When a stub delegates
-# to a reusable workflow in jebel-quant/rhiza, PyPI sees rhiza's repository as the
-# publisher — not the downstream project's — and rejects the OIDC token. This file
-# must therefore be synced directly into each downstream project so that the publish
-# step runs under the correct repository identity.
-#
 # Release Workflow for Python Packages with Optional Devcontainer Publishing
 #
 # This workflow implements a secure, maintainable release pipeline with distinct phases:
@@ -21,11 +10,14 @@
 #   2. 🏗️ Build - Build Python package with Hatch (if [build-system] is defined in pyproject.toml)
 #   3. 📦 Generate SBOM - Create Software Bill of Materials (CycloneDX format)
 #   4. 📝 Draft Release - Create draft GitHub release with build artifacts and SBOM
-#   5. 📄 Update CHANGELOG - Generate and commit CHANGELOG.md to the default branch
-#   6. 🚀 Publish to PyPI - Publish package using OIDC or custom feed
-#   7. 📦 Generate Conda Recipe - Generate conda-forge recipe with grayskull (conditional)
-#   8. 🐳 Publish Devcontainer - Build and publish devcontainer image (conditional)
-#   9. ✅ Finalize Release - Publish the GitHub release with links
+#   5. 🚀 Publish to PyPI - Publish package using OIDC or custom feed
+#   6. 📦 Generate Conda Recipe - Generate conda-forge recipe with grayskull (conditional)
+#   7. 🐳 Publish Devcontainer - Build and publish devcontainer image (conditional)
+#   8. ✅ Finalize Release - Publish the GitHub release with links
+#
+# 📄 CHANGELOG: not updated here. The rhiza-tools `bump` command folds a freshly
+# generated CHANGELOG.md into the version-bump commit (git-cliff pre-commit hook),
+# so the tagged commit already carries the changelog — no separate post-tag commit.
 #
 # 📦 SBOM Generation:
 #   - Generated using CycloneDX format (industry standard for software supply chain security)
@@ -102,21 +94,33 @@ on:
       PYPI_TOKEN:
         required: false
 
+# Queue runs instead of cancelling: a release or sync must never be
+# interrupted mid-publish or mid-push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# Least-privilege default: every job below re-declares exactly the write
+# scopes it needs (Scorecard Token-Permissions). Top-level stays read-only.
 permissions:
-  contents: write       # Needed to create releases
-  id-token: write       # Needed for OIDC authentication with PyPI
-  packages: write       # Needed to publish devcontainer image
-  attestations: write   # Needed for SLSA provenance attestations (public repos only)
+  contents: read
 
 jobs:
   tag:
     name: Validate Tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read   # Validation only: reads tags and release state
     outputs:
       tag: ${{ steps.set_tag.outputs.tag }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -146,7 +150,7 @@ jobs:
           fi
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
 
       - name: Ensure release version is newer than latest published
         env:
@@ -195,19 +199,28 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: tag
+    permissions:
+      contents: read
+      id-token: write       # OIDC for attestation signing
+      attestations: write   # SLSA provenance + SBOM attestations (public repos only)
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           version: "0.11.16"
 
       - name: Configure git auth for private packages
-        uses: jebel-quant/rhiza/.github/actions/configure-git-auth@v0.18.8
+        uses: jebel-quant/rhiza/.github/actions/configure-git-auth@v0.18.9
         with:
           token: ${{ secrets.GH_PAT }}
 
@@ -246,7 +259,7 @@ jobs:
 
       - name: Install Python for SBOM generation
         if: hashFiles('pyproject.toml') != ''
-        uses: actions/setup-python@v6.2.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: .python-version
 
@@ -271,14 +284,14 @@ jobs:
         # Attest only the JSON format as it's the canonical machine-readable format.
         # The XML format is provided for compatibility but doesn't need separate attestation.
         if: hashFiles('pyproject.toml') != '' && github.event.repository.private == false
-        uses: actions/attest@v4.1.0
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
           subject-path: sbom.cdx.json
           sbom-path: sbom.cdx.json
 
       - name: Upload SBOM artifacts
         if: hashFiles('pyproject.toml') != ''
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom
           path: |
@@ -286,14 +299,22 @@ jobs:
             sbom.cdx.xml
 
       - name: Generate SLSA provenance attestations
+        id: provenance
         if: steps.buildable.outputs.buildable == 'true' && github.event.repository.private == false
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: dist/*
 
+      - name: Stage provenance bundle for the GitHub release
+        # Attach the SLSA provenance bundle to the release as a recognised
+        # signature asset (*.intoto.jsonl) so consumers — and OpenSSF
+        # Scorecard's Signed-Releases check — can verify the artifacts.
+        if: steps.buildable.outputs.buildable == 'true' && github.event.repository.private == false
+        run: cp "${{ steps.provenance.outputs.bundle-path }}" dist/provenance.intoto.jsonl
+
       - name: Upload dist artifact
         if: steps.buildable.outputs.buildable == 'true'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist
           path: dist
@@ -303,64 +324,52 @@ jobs:
     name: Draft GitHub Release
     runs-on: ubuntu-latest
     needs: [tag, build]
+    permissions:
+      contents: write   # Needed to create the GitHub release and upload artifacts
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
 
       - name: Generate release notes with git-cliff
         run: uvx git-cliff --latest --output RELEASE_NOTES.md
 
       - name: Download SBOM artifact
         # Downloads sbom.cdx.json and sbom.cdx.xml into sbom/ directory
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sbom
           path: sbom
         continue-on-error: true
 
+      - name: Download dist artifact
+        # Brings in provenance.intoto.jsonl (and the built distributions) staged
+        # by the build job, so the SLSA provenance ships as a release asset.
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist
+        continue-on-error: true
+
       - name: Create GitHub Release with artifacts
-        uses: ncipollo/release-action@v1.21.0
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{ needs.tag.outputs.tag }}
           name: ${{ needs.tag.outputs.tag }}
           bodyFile: RELEASE_NOTES.md
           draft: true
           allowUpdates: true
-          artifacts: "sbom/*"
-
-  update-changelog:
-    name: Update CHANGELOG.md
-    runs-on: ubuntu-latest
-    needs: [tag, draft-release]
-    steps:
-      - name: Checkout Default Branch
-        uses: actions/checkout@v6.0.3
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7.6.0
-
-      - name: Generate CHANGELOG.md with git-cliff
-        run: uvx git-cliff --output CHANGELOG.md
-
-      - name: Commit and push CHANGELOG.md
-        env:
-          TAG: ${{ needs.tag.outputs.tag }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git diff --staged --quiet || git commit -m "chore: update CHANGELOG.md for $TAG [skip ci]"
-          git push origin ${{ github.event.repository.default_branch }}
+          artifacts: "sbom/*,dist/provenance.intoto.jsonl"
 
   # Decide at step-level whether to publish
   pypi:
@@ -368,17 +377,25 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     needs: [tag, build, draft-release]
+    permissions:
+      contents: read
+      id-token: write   # OIDC Trusted Publishing to PyPI (no stored credentials)
     outputs:
       should_publish: ${{ steps.check_dist.outputs.should_publish }}
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Download dist artifact
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist
           path: dist
@@ -404,7 +421,7 @@ jobs:
       # repository-url and password only used for custom feeds, not for PyPI with OIDC
       - name: Publish to PyPI
         if: ${{ steps.check_dist.outputs.should_publish == 'true' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
           packages-dir: dist/
           skip-existing: true
@@ -416,12 +433,19 @@ jobs:
     name: Generate Conda Recipe
     runs-on: ubuntu-latest
     needs: [tag, pypi]
+    permissions:
+      contents: read   # Generates a recipe and uploads it as a workflow artifact only
     outputs:
       should_generate: ${{ steps.check_conda.outputs.should_generate }}
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -440,7 +464,7 @@ jobs:
 
       - name: Set up Python
         if: steps.check_conda.outputs.should_generate == 'true'
-        uses: actions/setup-python@v6.2.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: .python-version
 
@@ -468,7 +492,7 @@ jobs:
 
       - name: Upload conda recipe artifact
         if: steps.check_conda.outputs.should_generate == 'true'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: conda-recipe
           path: conda-recipe/meta.yaml
@@ -478,12 +502,20 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     needs: [tag, build, draft-release]
+    permissions:
+      contents: read
+      packages: write   # Needed to push the devcontainer image to the registry
     outputs:
       should_publish: ${{ steps.check_publish.outputs.should_publish }}
       image_name: ${{ steps.image_name.outputs.image_name }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -512,7 +544,7 @@ jobs:
 
       - name: Login to Container Registry
         if: steps.check_publish.outputs.should_publish == 'true'
-        uses: docker/login-action@v4.2.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           registry: ${{ steps.registry.outputs.registry }}
           username: ${{ github.repository_owner }}
@@ -554,7 +586,7 @@ jobs:
 
       - name: Build and Publish Devcontainer Image
         if: steps.check_publish.outputs.should_publish == 'true'
-        uses: devcontainers/ci@v0.3
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         with:
           configFile: .devcontainer/devcontainer.json
           push: always
@@ -566,14 +598,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tag, pypi, conda, devcontainer]
     if: needs.pypi.result == 'success' || needs.conda.result == 'success' || needs.devcontainer.result == 'success'
+    permissions:
+      contents: write   # Needed to undraft/publish the GitHub release
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout Code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
           version: "0.11.16"
 
@@ -585,7 +624,7 @@ jobs:
           uv sync --all-extras --all-groups --frozen
 
       - name: Set up Python
-        uses: actions/setup-python@v6.2.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
 
       - name: Generate Devcontainer Link
         id: devcontainer_link
