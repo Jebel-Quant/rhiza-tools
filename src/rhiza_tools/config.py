@@ -113,7 +113,7 @@ class RhizaConfig:
 
     # Generic accessor over arbitrary top-level TOML keys; the value type is
     # only known to the caller, so ``Any`` is intentional here (TOML passthrough).
-    def get(self, key: str, default: Any = None) -> Any:  # noqa: ANN401
+    def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value.
 
         Args:

@@ -166,7 +166,7 @@ def check_tag_exists(tag: str) -> tuple[bool, bool]:
     return exists_locally, exists_remotely
 
 
-def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> None:
+def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> None:  # noqa: ARG001  # API symmetry; confirmation gate lives in _confirm_and_push_tag
     """Push a git tag to the remote repository.
 
     Args:
