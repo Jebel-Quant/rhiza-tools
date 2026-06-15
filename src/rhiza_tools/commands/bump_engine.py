@@ -10,11 +10,12 @@ interface this adapter relies on.
 """
 
 from pathlib import Path
+from typing import TypeAlias
 
 import typer
 from bumpversion.bump import do_bump
 from bumpversion.config import get_configuration
-from bumpversion.config.models import Config as BumpConfig
+from bumpversion.config.models import Config
 from bumpversion.exceptions import BumpVersionError
 from bumpversion.ui import setup_logging
 from loguru import logger
@@ -27,6 +28,12 @@ from rhiza_tools.config import CONFIG_FILENAME
 # ``do_bump`` requires this exact type, so the adapter must hold a real ``Config``
 # anyway. Importing it keeps every helper below fully typed under strict ``ty``.
 # The companion ``tests/test_bumpversion_contract.py`` pins the attributes used.
+#
+# Declared as an explicit ``TypeAlias`` (not ``import ... as BumpConfig``) so it
+# is (a) a re-export the split bump command modules can import under mypy
+# ``--strict``'s no-implicit-reexport rule, and (b) usable in annotations even
+# though bump-my-version is untyped (``Config`` resolves to ``Any``).
+BumpConfig: TypeAlias = Config
 
 
 def _build_configuration(

@@ -70,6 +70,24 @@ packages = ["src/rhiza_tools"]
 # hard errors. Keeps the type surface honest as the code evolves.
 error-on-warning = true
 
+# `make typecheck` runs `mypy --strict` alongside ty (strictness comes from the
+# CLI flag, so this global table only needs to exist for mypy to read the
+# per-module overrides below from pyproject.toml).
+[tool.mypy]
+
+# These third-party dependencies ship no type information (no stubs published,
+# no py.typed marker), so strict mode would fail on `import-untyped` for every
+# import. Ignore their missing imports here — centralized and rationalized —
+# rather than scattering per-line `type: ignore`s; mypy still type-checks our
+# own use of their values.
+[[tool.mypy.overrides]]
+module = [
+    "bumpversion.*",  # bump-my-version: no published stubs
+    "pandas.*",       # pandas-stubs not a runtime dep; benchmark analysis only
+    "plotly.*",       # plotly: no py.typed marker
+]
+ignore_missing_imports = true
+
 [tool.deptry.package_module_name_map]
 "bump-my-version" = "bumpversion"
 "hypothesis" = "hypothesis"
