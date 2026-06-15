@@ -37,3 +37,5 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
+      pages: write       # publish-mutation-badge deploys the badge to Pages
+      id-token: write    # publish-mutation-badge needs OIDC for the Pages deploy
