@@ -92,6 +92,7 @@ def test_check_branch_status_up_to_date(monkeypatch):
     commit_hash = "abc123"
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "symbolic-full-name" in cmd:
@@ -108,6 +109,7 @@ def test_check_branch_status_behind(monkeypatch):
     """Test check_branch_status when branch is behind remote."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "symbolic-full-name" in cmd:
@@ -131,6 +133,7 @@ def test_check_branch_status_ahead(monkeypatch):
     """Test check_branch_status when branch is ahead of remote."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "symbolic-full-name" in cmd:
@@ -156,6 +159,7 @@ def test_check_branch_status_diverged(monkeypatch):
     """Test check_branch_status when branches have diverged."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "symbolic-full-name" in cmd:
@@ -179,6 +183,7 @@ def test_get_default_branch():
     """Test getting default branch from remote."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = "* remote origin\n  HEAD branch: main\n  Remote branch: main\n"
@@ -193,6 +198,7 @@ def test_get_default_branch_failure():
     """Test error when default branch cannot be determined."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 1
         result.stdout = ""
@@ -209,6 +215,7 @@ def test_check_tag_exists():
     """Test checking if tag exists locally and remotely."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         if "rev-parse" in cmd:
             result.returncode = 0  # exists locally
@@ -266,6 +273,7 @@ def test_release_command_dry_run(mock_pyproject, monkeypatch):
     """Test release_command in dry-run mode."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -305,6 +313,7 @@ def test_release_command_tag_missing(mock_pyproject, monkeypatch):
     """Test release_command when tag doesn't exist locally."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -337,6 +346,7 @@ def test_release_command_tag_exists_remotely(mock_pyproject, monkeypatch):
     """Test release_command when tag already exists on remote."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -367,6 +377,7 @@ def test_check_branch_status_no_upstream(monkeypatch):
     """Test error when no upstream branch is configured."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         if "--symbolic-full-name" in cmd:
             result.returncode = 1  # No upstream
@@ -383,6 +394,7 @@ def test_check_branch_status_ahead_of_remote(monkeypatch):
     """Test warning when branch is ahead of remote."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -411,6 +423,7 @@ def test_get_default_branch_no_head_branch(monkeypatch):
     """Test error when default branch cannot be found in remote output."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = "* remote origin\n  some other info\n"  # No HEAD branch line
@@ -444,6 +457,7 @@ def test_release_command_non_default_branch_non_interactive(mock_pyproject, monk
     """Test release from non-default branch in non-interactive mode."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -482,6 +496,7 @@ def test_release_command_with_commit_count(mock_pyproject, monkeypatch):
     """Test release showing commit count since last tag."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -519,6 +534,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
     """Test release when user declines to push tag."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -558,6 +574,7 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
     """Test successful release in non-dry-run mode."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -596,6 +613,7 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
     """Test release when user declines to proceed from non-default branch."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -631,6 +649,7 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
     """Test release command with bump flag."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -659,6 +678,7 @@ def test_release_with_bump_flag(mock_pyproject, monkeypatch):
     bump_called = {"called": False, "options": None}
 
     def mock_bump_command(options):
+        """Stand in for bump_command during the test."""
         bump_called["called"] = True
         bump_called["options"] = options
         # Update pyproject.toml version
@@ -685,6 +705,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
     """Test release command with push flag."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -714,6 +735,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
     push_called = {"called": False}
 
     def mock_push_tag(tag, dry_run=False, non_interactive=False):
+        """Stand in for push_tag during the test."""
         push_called["called"] = True
 
     with (
@@ -732,6 +754,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
     git_push_calls = []
 
     def track_push(cmd, result):
+        """Test helper track_push."""
         git_push_calls.append(cmd)
 
     mock_git = _make_mock_git_for_bump_release(
@@ -742,6 +765,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
     bump_called = {"called": False}
 
     def mock_bump_command(version, **kwargs):
+        """Stand in for bump_command during the test."""
         bump_called["called"] = True
         # Update pyproject.toml version
         import tomlkit
@@ -784,6 +808,7 @@ def _make_mock_git_for_bump_release(
         callbacks = {}
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -852,9 +877,11 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
     call_order = []
 
     def track_push(cmd, result):
+        """Test helper track_push."""
         call_order.append("push_bump_commit")
 
     def track_fetch(cmd, result):
+        """Test helper track_fetch."""
         call_order.append("fetch_for_branch_check")
 
     mock_git = _make_mock_git_for_bump_release(
@@ -862,6 +889,7 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
     )
 
     def mock_bump_command(options):
+        """Stand in for bump_command during the test."""
         import tomlkit
 
         with open("pyproject.toml") as f:
@@ -891,6 +919,7 @@ def test_release_with_bump_dry_run_does_not_push_commit(mock_pyproject, monkeypa
     git_push_calls = []
 
     def track_push(cmd, result):
+        """Test helper track_push."""
         git_push_calls.append(cmd)
 
     mock_git = _make_mock_git_for_bump_release(
@@ -913,6 +942,7 @@ def test_push_tag_dry_run_with_tag_details(monkeypatch):
     """Test push_tag in dry-run mode shows tag details."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "show" in cmd:
@@ -931,9 +961,11 @@ def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
     from rhiza_tools.commands.release import _validate_tag_state
 
     def mock_check_tag_exists(tag):
+        """Stand in for check_tag_exists during the test."""
         return (True, False)  # Exists locally, not remotely
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "show" in cmd and "--format" in cmd:
@@ -955,9 +987,11 @@ def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
     from rhiza_tools.commands.release import _validate_tag_state
 
     def mock_check_tag_exists(tag):
+        """Stand in for check_tag_exists during the test."""
         return (True, False)  # Exists locally, not remotely
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         if "show" in cmd:
             result.returncode = 1  # Fail
@@ -1014,6 +1048,7 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
     bump_called = {"called": False}
 
     def mock_bump_command(options):
+        """Stand in for bump_command during the test."""
         bump_called["called"] = True
 
     with patch("rhiza_tools.commands.release_versioning.bump_command", side_effect=mock_bump_command):
@@ -1028,6 +1063,7 @@ def test_show_commits_since_last_tag_with_commits(monkeypatch):
     from rhiza_tools.commands.release import _show_commits_since_last_tag
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
 
@@ -1052,6 +1088,7 @@ def test_show_commits_since_last_tag_no_tags(monkeypatch):
     from rhiza_tools.commands.release import _show_commits_since_last_tag
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 1
         result.stdout = ""
@@ -1067,6 +1104,7 @@ def test_show_commits_since_last_tag_no_previous_tags(monkeypatch):
     from rhiza_tools.commands.release import _show_commits_since_last_tag
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
 
@@ -1086,6 +1124,7 @@ def test_push_tag_with_ssh_url(monkeypatch):
     """Test push_tag with SSH repository URL."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "get-url" in cmd:
@@ -1103,6 +1142,7 @@ def test_push_tag_with_non_github_url(monkeypatch):
     """Test push_tag with non-GitHub repository URL."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         if "get-url" in cmd:
@@ -1133,9 +1173,11 @@ class TestReleasePreflightValidation:
         bump_called = {"called": False}
 
         def mock_bump_command(options):
+            """Stand in for bump_command during the test."""
             bump_called["called"] = True
 
         def mock_run_git_command(cmd, check=True):
+            """Stand in for run_git_command during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -1168,9 +1210,11 @@ class TestReleasePreflightValidation:
         bump_called = {"called": False}
 
         def mock_bump_command(options):
+            """Stand in for bump_command during the test."""
             bump_called["called"] = True
 
         def mock_run_git_command(cmd, check=True):
+            """Stand in for run_git_command during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -1219,6 +1263,7 @@ class TestReleasePreflightValidation:
         bump_called = {"called": False}
 
         def mock_bump_command(options):
+            """Stand in for bump_command during the test."""
             bump_called["called"] = True
             import tomlkit
 
@@ -1259,6 +1304,7 @@ def test_release_command_go_project_dry_run(mock_go_project, monkeypatch):
     """Test release_command with a Go project in dry-run mode."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -1295,6 +1341,7 @@ def test_release_command_go_project_explicit_language(mock_go_project, monkeypat
     """Test release_command with Go language explicitly specified."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -1338,6 +1385,7 @@ def test_release_command_go_with_bump(mock_go_project, monkeypatch):
     """Test release_command with a Go project with bump type."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -1365,6 +1413,7 @@ def test_release_command_go_with_bump(mock_go_project, monkeypatch):
     bump_called = {"called": False, "language": None}
 
     def mock_bump_command(options):
+        """Stand in for bump_command during the test."""
         bump_called["called"] = True
         bump_called["language"] = options.language
         # Update VERSION file
