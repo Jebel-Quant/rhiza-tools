@@ -31,7 +31,7 @@ def main() -> int:
     """Run pip-audit and apply tiered vulnerability policy."""
     uvx = shutil.which("uvx") or "uvx"
     cmd = [uvx, "pip-audit", "--format", "json", *sys.argv[1:]]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603  # nosec B603
+    proc = subprocess.run(cmd, capture_output=True, text=True)  # noqa: S603  # nosec B603
 
     if proc.returncode == 0:
         print(f"{_GREEN}[OK] pip-audit: no vulnerabilities found{_RESET}")

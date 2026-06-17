@@ -170,4 +170,7 @@ line-ending = "auto"
 ".rhiza/utils/*.py" = [
     "PLW2901",  # Allow loop variable overwriting in utility scripts
     "TRY003",   # Allow long exception messages in utility scripts
+    "PLW1510",  # subprocess.run without explicit check=: upstream omits it (and its
+                # template test mock can't accept it); don't hold synced utils to our
+                # extra-strict PL bar. See jebel-quant/rhiza follow-up below.
 ]
