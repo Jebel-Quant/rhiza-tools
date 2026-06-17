@@ -166,13 +166,12 @@ def check_tag_exists(tag: str) -> tuple[bool, bool]:
     return exists_locally, exists_remotely
 
 
-def push_tag(tag: str, dry_run: bool = False, non_interactive: bool = False) -> None:
+def push_tag(tag: str, dry_run: bool = False) -> None:
     """Push a git tag to the remote repository.
 
     Args:
         tag: The tag name to push.
         dry_run: If True, only show what would be done.
-        non_interactive: If True, skip confirmation prompts.
 
     Raises:
         typer.Exit: If push fails.
@@ -334,4 +333,4 @@ def _confirm_and_push_tag(
             if bump_branch:
                 console.info("Pushing bump commit to remote...")
                 run_git_command(["git", "push", "origin", bump_branch])
-            push_tag(tag, dry_run=False, non_interactive=non_interactive or push)
+            push_tag(tag, dry_run=False)

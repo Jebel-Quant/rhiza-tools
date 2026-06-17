@@ -593,7 +593,7 @@ class TestReleasePushFlow:
 
         push_called = {"called": False}
 
-        def mock_push_tag(tag, dry_run=False, non_interactive=False):
+        def mock_push_tag(tag, dry_run=False):
             push_called["called"] = True
 
         with (

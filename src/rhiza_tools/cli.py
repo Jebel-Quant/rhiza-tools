@@ -70,7 +70,7 @@ def _apply_verbose(verbose: bool) -> None:
 
 @app.callback()
 def main(
-    version: bool = typer.Option(
+    version: bool = typer.Option(  # noqa: ARG001 — eager option; value is consumed by version_callback, not the body
         None,
         "--version",
         help="Show the version and exit.",

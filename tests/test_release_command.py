@@ -432,7 +432,7 @@ def test_push_tag_ssh_url(monkeypatch):
     mock_run_git.return_value = mock_result
 
     with patch("rhiza_tools.commands.release_git.run_git_command", mock_run_git):
-        push_tag("v1.0.0", dry_run=False, non_interactive=True)
+        push_tag("v1.0.0", dry_run=False)
 
         # Should push the tag
         calls = [c[0][0] for c in mock_run_git.call_args_list]
@@ -713,7 +713,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
 
     push_called = {"called": False}
 
-    def mock_push_tag(tag, dry_run=False, non_interactive=False):
+    def mock_push_tag(tag, dry_run=False):
         push_called["called"] = True
 
     with (
