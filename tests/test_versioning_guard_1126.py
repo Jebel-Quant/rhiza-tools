@@ -139,6 +139,7 @@ def test_bump_patch_from_stale_branch_jumps_past_remote(bump_project, monkeypatc
 
 
 def _patch_remote_latest(monkeypatch, version: str | None):
+    """Patch helper _patch_remote_latest for the test."""
     monkeypatch.setattr(
         release_mod,
         "get_latest_remote_version",
@@ -191,6 +192,7 @@ def _release_git_mock():
     """Minimal git mock sufficient to reach the monotonicity guard in dry-run."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock(returncode=0, stdout="")
         if "rev-parse" in cmd and "--abbrev-ref" in cmd:
             result.stdout = "feature/diverged"

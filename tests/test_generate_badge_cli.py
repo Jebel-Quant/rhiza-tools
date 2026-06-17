@@ -222,6 +222,7 @@ class TestGenerateCoverageBadgeCLI:
 
         # Patch the generate_coverage_badge_command to raise PermissionError
         def mock_command(*args, **kwargs):
+            """Stand in for command during the test."""
             raise PermissionError("Permission denied")  # noqa: TRY003
 
         with patch("rhiza_tools.cli.generate_coverage_badge_command", mock_command):

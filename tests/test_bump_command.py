@@ -154,10 +154,14 @@ def test_bump_interactive_patch(bump_project, monkeypatch):
 
     # Mock the return value of qs.select(...).ask()
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Patch (0.1.0 -> 0.1.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -171,10 +175,14 @@ def test_bump_interactive_minor(bump_project, monkeypatch):
     """Test interactive bump selection (Minor)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Minor (0.1.0 -> 0.2.0)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -188,10 +196,14 @@ def test_bump_interactive_cancel(bump_project, monkeypatch):
     """Test interactive bump cancellation."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return None
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -251,10 +263,14 @@ def test_bump_interactive_rc(bump_project, monkeypatch):
     """Test interactive bump selection (RC)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "RC (0.1.0 -> 0.1.1-rc.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -268,10 +284,14 @@ def test_bump_interactive_build(bump_project, monkeypatch):
     """Test interactive bump selection (Build)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Build (0.1.0 -> 0.1.0+build.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -285,6 +305,7 @@ def test_get_current_version_error_handling(bump_project, monkeypatch):
     """Test error handling when reading version from pyproject.toml fails."""
 
     def mock_open_error(*args, **kwargs):
+        """Stand in for open_error during the test."""
         raise OSError("File read error")  # noqa: TRY003
 
     monkeypatch.setattr("builtins.open", mock_open_error)
@@ -314,10 +335,14 @@ def test_bump_interactive_alpha(bump_project, monkeypatch):
     """Test interactive bump selection (Alpha)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Alpha (0.1.0 -> 0.1.1-alpha.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -331,10 +356,14 @@ def test_bump_interactive_beta(bump_project, monkeypatch):
     """Test interactive bump selection (Beta)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Beta (0.1.0 -> 0.1.1-beta.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -348,10 +377,14 @@ def test_bump_interactive_dev(bump_project, monkeypatch):
     """Test interactive bump selection (Dev)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Dev (0.1.0 -> 0.1.1-dev.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -367,10 +400,14 @@ def test_bump_interactive_prerelease(bump_project, monkeypatch):
     bump_command(BumpOptions(version="0.1.0-alpha.1"))
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Prerelease (0.1.0-alpha.1 -> 0.1.0-alpha.2)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -384,10 +421,14 @@ def test_bump_interactive_major(bump_project, monkeypatch):
     """Test interactive bump selection (Major)."""
 
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Major (0.1.0 -> 1.0.0)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -444,10 +485,14 @@ def test_bump_interactive_invalid_semver_in_config(bump_project, monkeypatch):
 
     # Mock interactive prompt - though it should fail before reaching it
     class MockQuestion:
+        """Scripted stand-in for Question used by the test."""
+
         def ask(self):
+            """Return the scripted answer for the test."""
             return "Patch (invalid-version -> 0.1.1)"
 
     def mock_select(*args, **kwargs):
+        """Stand in for select during the test."""
         return MockQuestion()
 
     monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -468,6 +513,7 @@ def test_bump_with_allow_dirty_flag(bump_project, monkeypatch):
     called_with_params = {}
 
     def mock_get_config(*args, **kwargs):
+        """Stand in for get_config during the test."""
         called_with_params.update(kwargs)
         # Import the real function to get a real config
         from bumpversion.config import get_configuration as real_get_config
@@ -487,6 +533,7 @@ def test_bump_with_commit_flag(bump_project, monkeypatch):
     called_with_params = {}
 
     def mock_get_config(*args, **kwargs):
+        """Stand in for get_config during the test."""
         called_with_params.update(kwargs)
         # Import the real function to get a real config
         from bumpversion.config import get_configuration as real_get_config
@@ -530,6 +577,7 @@ def test_bump_folds_changelog_hook_into_commit(bump_project, monkeypatch):
 
     def mock_do_bump(*args, **kwargs):
         # Capture the config used for the real (non-dry-run) bump commit.
+        """Stand in for do_bump during the test."""
         if kwargs.get("dry_run") is False:
             captured["config"] = kwargs.get("config")
 
@@ -547,6 +595,7 @@ def test_bump_without_cliff_config_adds_no_changelog_hook(bump_project, monkeypa
     captured = {}
 
     def mock_do_bump(*args, **kwargs):
+        """Stand in for do_bump during the test."""
         if kwargs.get("dry_run") is False:
             captured["config"] = kwargs.get("config")
 
@@ -562,6 +611,7 @@ def test_bump_configuration_load_failure(bump_project, monkeypatch):
     """Test bump command when configuration loading fails."""
 
     def mock_get_config(*args, **kwargs):
+        """Stand in for get_config during the test."""
         from bumpversion.exceptions import ConfigurationError
 
         raise ConfigurationError("Configuration load error")  # noqa: TRY003
@@ -578,6 +628,7 @@ def test_bump_operation_failure(bump_project, monkeypatch):
     """Test bump command when the bump operation fails."""
 
     def mock_do_bump(*args, **kwargs):
+        """Stand in for do_bump during the test."""
         raise BumpVersionError("Bump operation failed")  # noqa: TRY003
 
     monkeypatch.setattr("rhiza_tools.commands.bump_engine.do_bump", mock_do_bump)
@@ -720,6 +771,7 @@ def test_log_bump_success_with_file_read_exception(bump_project, monkeypatch):
     original_read_text = Path.read_text
 
     def mock_read_text(self, *args, **kwargs):
+        """Stand in for read_text during the test."""
         if self.name == "pyproject.toml":
             raise PermissionError("Access denied")  # noqa: TRY003
         return original_read_text(self, *args, **kwargs)
@@ -754,6 +806,7 @@ def test_branch_checkout_returns_none_when_git_fails(bump_project, monkeypatch):
     original_run = subprocess.run
 
     def mock_run(cmd, **kwargs):
+        """Stand in for run during the test."""
         if isinstance(cmd, list) and "rev-parse" in cmd:
             result = MagicMock()
             result.returncode = 1
@@ -794,6 +847,7 @@ def test_branch_checkout_fails_gracefully(bump_project, monkeypatch):
     original_run = subprocess.run
 
     def mock_run(cmd, **kwargs):
+        """Stand in for run during the test."""
         if isinstance(cmd, list) and "checkout" in cmd:
             result = MagicMock()
             result.returncode = 1
@@ -905,6 +959,7 @@ class TestPreflightValidation:
         original_content = (bump_project / "pyproject.toml").read_text()
 
         def mock_do_bump(*args, **kwargs):
+            """Stand in for do_bump during the test."""
             from bumpversion.exceptions import BumpVersionError
 
             # Fail on the preflight (dry_run=True) call
@@ -929,6 +984,7 @@ class TestPreflightValidation:
         do_bump_calls = []
 
         def tracking_do_bump(*args, **kwargs):
+            """Test helper tracking_do_bump."""
             do_bump_calls.append({"dry_run": kwargs.get("dry_run", False)})
             # Call through to the real do_bump
             from bumpversion.bump import do_bump as real_do_bump
@@ -951,6 +1007,7 @@ class TestPreflightValidation:
         do_bump_calls = []
 
         def tracking_do_bump(*args, **kwargs):
+            """Test helper tracking_do_bump."""
             do_bump_calls.append({"dry_run": kwargs.get("dry_run", False)})
             from bumpversion.bump import do_bump as real_do_bump
 
@@ -1214,6 +1271,7 @@ def test_handle_push_to_remote_non_interactive(bump_project, monkeypatch):
     push_attempted = []
 
     def mock_run_git(*args, **kwargs):
+        """Stand in for run_git during the test."""
         push_attempted.append(args)
         return MagicMock(returncode=0, stdout="", stderr="")
 
