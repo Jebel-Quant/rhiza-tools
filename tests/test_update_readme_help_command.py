@@ -255,6 +255,7 @@ Footer content.
     original_read = Path.read_text
 
     def mock_write(*args, **kwargs):
+        """Stand in for write during the test."""
         raise PermissionError("Permission denied")  # noqa: TRY003
 
     with patch("pathlib.Path.write_text", mock_write), patch("pathlib.Path.read_text", original_read):

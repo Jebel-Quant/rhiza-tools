@@ -113,10 +113,14 @@ class TestSelectTagInteractively:
         """Should return the tag selected by user."""
 
         class MockQuestion:
+            """Scripted stand-in for Question used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return "v1.2.3 (local, remote)"
 
         def mock_check_tag_exists(tag):
+            """Stand in for check_tag_exists during the test."""
             return True, True
 
         monkeypatch.setattr(rollback_mod.qs, "select", lambda *a, **kw: MockQuestion())
@@ -132,10 +136,14 @@ class TestSelectTagInteractively:
         """Should exit with code 0 when user cancels."""
 
         class MockQuestion:
+            """Scripted stand-in for Question used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return None
 
         def mock_check_tag_exists(tag):
+            """Stand in for check_tag_exists during the test."""
             return True, False
 
         monkeypatch.setattr(rollback_mod.qs, "select", lambda *a, **kw: MockQuestion())
@@ -151,9 +159,11 @@ class TestSelectTagInteractively:
         """Should exit on EOFError (non-interactive environment)."""
 
         def mock_check_tag_exists(tag):
+            """Stand in for check_tag_exists during the test."""
             return True, False
 
         def mock_select(*args, **kwargs):
+            """Stand in for select during the test."""
             raise EOFError
 
         monkeypatch.setattr(rollback_mod.qs, "select", mock_select)
@@ -397,6 +407,7 @@ class TestRevertBumpCommit:
         mock_revert.returncode = 0
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             if "revert" in cmd:
                 return mock_revert
             return MagicMock(returncode=0, stdout="")
@@ -411,6 +422,7 @@ class TestRevertBumpCommit:
         mock_log.stdout = "Bump version: 1.2.2 → 1.2.3"
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             if "log" in cmd:
                 return mock_log
             return MagicMock(returncode=0, stdout="")
@@ -425,6 +437,7 @@ class TestRevertBumpCommit:
         mock_revert.stderr = "error: could not revert"
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             if "revert" in cmd:
                 return mock_revert
             return MagicMock(returncode=0, stdout="")
@@ -459,7 +472,10 @@ class TestPushRevert:
         """Should not push when user declines."""
 
         class MockConfirm:
+            """Scripted stand-in for Confirm used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return False
 
         monkeypatch.setattr(rollback_mod.qs, "confirm", lambda *a, **kw: MockConfirm())
@@ -493,7 +509,10 @@ class TestConfirmRollback:
         """Should return True when user confirms."""
 
         class MockConfirm:
+            """Scripted stand-in for Confirm used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return True
 
         monkeypatch.setattr(rollback_mod.qs, "confirm", lambda *a, **kw: MockConfirm())
@@ -503,7 +522,10 @@ class TestConfirmRollback:
         """Should return False when user declines."""
 
         class MockConfirm:
+            """Scripted stand-in for Confirm used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return False
 
         monkeypatch.setattr(rollback_mod.qs, "confirm", lambda *a, **kw: MockConfirm())
@@ -513,6 +535,7 @@ class TestConfirmRollback:
         """Should return True on EOFError."""
 
         def mock_confirm(*args, **kwargs):
+            """Stand in for confirm during the test."""
             raise EOFError
 
         monkeypatch.setattr(rollback_mod.qs, "confirm", mock_confirm)
@@ -622,6 +645,7 @@ class TestRollbackCommand:
         """Should exit when tag doesn't exist."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = "main"
@@ -644,6 +668,7 @@ class TestRollbackCommand:
         """Should preview rollback in dry-run mode."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -668,6 +693,7 @@ class TestRollbackCommand:
         """Should preview rollback with bump revert in dry-run mode."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -694,6 +720,7 @@ class TestRollbackCommand:
         """Should rollback without prompts in non-interactive mode."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -720,6 +747,7 @@ class TestRollbackCommand:
         """Should exit when user cancels rollback confirmation."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -734,7 +762,10 @@ class TestRollbackCommand:
             return result
 
         class MockConfirmFalse:
+            """Scripted stand-in for ConfirmFalse used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return False
 
         monkeypatch.setattr(rollback_mod.qs, "confirm", lambda *a, **kw: MockConfirmFalse())
@@ -752,6 +783,7 @@ class TestRollbackCommand:
         """Should abort if remote tag deletion fails."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -781,6 +813,7 @@ class TestRollbackCommand:
         """Should automatically add 'v' prefix if missing."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -807,6 +840,7 @@ class TestRollbackCommand:
         """Should rollback a tag that only exists locally."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -831,6 +865,7 @@ class TestRollbackCommand:
         """Should use most recent tag in non-interactive mode without explicit tag."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -855,6 +890,7 @@ class TestRollbackCommand:
         """Should exit when no tags found in non-interactive mode without explicit tag."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""
@@ -876,6 +912,7 @@ class TestRollbackCommand:
         """Should revert bump and push in non-interactive mode."""
 
         def mock_run_git(cmd, check=True):
+            """Stand in for run_git during the test."""
             result = MagicMock()
             result.returncode = 0
             result.stdout = ""

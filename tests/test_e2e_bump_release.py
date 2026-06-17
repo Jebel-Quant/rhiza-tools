@@ -113,13 +113,19 @@ class TestInteractiveBump:
         """User selects Patch from interactive menu."""
 
         class MockSelect:
+            """Scripted stand-in for Select used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return "Patch (0.1.0 -> 0.1.1)"
 
         confirm_calls = []
 
         class MockConfirm:
+            """Scripted stand-in for Confirm used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 confirm_calls.append(True)
                 # First call: "Proceed with bump?" -> Yes
                 # Second call: "Push to remote?" -> No
@@ -128,10 +134,12 @@ class TestInteractiveBump:
         select_calls = []
 
         def mock_select(*args, **kwargs):
+            """Stand in for select during the test."""
             select_calls.append(args)
             return MockSelect()
 
         def mock_confirm(*args, **kwargs):
+            """Stand in for confirm during the test."""
             return MockConfirm()
 
         monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
@@ -145,13 +153,19 @@ class TestInteractiveBump:
         """User selects Minor from interactive menu."""
 
         class MockSelect:
+            """Scripted stand-in for Select used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return "Minor (0.1.0 -> 0.2.0)"
 
         confirm_calls = []
 
         class MockConfirm:
+            """Scripted stand-in for Confirm used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 confirm_calls.append(True)
                 return len(confirm_calls) == 1
 
@@ -166,13 +180,19 @@ class TestInteractiveBump:
         """User selects Major from interactive menu."""
 
         class MockSelect:
+            """Scripted stand-in for Select used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 return "Major (0.1.0 -> 1.0.0)"
 
         confirm_calls = []
 
         class MockConfirm:
+            """Scripted stand-in for Confirm used by the test."""
+
             def ask(self):
+                """Return the scripted answer for the test."""
                 confirm_calls.append(True)
                 return len(confirm_calls) == 1
 
@@ -197,6 +217,7 @@ class TestInteractiveBumpWithPush:
         push_called = {"called": False}
 
         def mock_push(*args, **kwargs):
+            """Stand in for push during the test."""
             push_called["called"] = True
 
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
@@ -210,6 +231,7 @@ class TestInteractiveBumpWithPush:
         push_called = {"called": False}
 
         def mock_push(*args, **kwargs):
+            """Stand in for push during the test."""
             push_called["called"] = True
 
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
@@ -281,6 +303,7 @@ class TestNonInteractiveBumpCommitPush:
         push_called = {"called": False}
 
         def mock_push(*args, **kwargs):
+            """Stand in for push during the test."""
             push_called["called"] = True
 
         with patch("rhiza_tools.commands.bump._handle_push_to_remote", mock_push):
@@ -399,6 +422,7 @@ def _make_mock_git_for_release(
     """Build a mock for run_git_command suitable for release tests."""
 
     def mock_run_git_command(cmd, check=True):
+        """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
         result.stdout = ""
@@ -593,7 +617,8 @@ class TestReleasePushFlow:
 
         push_called = {"called": False}
 
-        def mock_push_tag(tag, dry_run=False, non_interactive=False):
+        def mock_push_tag(tag, dry_run=False):
+            """Stand in for push_tag during the test."""
             push_called["called"] = True
 
         with (

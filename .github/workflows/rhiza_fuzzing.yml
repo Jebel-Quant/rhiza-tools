@@ -1,55 +1,41 @@
 # This file is part of the jebel-quant/rhiza repository
 # (https://github.com/jebel-quant/rhiza).
 #
-# Workflow: ClusterFuzzLite
+# Workflow: ClusterFuzzLite fuzzing
 #
-# Purpose: Add continuous fuzzing integration so OSSF Scorecard's
-#          Fuzzing check can detect an active fuzzer setup.
+# Purpose: Run coverage-guided fuzzing for the repository's Python security
+#          parsing utilities. Pull requests run short code-change fuzzing,
+#          while main-branch pushes and the weekly schedule run batch fuzzing.
+#
+#          Opt-in: fuzzing is OFF by default and very optional. Set the
+#          repository variable `FUZZING_ENABLED` to 'true' to run it (a
+#          .clusterfuzzlite/ config must also be present); otherwise the
+#          reusable workflow skips fuzzing (the run stays green).
+#
+#          Thin stub: the fuzzing logic lives in the reusable workflow in
+#          jebel-quant/rhiza; this file only wires up the triggers.
+#
+# Trigger: Pull requests, pushes to main/master, weekly schedule, and manual
+#          dispatch.
 
 name: "(RHIZA) FUZZING"
 
 on:
   pull_request:
     branches: [ "main", "master" ]
+  push:
+    branches: [ "main", "master" ]
   schedule:
-    - cron: "17 3 * * 1"
+    - cron: '17 3 * * 6'
   workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   fuzzing:
-    name: ClusterFuzzLite
-    runs-on: ubuntu-latest
+    uses: jebel-quant/rhiza/.github/workflows/rhiza_fuzzing.yml@v0.19.3
+    secrets: inherit
     permissions:
       contents: read
-      security-events: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Build fuzzers
-        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
-        with:
-          language: python
-          sanitizer: address
-
-      - name: Run PR fuzzing
-        if: github.event_name == 'pull_request'
-        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
-        with:
-          language: python
-          mode: code-change
-          sanitizer: address
-          fuzz-seconds: 600
-
-      - name: Run scheduled fuzzing
-        if: github.event_name != 'pull_request'
-        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
-        with:
-          language: python
-          mode: batch
-          sanitizer: address
-          fuzz-seconds: 1800
+      security-events: write   # Upload fuzzing SARIF to code scanning
