@@ -67,25 +67,44 @@ select = [
 extend-select = [
     "D105",  # pydocstyle - Require docstrings for magic methods
     "D107",  # pydocstyle - Require docstrings for __init__
+    "A",     # flake8-builtins - Don't shadow Python builtins
+    "ANN",   # flake8-annotations - Enforce complete type annotations (subsumes ANN001/ANN2)
+    "ARG",   # flake8-unused-arguments - Unused arguments (tests exempt below: pytest fixtures)
     "B",     # flake8-bugbear - Find likely bugs and design problems
+    "BLE",   # flake8-blind-except - No bare `except Exception` swallowing
     "C4",    # flake8-comprehensions - Better list/set/dict comprehensions
-    "SIM",   # flake8-simplify - Simplify code
+    "C901",  # mccabe - Flag overly complex functions (cyclomatic complexity)
+    "ERA",   # eradicate - Find commented out code
+    "ICN",   # flake8-import-conventions - Import convention enforcement
+    "PIE",   # flake8-pie - Miscellaneous lints (duplicate class fields, useless spread, ...)
+    "PL",    # Pylint rules
     "PT",    # flake8-pytest-style - Check pytest best practices
     "RUF",   # Ruff-specific rules
     "S",     # flake8-bandit - Find security issues
-    "BLE",   # flake8-blind-except - Flag blind `except Exception` handlers
-    "ERA",   # eradicate - Find commented out code
+    "SIM",   # flake8-simplify - Simplify code
     "T10",   # flake8-debugger - Check for debugger imports and calls
     "TRY",   # flake8-try-except-raise - Try/except/raise checks
-    "ICN",   # flake8-import-conventions - Import convention enforcement
-    "C901",  # mccabe - Flag overly complex functions (cyclomatic complexity)
-    "PIE",   # flake8-pie - Miscellaneous rules
-    "PL",    # Pylint rules
-    "ANN",   # flake8-annotations - Enforce complete type annotations
 ]
+
+# Deliberately NOT enabled — exclusions are decisions, not omissions.
+# One-line rationale per family; revisit when the rationale stops holding:
+# FBT: boolean positional flags (e.g. dry_run=True) are idiomatic in our test/make drivers
+# COM: trailing-comma layout is owned by `ruff format`
+# ISC: implicit string concatenation is handled/conflicted by `ruff format`
+# Q: quote style is owned by `ruff format` (double quotes, configured below)
+# RET: return-statement micro-style; SIM already covers the valuable simplifications
+# EM: literal exception messages are fine at our scale; TRY covers exception-flow issues
+# DTZ: no runtime code handling datetimes ships from this repo
+# SLF: private-member access is needed in tests; too coarse to enable repo-wide
+# TCH/TID: no typing-only import cycles or import-tidiness issues at this size
+# RSE: raise micro-style; TRY covers the error-prone patterns
+# NPY/PD: no NumPy/pandas runtime code in this repository
+# YTT: Python 2020 sys.version checks are irrelevant on py311+
+# PGH: its eval/blanket-ignore checks overlap with the S and RUF rules already enabled
 
 # Resolve incompatible pydocstyle rules: prefer D211 and D212 over D203 and D213
 ignore = [
+    "ANN401",  # dynamically typed *args/**kwargs in framework hooks are intentional
     "D203",  # one-blank-line-before-class (conflicts with D211)
     "D213",  # multi-line-summary-second-line (conflicts with D212)
     # The following Pylint rules conflict with deliberate, established patterns in
@@ -132,10 +151,12 @@ line-ending = "auto"
     "C901",     # Complexity gate targets production code; tests use elaborate mock setups
     "PLR0911",  # Test doubles/dispatchers legitimately have many return branches
     "PLR1714",  # Readability of explicit comparison chains is fine in tests
+    "ARG",      # pytest fixtures are requested by name for their side effects, not always read
     "ANN",      # Type annotations add noise to test functions/fixtures/mocks, not safety
 ]
 # Marimo notebooks - allow flexible coding patterns for interactive exploration
 "**/notebooks/*.py" = [
+    "ANN",     # notebooks prioritize interactive readability over strict annotation coverage
     "D100",    # No module docstring - marimo requires `import marimo` as the first statement
     "N803",    # Allow non-lowercase variable names in notebooks
     "S101",    # Allow assert statements in notebooks

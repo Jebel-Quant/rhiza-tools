@@ -5,7 +5,8 @@ DEFAULT_AI_MODEL=claude-sonnet-4.6
 LOGO_FILE=.rhiza/assets/rhiza-logo.svg
 GH_AW_ENGINE ?= copilot  # Default AI engine for gh-aw workflows (copilot, claude, or codex)
 
-# Override template default: fix quoting bug and typo (mkdocstring -> mkdocstrings)
+# Override template default: also install the package itself (editable) alongside
+# mkdocstrings so the plugin can import rhiza_tools when rendering API references.
 MKDOCS_EXTRA_PACKAGES = --with-editable . --with 'mkdocstrings[python]'
 
 # NOTE: we intentionally do NOT raise COVERAGE_FAIL_UNDER here. The Rhiza
