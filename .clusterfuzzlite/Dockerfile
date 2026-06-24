@@ -1,4 +1,4 @@
-# ClusterFuzzLite build image for rhiza-tools.
+# ClusterFuzzLite build image for rhiza_tools.
 # Uses the OSS-Fuzz Python base image, which provides Atheris and the
 # compile_python_fuzzer helper.
 # Pinned by SHA256 so the build image only changes through reviewed updates.
