@@ -142,8 +142,8 @@ class TestInteractiveBump:
             """Stand in for confirm during the test."""
             return MockConfirm()
 
-        monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
-        monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.confirm", mock_confirm)
+        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.confirm", mock_confirm)
 
         bump_command(BumpOptions(version=None))
 
@@ -169,8 +169,8 @@ class TestInteractiveBump:
                 confirm_calls.append(True)
                 return len(confirm_calls) == 1
 
-        monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", lambda *a, **kw: MockSelect())
-        monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.confirm", lambda *a, **kw: MockConfirm())
+        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", lambda *a, **kw: MockSelect())
+        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.confirm", lambda *a, **kw: MockConfirm())
 
         bump_command(BumpOptions(version=None))
 
@@ -196,8 +196,8 @@ class TestInteractiveBump:
                 confirm_calls.append(True)
                 return len(confirm_calls) == 1
 
-        monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", lambda *a, **kw: MockSelect())
-        monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.confirm", lambda *a, **kw: MockConfirm())
+        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", lambda *a, **kw: MockSelect())
+        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.confirm", lambda *a, **kw: MockConfirm())
 
         bump_command(BumpOptions(version=None))
 
@@ -444,10 +444,10 @@ class TestInteractiveRelease:
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             release_command(dry_run=True)
 
@@ -461,10 +461,10 @@ class TestInteractiveRelease:
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("typer.confirm", return_value=False),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
             pytest.raises(typer.Exit) as exc_info,
         ):
             release_command()
@@ -488,8 +488,8 @@ class TestInteractiveReleaseWithBump:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="MINOR", push=True, dry_run=True)
 
@@ -519,7 +519,7 @@ class TestNonInteractiveReleaseDryRun:
 
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
-        with patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git):
+        with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git):
             release_command(dry_run=True, non_interactive=True)
 
         assert get_current_version(Language.PYTHON) == "0.1.0"
@@ -546,8 +546,8 @@ class TestNonInteractiveReleaseBumpPush:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="MINOR", push=True, dry_run=True)
 
@@ -562,8 +562,8 @@ class TestNonInteractiveReleaseBumpPush:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="PATCH", push=True, dry_run=True)
 
@@ -578,8 +578,8 @@ class TestNonInteractiveReleaseBumpPush:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
         ):
             release_command(bump_type="MAJOR", push=True, dry_run=True)
 
@@ -601,9 +601,9 @@ class TestReleasePushFlow:
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             release_command(push=True, dry_run=True)
 
@@ -622,9 +622,9 @@ class TestReleasePushFlow:
             push_called["called"] = True
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_git.push_tag", side_effect=mock_push_tag),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.push_tag", side_effect=mock_push_tag),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
         ):
             release_command(push=True, non_interactive=True)
 
@@ -646,10 +646,10 @@ class TestReleaseCommitListing:
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             # Should complete without errors
             release_command(dry_run=True)
@@ -694,9 +694,9 @@ class TestReleaseMissingTag:
         mock_git = _make_mock_git_for_release(tag_exists_locally=False)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
             pytest.raises(typer.Exit),
         ):
             release_command()
@@ -718,9 +718,9 @@ class TestReleaseExistingRemoteTag:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
             pytest.raises(typer.Exit),
         ):
             release_command()
@@ -746,8 +746,8 @@ class TestDryRunVersionCalculation:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
         ):
             # This should succeed - it should look for tag v0.2.0, not v0.1.0
             release_command(bump_type="MINOR", push=True, dry_run=True)
@@ -766,10 +766,10 @@ class TestDryRunVersionCalculation:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             # Should NOT fail even with dirty working tree in dry-run
             release_command(dry_run=True)
@@ -783,8 +783,8 @@ class TestDryRunVersionCalculation:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
         ):
             # Should succeed: tag v0.2.0 doesn't exist yet, but that's OK in dry-run
             release_command(bump_type="MINOR", push=True, dry_run=True)
@@ -807,8 +807,8 @@ class TestAlwaysBump:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
@@ -825,8 +825,8 @@ class TestAlwaysBump:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = "Minor (0.1.0 -> 0.2.0)"
@@ -843,8 +843,8 @@ class TestAlwaysBump:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
         ):
             release_command(non_interactive=True, push=True, dry_run=True)
 
@@ -860,7 +860,7 @@ class TestAlwaysBump:
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.return_value = None
@@ -876,8 +876,8 @@ class TestAlwaysBump:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command") as mock_bump,
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command") as mock_bump,
             patch("questionary.select") as mock_select,
         ):
             release_command(bump_type="MAJOR", push=True, dry_run=True)
@@ -895,7 +895,7 @@ class TestAlwaysBump:
         mock_git = _make_mock_git_for_release(tag_exists_locally=True)
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("questionary.select") as mock_select,
         ):
             mock_select.return_value.ask.side_effect = EOFError
@@ -1028,10 +1028,10 @@ class TestSequentialBumpRelease:
             version="0.1.1",
         )
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.1"),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.1"),
         ):
             release_command(dry_run=True)
 
@@ -1105,10 +1105,10 @@ class TestNonDefaultBranchRelease:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.typer.confirm", return_value=True),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
-            patch("rhiza_tools.commands.release_versioning.get_interactive_bump_type", return_value="0.1.0"),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
+            patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="0.1.0"),
         ):
             release_command(dry_run=True)
 
@@ -1123,7 +1123,7 @@ class TestNonDefaultBranchRelease:
         )
 
         with (
-            patch("rhiza_tools.commands.release_git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands.release_versioning.bump_command"),
+            patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands.release.versioning.bump_command"),
         ):
             release_command(bump_type="MINOR", push=True, dry_run=True)

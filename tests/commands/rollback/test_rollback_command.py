@@ -6,8 +6,8 @@ import pytest
 import typer
 
 import rhiza_tools.commands.rollback as rollback_mod
-import rhiza_tools.commands.rollback_git as rollback_git_mod
-import rhiza_tools.commands.rollback_io as rollback_io_mod
+import rhiza_tools.commands.rollback.git as rollback_git_mod
+import rhiza_tools.commands.rollback.io as rollback_io_mod
 from rhiza_tools.commands.rollback import (
     RollbackOptions,
     _confirm_rollback,
@@ -125,7 +125,7 @@ class TestSelectTagInteractively:
 
         monkeypatch.setattr(rollback_mod.qs, "select", lambda *a, **kw: MockQuestion())
 
-        # _select_tag_interactively lives in rollback_io and looks up check_tag_exists
+        # _select_tag_interactively lives in rollback/io.py and looks up check_tag_exists
         # in its own module namespace, so patch it there (not on the rollback re-export)
         # to exercise the local/remote marker branches.
         with patch.object(rollback_io_mod, "check_tag_exists", side_effect=mock_check_tag_exists):
@@ -1013,7 +1013,7 @@ class TestPushRevertEOF:
 
     def test_eof_in_confirm_proceeds_with_push(self):
         """rollback.py:325-327 – EOFError during confirm causes push to proceed."""
-        import rhiza_tools.commands.rollback_io as rollback_io_mod
+        import rhiza_tools.commands.rollback.io as rollback_io_mod
         from rhiza_tools.commands.rollback import _push_revert
 
         mock_confirm = MagicMock()

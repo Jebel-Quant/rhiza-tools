@@ -164,7 +164,7 @@ def test_bump_interactive_patch(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -185,7 +185,7 @@ def test_bump_interactive_minor(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -206,7 +206,7 @@ def test_bump_interactive_cancel(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
 
     # Should exit with code 0 if cancelled
     with pytest.raises(typer.Exit) as excinfo:
@@ -273,7 +273,7 @@ def test_bump_interactive_rc(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -294,7 +294,7 @@ def test_bump_interactive_build(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -345,7 +345,7 @@ def test_bump_interactive_alpha(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -366,7 +366,7 @@ def test_bump_interactive_beta(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -387,7 +387,7 @@ def test_bump_interactive_dev(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -410,7 +410,7 @@ def test_bump_interactive_prerelease(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -431,7 +431,7 @@ def test_bump_interactive_major(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -495,7 +495,7 @@ def test_bump_interactive_invalid_semver_in_config(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
 
     # Should fail with exit code 1 due to invalid semver
     with pytest.raises(typer.Exit) as excinfo:
@@ -520,7 +520,7 @@ def test_bump_with_allow_dirty_flag(bump_project, monkeypatch):
 
         return real_get_config(*args, **kwargs)
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_engine.get_configuration", mock_get_config)
+    monkeypatch.setattr("rhiza_tools.commands.bump.engine.get_configuration", mock_get_config)
 
     # Test with allow_dirty=True
     bump_command(BumpOptions(version="patch", allow_dirty=True))
@@ -540,7 +540,7 @@ def test_bump_with_commit_flag(bump_project, monkeypatch):
 
         return real_get_config(*args, **kwargs)
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_engine.get_configuration", mock_get_config)
+    monkeypatch.setattr("rhiza_tools.commands.bump.engine.get_configuration", mock_get_config)
 
     # Test with commit=True
     bump_command(BumpOptions(version="patch", commit=True))
@@ -581,7 +581,7 @@ def test_bump_folds_changelog_hook_into_commit(bump_project, monkeypatch):
         if kwargs.get("dry_run") is False:
             captured["config"] = kwargs.get("config")
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_engine.do_bump", mock_do_bump)
+    monkeypatch.setattr("rhiza_tools.commands.bump.engine.do_bump", mock_do_bump)
 
     bump_command(BumpOptions(version="patch", commit=True))
 
@@ -599,7 +599,7 @@ def test_bump_without_cliff_config_adds_no_changelog_hook(bump_project, monkeypa
         if kwargs.get("dry_run") is False:
             captured["config"] = kwargs.get("config")
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_engine.do_bump", mock_do_bump)
+    monkeypatch.setattr("rhiza_tools.commands.bump.engine.do_bump", mock_do_bump)
 
     bump_command(BumpOptions(version="patch", commit=True))
 
@@ -616,7 +616,7 @@ def test_bump_configuration_load_failure(bump_project, monkeypatch):
 
         raise ConfigurationError("Configuration load error")  # noqa: TRY003
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_engine.get_configuration", mock_get_config)
+    monkeypatch.setattr("rhiza_tools.commands.bump.engine.get_configuration", mock_get_config)
 
     # Should fail with exit code 1
     with pytest.raises(typer.Exit) as excinfo:
@@ -631,7 +631,7 @@ def test_bump_operation_failure(bump_project, monkeypatch):
         """Stand in for do_bump during the test."""
         raise BumpVersionError("Bump operation failed")  # noqa: TRY003
 
-    monkeypatch.setattr("rhiza_tools.commands.bump_engine.do_bump", mock_do_bump)
+    monkeypatch.setattr("rhiza_tools.commands.bump.engine.do_bump", mock_do_bump)
 
     # Should fail with exit code 1
     with pytest.raises(typer.Exit) as excinfo:
@@ -968,7 +968,7 @@ class TestPreflightValidation:
             # Should never reach the real call
             raise AssertionError("Real bump should not be called after preflight failure")  # noqa: TRY003
 
-        with patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=mock_do_bump):
+        with patch("rhiza_tools.commands.bump.engine.do_bump", side_effect=mock_do_bump):
             with pytest.raises(typer.Exit) as excinfo:
                 bump_command(BumpOptions(version="patch"))
             assert excinfo.value.exit_code == 1
@@ -991,7 +991,7 @@ class TestPreflightValidation:
 
             return real_do_bump(*args, **kwargs)
 
-        with patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=tracking_do_bump):
+        with patch("rhiza_tools.commands.bump.engine.do_bump", side_effect=tracking_do_bump):
             bump_command(BumpOptions(version="patch"))
 
         # Should have two calls: first dry-run (preflight), then real
@@ -1013,7 +1013,7 @@ class TestPreflightValidation:
 
             return real_do_bump(*args, **kwargs)
 
-        with patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=tracking_do_bump):
+        with patch("rhiza_tools.commands.bump.engine.do_bump", side_effect=tracking_do_bump):
             bump_command(BumpOptions(version="patch", dry_run=True))
 
         # Should have only one call (the actual dry-run), no preflight
@@ -1275,7 +1275,7 @@ def test_handle_push_to_remote_non_interactive(bump_project, monkeypatch):
         push_attempted.append(args)
         return MagicMock(returncode=0, stdout="", stderr="")
 
-    from rhiza_tools.commands import bump_git
+    from rhiza_tools.commands.bump import git as bump_git
 
     monkeypatch.setattr(bump_git, "run_git_command", mock_run_git)
 
@@ -1509,7 +1509,7 @@ class TestExecuteBump:
         mock_config_path = MagicMock()
 
         with (
-            patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=BumpVersionError("bump failed")),
+            patch("rhiza_tools.commands.bump.engine.do_bump", side_effect=BumpVersionError("bump failed")),
             pytest.raises(typer.Exit),
         ):
             _execute_bump("1.0.1", mock_config, mock_config_path, dry_run=False)
@@ -1522,7 +1522,7 @@ class TestExecuteBump:
         mock_config_path = MagicMock()
 
         with (
-            patch("rhiza_tools.commands.bump_engine.do_bump", side_effect=BumpVersionError("bump failed")),
+            patch("rhiza_tools.commands.bump.engine.do_bump", side_effect=BumpVersionError("bump failed")),
             pytest.raises(typer.Exit),
         ):
             _execute_bump("1.0.1", mock_config, mock_config_path, dry_run=True)
@@ -1564,7 +1564,7 @@ class TestHandlePushToRemote:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        with patch("rhiza_tools.commands.bump_git.run_git_command", return_value=mock_result):
+        with patch("rhiza_tools.commands.bump.git.run_git_command", return_value=mock_result):
             _handle_push_to_remote("1.0.1")  # version set -> no interactive prompt
 
     def test_push_fails(self):
@@ -1576,7 +1576,7 @@ class TestHandlePushToRemote:
         mock_result.stderr = "remote: permission denied"
 
         with (
-            patch("rhiza_tools.commands.bump_git.run_git_command", return_value=mock_result),
+            patch("rhiza_tools.commands.bump.git.run_git_command", return_value=mock_result),
             pytest.raises(typer.Exit),
         ):
             _handle_push_to_remote("1.0.1")

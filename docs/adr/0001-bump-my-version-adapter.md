@@ -18,7 +18,7 @@ likely discover the break only when a real release failed.
 ## Decision
 
 All contact with bump-my-version internals lives in a single module,
-`rhiza_tools.commands.bump_engine`. Every other module goes through the helpers
+`rhiza_tools.commands.bump.engine`. Every other module goes through the helpers
 it exposes (`_build_configuration`, `_preflight_bump`, `_execute_bump`, …). The
 module is typed against bump-my-version's concrete `Config` (aliased
 `BumpConfig`) rather than `Any`, because `do_bump` requires that exact type, so

@@ -36,9 +36,9 @@ from rhiza_tools.commands._shared import (
 )
 from rhiza_tools.commands.release import check_tag_exists
 
-# Git tag/commit plumbing lives in rollback_git; re-exported here so callers and
+# Git tag/commit plumbing lives in rollback/git.py; re-exported here so callers and
 # existing tests keep importing ``rollback.<helper>``.
-from rhiza_tools.commands.rollback_git import (
+from rhiza_tools.commands.rollback.git import (
     _delete_local_tag,
     _delete_remote_tag,
     _get_previous_version_from_tags,
@@ -48,18 +48,18 @@ from rhiza_tools.commands.rollback_git import (
     _revert_bump_commit,
 )
 
-# Interactive UI and display helpers live in rollback_io; re-exported here so
+# Interactive UI and display helpers live in rollback/io.py; re-exported here so
 # callers and existing tests keep importing ``rollback.<helper>``.
-from rhiza_tools.commands.rollback_io import (
+from rhiza_tools.commands.rollback.io import (
     _confirm_rollback as _confirm_rollback,
 )
-from rhiza_tools.commands.rollback_io import (
+from rhiza_tools.commands.rollback.io import (
     _push_revert as _push_revert,
 )
-from rhiza_tools.commands.rollback_io import (
+from rhiza_tools.commands.rollback.io import (
     _select_tag_interactively as _select_tag_interactively,
 )
-from rhiza_tools.commands.rollback_io import (
+from rhiza_tools.commands.rollback.io import (
     _show_rollback_plan as _show_rollback_plan,
 )
 

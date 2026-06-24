@@ -3,7 +3,7 @@
 These helpers handle user-facing interaction and display: selecting a tag
 interactively, confirming the rollback, pushing the revert commit, and
 printing the rollback plan. They contain no tag-deletion or commit-revert
-git operations — those live in ``rollback_git``.
+git operations — those live in ``rollback/git.py``.
 
 All symbols defined here are re-exported by ``rollback.py`` so the public
 import surface is unchanged.

@@ -212,7 +212,7 @@ def test_release_blocks_stale_version(tmp_path, monkeypatch):
     _patch_remote_latest(monkeypatch, "0.4.0")
 
     with (
-        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=_release_git_mock()),
+        patch("rhiza_tools.commands.release.git.run_git_command", side_effect=_release_git_mock()),
         pytest.raises(typer.Exit),
     ):
         release_mod.release_command(non_interactive=True, dry_run=True)
@@ -225,8 +225,8 @@ def test_release_allows_stale_version_with_override(tmp_path, monkeypatch):
     _patch_remote_latest(monkeypatch, "0.4.0")
 
     with (
-        patch("rhiza_tools.commands.release_git.run_git_command", side_effect=_release_git_mock()),
-        patch("rhiza_tools.commands.release_versioning.bump_command"),
+        patch("rhiza_tools.commands.release.git.run_git_command", side_effect=_release_git_mock()),
+        patch("rhiza_tools.commands.release.versioning.bump_command"),
     ):
         # Should complete the dry-run without raising for the monotonicity guard.
         release_mod.release_command(non_interactive=True, dry_run=True, allow_older=True)

@@ -4,7 +4,7 @@ This module holds every git-facing helper used by ``release_command``: verifying
 the working tree, checking branch sync status, resolving the default remote
 branch, looking up and pushing tags, and confirming with the user before the
 final push. None of these functions perform interactive version selection —
-that concern lives in ``release_versioning``.
+that concern lives in ``release/versioning.py``.
 
 All symbols defined here are re-exported by ``release.py`` so the public import
 surface is unchanged.
