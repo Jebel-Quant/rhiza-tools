@@ -1,6 +1,6 @@
-"""Property-based tests for the pure version-math in ``bump_versioning``.
+"""Property-based tests for the pure version-math in ``bump/versioning.py``.
 
-``bump_versioning`` is the deliberately side-effect-free version-arithmetic
+``bump/versioning.py`` is the deliberately side-effect-free version-arithmetic
 layer of the bump command (PEP 440 / semver normalization, prerelease
 calculation, bump-type resolution, version-argument parsing). Issue #262 adds
 ``hypothesis`` coverage so these functions are checked against generated inputs —
@@ -18,7 +18,7 @@ import semver
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _denormalize_pep440_to_semver,
     _parse_version_argument,
     _validate_explicit_version,

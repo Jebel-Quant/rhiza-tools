@@ -30,7 +30,7 @@ from rhiza_tools.commands._shared import (
 
 # Re-export the bump-my-version adapter helpers for the same reason. Names called
 # directly inside this module (bump_command) need no alias; pure re-exports use one.
-from rhiza_tools.commands.bump_engine import (
+from rhiza_tools.commands.bump.engine import (
     BumpConfig,
     _build_changelog_hooks,
     _build_configuration,
@@ -38,72 +38,72 @@ from rhiza_tools.commands.bump_engine import (
     _preflight_bump,
     _preview_file_modifications,
 )
-from rhiza_tools.commands.bump_engine import (
+from rhiza_tools.commands.bump.engine import (
     _show_file_changes as _show_file_changes,
 )
 
-# Git helpers (branch checkout/restore, push to remote) live in bump_git; re-exported
+# Git helpers (branch checkout/restore, push to remote) live in bump/git.py; re-exported
 # here so callers and tests that use ``rhiza_tools.commands.bump.<helper>`` keep working.
-from rhiza_tools.commands.bump_git import (
+from rhiza_tools.commands.bump.git import (
     _handle_branch_checkout as _handle_branch_checkout,
 )
-from rhiza_tools.commands.bump_git import (
+from rhiza_tools.commands.bump.git import (
     _handle_push_to_remote as _handle_push_to_remote,
 )
-from rhiza_tools.commands.bump_git import (
+from rhiza_tools.commands.bump.git import (
     _restore_original_branch as _restore_original_branch,
 )
 
-# Project I/O, interactive UI, and public data model live in bump_io; re-exported
+# Project I/O, interactive UI, and public data model live in bump/io.py; re-exported
 # here so callers and tests that use ``rhiza_tools.commands.bump.<name>`` keep working.
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     BumpOptions as BumpOptions,
 )
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     Language as Language,
 )
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     _log_bump_success as _log_bump_success,
 )
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     _show_interactive_preview as _show_interactive_preview,
 )
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     _validate_project_exists as _validate_project_exists,
 )
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     get_current_version as get_current_version,
 )
-from rhiza_tools.commands.bump_io import (
+from rhiza_tools.commands.bump.io import (
     get_interactive_bump_type as get_interactive_bump_type,
 )
 
 # Re-export pure version-math helpers so external callers and tests that reference
 # ``rhiza_tools.commands.bump.<name>`` (including monkeypatch string paths) keep
-# working after these moved to bump_versioning. The redundant ``as`` aliases mark
+# working after these moved to bump/versioning.py. The redundant ``as`` aliases mark
 # them as intentional re-exports for ruff (F401).
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _CHOICE_PREFIX_TO_BUMP_TYPE as _CHOICE_PREFIX_TO_BUMP_TYPE,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _VALID_BUMP_TYPES as _VALID_BUMP_TYPES,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _denormalize_pep440_to_semver as _denormalize_pep440_to_semver,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _determine_bump_type_from_choice as _determine_bump_type_from_choice,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _parse_version_argument,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     _validate_explicit_version as _validate_explicit_version,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     get_bumped_version_from_type as get_bumped_version_from_type,
 )
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.versioning import (
     get_next_prerelease as get_next_prerelease,
 )
 

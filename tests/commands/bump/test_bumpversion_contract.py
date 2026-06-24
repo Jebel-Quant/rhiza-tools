@@ -1,6 +1,6 @@
 """Contract test pinning the bump-my-version interface rhiza-tools depends on.
 
-The bump engine (``rhiza_tools.commands.bump_engine``) appends git-cliff commands
+The bump engine (``rhiza_tools.commands.bump.engine``) appends git-cliff commands
 to a bump-my-version configuration's ``pre_commit_hooks`` list before running a
 real bump. That depends on upstream bump-my-version exposing a ``Config`` model
 with a list-typed ``pre_commit_hooks`` field. If a future upstream release renames

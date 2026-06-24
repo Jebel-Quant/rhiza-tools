@@ -28,8 +28,8 @@ from rhiza_tools.commands._shared import (
     COOL_STYLE,
     NON_INTERACTIVE_ERRORS,
 )
-from rhiza_tools.commands.bump_engine import BumpConfig, _get_files_to_modify
-from rhiza_tools.commands.bump_versioning import (
+from rhiza_tools.commands.bump.engine import BumpConfig, _get_files_to_modify
+from rhiza_tools.commands.bump.versioning import (
     _denormalize_pep440_to_semver,
     get_next_prerelease,
 )

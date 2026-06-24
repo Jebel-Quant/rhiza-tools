@@ -40,43 +40,43 @@ from rhiza_tools.commands.bump import (
     get_current_version,
 )
 
-# Git plumbing (tag lookup, push, branch checks) lives in release_git; re-exported
+# Git plumbing (tag lookup, push, branch checks) lives in release/git.py; re-exported
 # here so the public import surface (and existing tests) keep working.
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     _confirm_and_push_tag as _confirm_and_push_tag,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     _show_commits_since_last_tag as _show_commits_since_last_tag,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     _validate_tag_state as _validate_tag_state,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     check_branch_status as check_branch_status,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     check_clean_working_tree as check_clean_working_tree,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     check_tag_exists as check_tag_exists,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     get_current_branch as get_current_branch,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     get_default_branch as get_default_branch,
 )
-from rhiza_tools.commands.release_git import (
+from rhiza_tools.commands.release.git import (
     push_tag as push_tag,
 )
 
-# Bump-type resolution lives in release_versioning; re-exported here so the
+# Bump-type resolution lives in release/versioning.py; re-exported here so the
 # public import surface (and existing tests) keep using ``release.<helper>``.
-from rhiza_tools.commands.release_versioning import (
+from rhiza_tools.commands.release.versioning import (
     _perform_version_bump,
     _resolve_required_bump,
 )
-from rhiza_tools.commands.release_versioning import (
+from rhiza_tools.commands.release.versioning import (
     _resolve_explicit_bump_type as _resolve_explicit_bump_type,
 )
 

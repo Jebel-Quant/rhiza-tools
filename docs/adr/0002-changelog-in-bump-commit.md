@@ -17,7 +17,7 @@ two problems in this project's setup:
 
 ## Decision
 
-`bump_engine._build_changelog_hooks` emits git-cliff commands as bump-my-version
+`bump/engine.py`'s `_build_changelog_hooks` emits git-cliff commands as bump-my-version
 `pre_commit_hooks`:
 
 ```

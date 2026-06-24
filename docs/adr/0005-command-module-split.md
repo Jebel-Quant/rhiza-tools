@@ -33,6 +33,19 @@ The [`test_module_size`](0004-structural-meta-tests.md) gate enforces the
 ceiling that triggers this; after the #223 split the largest command module is
 ~700 lines and the gate is set to 750.
 
+## Amendment — sibling suffixes became subpackages
+
+The flat suffix files described above were later folded into per-command
+**subpackages**: `bump_versioning.py` → `bump/versioning.py`, `release_git.py` →
+`release/git.py`, and so on, with the orchestration module becoming the
+package's `__init__.py`. The convention is otherwise unchanged — the
+`__init__.py` re-exports the extracted helpers, dependencies still point
+downward only, and patch targets follow the dependency into the new module
+namespace (now `commands.release.versioning.bump_command`,
+`commands.rollback.git.run_git_command`). See
+[the Architecture guide](../architecture.md) for the current layout; `tests/`
+mirrors it under `tests/commands/<command>/`.
+
 ## Consequences
 
 - Each module has a single clear responsibility and stays navigable.

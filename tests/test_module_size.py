@@ -8,13 +8,18 @@ bringing every command module below 500 lines. This gate prevents regression:
 every command module must stay at or below a 500-line ceiling, so future growth
 is split out rather than accreted into one file.
 
-Issue #261 re-assessed the largest remaining modules (``bump_io`` ~352 lines,
-``release_git`` ~337 lines, ``rollback`` ~378 lines). They sit comfortably under
-the ceiling and each owns a single, documented responsibility — ``bump_io`` is
-the bump command's project-I/O + interactive-UI layer, ``release_git`` is the
-release command's git plumbing, ``rollback`` is the rollback command flow. Their
-size is intrinsic to that cohesive responsibility, so they are intentionally kept
-whole rather than split further; the line ceiling below is the binding rule.
+Issue #261 re-assessed the largest remaining modules (``bump/io.py`` ~352 lines,
+``release/git.py`` ~337 lines, ``rollback/__init__.py`` ~378 lines). They sit
+comfortably under the ceiling and each owns a single, documented responsibility
+— ``bump/io.py`` is the bump command's project-I/O + interactive-UI layer,
+``release/git.py`` is the release command's git plumbing,
+``rollback/__init__.py`` is the rollback command flow. Their size is intrinsic to
+that cohesive responsibility, so they are intentionally kept whole rather than
+split further; the line ceiling below is the binding rule.
+
+The extracted siblings were later folded into per-command subpackages
+(``bump/``, ``release/``, ``rollback/``), so the gate now globs ``**/*.py`` to
+reach modules nested under those packages.
 """
 
 from __future__ import annotations
@@ -26,12 +31,12 @@ _COMMANDS_DIR = Path(__file__).resolve().parent.parent / "src" / "rhiza_tools" /
 
 
 def test_command_modules_within_size_limit():
-    """Every ``src/rhiza_tools/commands/*.py`` must be at most 800 lines."""
+    """Every ``src/rhiza_tools/commands/**/*.py`` must be at most 500 lines."""
     offenders: dict[str, int] = {}
-    for module_path in sorted(_COMMANDS_DIR.glob("*.py")):
+    for module_path in sorted(_COMMANDS_DIR.glob("**/*.py")):
         line_count = len(module_path.read_text(encoding="utf-8").splitlines())
         if line_count > _MAX_LINES:
-            offenders[module_path.name] = line_count
+            offenders[str(module_path.relative_to(_COMMANDS_DIR))] = line_count
 
     assert not offenders, (
         f"command modules exceed the {_MAX_LINES}-line limit: {offenders}. "
