@@ -1,14 +1,9 @@
-# ClusterFuzzLite build image for the rhiza-tools Atheris fuzz targets.
-# OSS-Fuzz publishes this base image only as :latest, so an explicit version
-# tag isn't available — silence hadolint's untagged-image / latest warnings.
-# hadolint ignore=DL3006,DL3007
-FROM gcr.io/oss-fuzz-base/base-builder-python
+# ClusterFuzzLite build image for rhiza-tools.
+# Uses the OSS-Fuzz Python base image, which provides Atheris and the
+# compile_python_fuzzer helper.
+# Pinned by SHA256 so the build image only changes through reviewed updates.
+FROM gcr.io/oss-fuzz-base/base-builder-python@sha256:99c714c91ec30778a3ce3ae5b37491a81fc043808bc8f2955159c2f608f80116
 
-# Copy the whole repository into the OSS-Fuzz source tree.
-COPY . $SRC/rhiza-tools
-
-# Build commands run from the project root.
-WORKDIR $SRC/rhiza-tools
-
-# The build script is invoked by the OSS-Fuzz `compile` entrypoint.
-COPY .clusterfuzzlite/build.sh $SRC/
+COPY . $SRC
+WORKDIR $SRC
+COPY .clusterfuzzlite/build.sh $SRC/build.sh
