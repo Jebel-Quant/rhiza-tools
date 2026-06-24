@@ -1,6 +1,6 @@
 #!/bin/bash -eu
-# ClusterFuzzLite build script — installs rhiza_tools and compiles each Atheris
-# fuzz target under fuzzers/ via OSS-Fuzz's compile_python_fuzzer helper.
+# ClusterFuzzLite build script — installs rhiza_tools and compiles each Python
+# harness in tests/fuzz/ via OSS-Fuzz's compile_python_fuzzer helper.
 
 cd "$SRC"
 
@@ -8,12 +8,12 @@ cd "$SRC"
 # reviewed bump (the same rationale as the SHA-pinned base image).
 pip3 install --upgrade "pip==24.3.1"
 
-# Install the package and its runtime dependencies into the build environment so
-# PyInstaller can discover and bundle rhiza_tools into each frozen fuzz target.
-# compile_python_fuzzer names the resulting binary after the source file
-# (e.g. version_matrix_fuzzer.py -> version_matrix_fuzzer).
+# Install the package and its runtime dependencies so PyInstaller can discover
+# and bundle rhiza_tools into each frozen fuzzer binary. The fuzz target only
+# touches the pure-Python version-matrix parser, so no compiled-extension
+# dependencies need a --collect-all here.
 pip3 install .
 
-for fuzzer in fuzzers/*_fuzzer.py; do
+for fuzzer in tests/fuzz/fuzz_*.py; do
   compile_python_fuzzer "$fuzzer"
 done
