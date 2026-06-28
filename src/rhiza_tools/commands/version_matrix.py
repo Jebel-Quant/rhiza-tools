@@ -24,6 +24,11 @@ from pathlib import Path
 
 from rhiza_tools import console
 
+# Candidate Python versions evaluated against ``requires-python`` when the caller
+# does not pass an explicit list. Single source of truth so the runtime default
+# and the docstrings that mention it cannot drift apart.
+DEFAULT_PYTHON_CANDIDATES = ["3.11", "3.12", "3.13", "3.14"]
+
 
 class RhizaError(Exception):
     """Base exception for Rhiza-related errors."""
@@ -223,7 +228,7 @@ def version_matrix_command(
     Args:
         pyproject_path: Path to pyproject.toml. Defaults to ./pyproject.toml.
         candidates: List of candidate Python versions to evaluate. Defaults to
-            ["3.11", "3.12", "3.13", "3.14"].
+            :data:`DEFAULT_PYTHON_CANDIDATES`.
 
     Raises:
         SystemExit: If pyproject.toml is missing, invalid, or no versions match.
@@ -246,7 +251,7 @@ def version_matrix_command(
         pyproject_path = Path("pyproject.toml")
 
     if candidates is None:
-        candidates = ["3.11", "3.12", "3.13", "3.14"]
+        candidates = list(DEFAULT_PYTHON_CANDIDATES)
 
     try:
         versions = get_supported_versions(pyproject_path, candidates)
