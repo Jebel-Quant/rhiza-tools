@@ -24,12 +24,12 @@ Example:
 
 from pathlib import Path
 
-import semver
 import typer
 
 from rhiza_tools import console
 from rhiza_tools.commands._shared import (
     get_latest_remote_version,
+    parse_semver_or_exit,
 )
 from rhiza_tools.commands._shared import (
     run_git_command as run_git_command,
@@ -171,11 +171,7 @@ def _check_release_version_monotonic(version_str: str, allow_older: bool) -> Non
     if latest_remote is None:
         return
 
-    try:
-        candidate = semver.Version.parse(version_str[1:] if version_str.startswith("v") else version_str)
-    except ValueError:
-        console.error(f"Invalid semantic version: {version_str}")
-        raise typer.Exit(code=1) from None
+    candidate = parse_semver_or_exit(version_str, strip_v_prefix=True)
 
     if candidate > latest_remote:
         console.success(f"Preflight: v{candidate} is newer than the latest remote release v{latest_remote}")

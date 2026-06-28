@@ -9,10 +9,10 @@ re-exports these helpers, so the public import surface is unchanged.
 
 from pathlib import Path
 
-import semver
 import typer
 
 from rhiza_tools import console
+from rhiza_tools.commands._shared import parse_semver_or_exit
 from rhiza_tools.commands.bump import (
     BumpOptions,
     Language,
@@ -49,7 +49,7 @@ def _resolve_required_bump(non_interactive: bool, bump_type: str | None, *, lang
 
     if non_interactive:
         console.warning("No --bump type given in non-interactive mode, defaulting to patch")
-        current_semver = semver.Version.parse(current_version_str)
+        current_semver = parse_semver_or_exit(current_version_str)
         return True, str(current_semver.bump_patch())
 
     return True, get_interactive_bump_type(current_version_str)
@@ -69,11 +69,7 @@ def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[boo
         typer.Exit: If the current version is invalid or the bump type is unsupported.
     """
     current_version_str = _resolve_bump_baseline(get_current_version(language))
-    try:
-        current_semver = semver.Version.parse(current_version_str)
-    except ValueError:
-        console.error(f"Invalid semantic version: {current_version_str}")
-        raise typer.Exit(code=1) from None
+    current_semver = parse_semver_or_exit(current_version_str)
     new_version = get_bumped_version_from_type(current_semver, bump_type.lower())
     if not new_version:
         console.error(f"Invalid bump type: {bump_type}")

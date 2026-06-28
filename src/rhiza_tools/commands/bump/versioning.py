@@ -13,6 +13,7 @@ import semver
 import typer
 
 from rhiza_tools import console
+from rhiza_tools.commands._shared import parse_semver_or_exit
 
 
 def _denormalize_pep440_to_semver(version_str: str) -> str:
@@ -204,11 +205,7 @@ def _parse_version_argument(version: str | None, current_version_str: str) -> st
     if not version:
         return ""
 
-    try:
-        current_version = semver.Version.parse(current_version_str)
-    except ValueError:
-        console.error(f"Invalid semantic version: {current_version_str}")
-        raise typer.Exit(code=1) from None
+    current_version = parse_semver_or_exit(current_version_str)
 
     # Try to get bumped version from type keyword
     bumped_version = get_bumped_version_from_type(current_version, version)
