@@ -31,7 +31,7 @@ from typing import Annotated
 
 import typer
 
-from rhiza_tools import __version__, console
+from rhiza_tools import __version__
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
@@ -150,17 +150,9 @@ def bump(
             $ rhiza-tools bump patch --config /path/to/my.cfg.toml
     """
     _apply_verbose(verbose)
-    from rhiza_tools.commands.bump import BumpOptions, Language
+    from rhiza_tools.commands.bump import BumpOptions, parse_language_option
 
-    # Parse language if provided
-    lang_enum = None
-    if language:
-        try:
-            lang_enum = Language(language.lower())
-        except ValueError:
-            console.error(f"Invalid language: {language}")
-            console.error("Supported languages: python, go")
-            raise typer.Exit(code=1) from None
+    lang_enum = parse_language_option(language)
 
     options = BumpOptions(
         version=version,
@@ -283,16 +275,9 @@ def release(
             $ rhiza-tools release --language go
     """
     _apply_verbose(verbose)
-    from rhiza_tools.commands.bump import Language
+    from rhiza_tools.commands.bump import parse_language_option
 
-    lang_enum = None
-    if language:
-        try:
-            lang_enum = Language(language.lower())
-        except ValueError:
-            console.error(f"Invalid language: {language}")
-            console.error("Supported languages: python, go")
-            raise typer.Exit(code=1) from None
+    lang_enum = parse_language_option(language)
 
     release_command(bump, push, dry_run, non_interactive, lang_enum, config, allow_older)
 

@@ -53,6 +53,9 @@ from rhiza_tools.commands.bump.git import (
 from rhiza_tools.commands.bump.git import (
     _restore_original_branch as _restore_original_branch,
 )
+from rhiza_tools.commands.bump.io import (
+    SUPPORTED_LANGUAGES_MSG as SUPPORTED_LANGUAGES_MSG,
+)
 
 # Project I/O, interactive UI, and public data model live in bump/io.py; re-exported
 # here so callers and tests that use ``rhiza_tools.commands.bump.<name>`` keep working.
@@ -76,6 +79,9 @@ from rhiza_tools.commands.bump.io import (
 )
 from rhiza_tools.commands.bump.io import (
     get_interactive_bump_type as get_interactive_bump_type,
+)
+from rhiza_tools.commands.bump.io import (
+    parse_language_option as parse_language_option,
 )
 
 # Re-export pure version-math helpers so external callers and tests that reference
@@ -162,7 +168,7 @@ def _resolve_language(options: BumpOptions) -> Language:
         if detected_language is None:
             console.error("Unable to detect project language.")
             console.error("Please specify language explicitly with --language option.")
-            console.error("Supported languages: python, go")
+            console.error(SUPPORTED_LANGUAGES_MSG)
             raise typer.Exit(code=1)
         language = detected_language
         console.info(f"Detected language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
