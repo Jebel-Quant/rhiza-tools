@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import cast
 
 import questionary as qs
-import semver
 import typer
 from loguru import logger
 
@@ -27,6 +26,7 @@ from rhiza_tools import console
 from rhiza_tools.commands._shared import (
     COOL_STYLE,
     NON_INTERACTIVE_ERRORS,
+    parse_semver_or_exit,
 )
 from rhiza_tools.commands.bump.engine import BumpConfig, _get_files_to_modify
 from rhiza_tools.commands.bump.versioning import (
@@ -210,11 +210,7 @@ def get_interactive_bump_type(current_version_str: str) -> str:
               Major (1.0.0 -> 2.0.0)
               ...
     """
-    try:
-        current_version = semver.Version.parse(current_version_str)
-    except ValueError:
-        console.error(f"Invalid semantic version in configuration: {current_version_str}")
-        raise typer.Exit(code=1) from None
+    current_version = parse_semver_or_exit(current_version_str)
 
     next_patch = current_version.bump_patch()
     next_minor = current_version.bump_minor()
