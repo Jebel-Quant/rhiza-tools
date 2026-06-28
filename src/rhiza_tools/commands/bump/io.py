@@ -82,6 +82,35 @@ class Language(StrEnum):
         return Path("VERSION")
 
 
+# User-facing hint listing the languages accepted by ``--language``. Defined once
+# so the message stays consistent everywhere it is shown (invalid value, failed
+# auto-detection).
+SUPPORTED_LANGUAGES_MSG = "Supported languages: python, go"
+
+
+def parse_language_option(language: str | None) -> Language | None:
+    """Parse the ``--language`` CLI option into a :class:`Language`.
+
+    Args:
+        language: The raw ``--language`` value, or ``None`` when the option was
+            not supplied (auto-detection happens later).
+
+    Returns:
+        The matching :class:`Language`, or ``None`` when ``language`` is ``None``.
+
+    Raises:
+        typer.Exit: If ``language`` is given but is not a supported value.
+    """
+    if language is None:
+        return None
+    try:
+        return Language(language.lower())
+    except ValueError:
+        console.error(f"Invalid language: {language}")
+        console.error(SUPPORTED_LANGUAGES_MSG)
+        raise typer.Exit(code=1) from None
+
+
 @dataclass
 class BumpOptions:
     """Configuration options for bump command.
