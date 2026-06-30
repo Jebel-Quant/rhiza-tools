@@ -43,7 +43,7 @@ def _resolve_required_bump(non_interactive: bool, bump_type: str | None, *, lang
         bump to (not a bump-type keyword).
     """
     if bump_type:
-        return _resolve_explicit_bump_type(bump_type, language)
+        return True, _resolve_explicit_bump_type(bump_type, language)
 
     current_version_str = _resolve_bump_baseline(get_current_version(language))
 
@@ -55,7 +55,7 @@ def _resolve_required_bump(non_interactive: bool, bump_type: str | None, *, lang
     return True, get_interactive_bump_type(current_version_str)
 
 
-def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[bool, str]:
+def _resolve_explicit_bump_type(bump_type: str, language: Language) -> str:
     """Resolve version from an explicitly provided bump type.
 
     Args:
@@ -63,7 +63,7 @@ def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[boo
         language: The programming language for version reading.
 
     Returns:
-        Tuple of (True, new_version_string).
+        The new version string.
 
     Raises:
         typer.Exit: If the current version is invalid or the bump type is unsupported.
@@ -74,7 +74,7 @@ def _resolve_explicit_bump_type(bump_type: str, language: Language) -> tuple[boo
     if not new_version:
         console.error(f"Invalid bump type: {bump_type}")
         raise typer.Exit(code=1)
-    return True, new_version
+    return new_version
 
 
 def _perform_version_bump(new_version: str, dry_run: bool, language: Language, config: Path | None = None) -> str:
@@ -99,7 +99,7 @@ def _perform_version_bump(new_version: str, dry_run: bool, language: Language, c
             version=new_version,
             dry_run=dry_run,
             commit=True,
-            push=False,  # Don't push yet, we'll do it after tagging
+            push=False,  # Do not push yet; we will do it after tagging
             allow_dirty=False,
             language=language,
             config=config,
