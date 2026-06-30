@@ -98,7 +98,10 @@ def _perform_version_bump(new_version: str, dry_run: bool, language: Language, c
     Raises:
         typer.Exit: If the bump operation fails.
     """
-    console.info(f"Bumping version to: {new_version}")
+    if dry_run:
+        console.info(f"[DRY-RUN] Would bump version to: {new_version}")
+    else:
+        console.info(f"Bumping version to: {new_version}")
 
     bump_command(
         BumpOptions(
