@@ -100,7 +100,8 @@ def _get_previous_version_from_tags(current_tag: str) -> str | None:
         if idx + 1 < len(tags):
             return tags[idx + 1]
     except ValueError:
-        pass
+        # current_tag is not present in the version-sorted tag list.
+        return None
 
     return None
 
