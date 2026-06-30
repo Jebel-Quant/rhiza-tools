@@ -99,7 +99,7 @@ def _perform_version_bump(new_version: str, dry_run: bool, language: Language, c
             version=new_version,
             dry_run=dry_run,
             commit=True,
-            push=False,  # Don't push yet, we'll do it after tagging
+            push=False,  # Do not push yet; we will do it after tagging
             allow_dirty=False,
             language=language,
             config=config,
