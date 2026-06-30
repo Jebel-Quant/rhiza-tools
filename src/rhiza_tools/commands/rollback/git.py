@@ -93,7 +93,11 @@ def _get_previous_version_from_tags(current_tag: str) -> str | None:
     if result.returncode != 0 or not result.stdout.strip():
         return None
 
-    tags = [t.strip() for t in result.stdout.strip().split("\n") if t.strip()]
+    tags: list[str] = []
+    for t in result.stdout.strip().split("\n"):
+        stripped = t.strip()
+        if stripped:
+            tags.append(stripped)
 
     try:
         idx = tags.index(current_tag)
