@@ -78,7 +78,9 @@ def _resolve_explicit_bump_type(bump_type: str, language: Language) -> str:
     current_semver = parse_semver_or_exit(current_version_str)
     new_version = get_bumped_version_from_type(current_semver, bump_type.lower())
     if not new_version:
-        console.error(f"Invalid bump type: {bump_type}. Valid bump types are: major, minor, patch.")
+        console.error(
+            f"Invalid bump type: {bump_type}. Valid bump types (case-insensitive) are: major, minor, patch."
+        )
         raise typer.Exit(code=1)
     return new_version
 
