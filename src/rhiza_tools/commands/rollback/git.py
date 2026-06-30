@@ -103,8 +103,6 @@ def _get_previous_version_from_tags(current_tag: str) -> str | None:
         # current_tag is not present in the version-sorted tag list.
         return None
 
-    return None
-
 
 def _delete_local_tag(tag: str, dry_run: bool) -> bool:
     """Delete a tag from the local repository.
