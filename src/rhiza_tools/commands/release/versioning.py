@@ -33,13 +33,19 @@ def _resolve_required_bump(non_interactive: bool, bump_type: str | None, *, lang
     for the bump type. Cancelling the interactive prompt raises ``typer.Exit``
     (via :func:`get_interactive_bump_type`), aborting the release.
 
+    The leading boolean in the return tuple is intentionally always ``True`` to
+    preserve a stable ``(required, new_version)`` shape for callers. In the
+    release flow, ``required`` is unconditional because a release always requires
+    a version bump.
+
     Args:
         non_interactive: If True, skip prompts and default to a patch bump.
         bump_type: Explicit bump type (e.g., "MAJOR", "MINOR", "PATCH"), if given.
         language: The programming language for version reading.
 
     Returns:
-        Tuple of ``(True, new_version_string)`` — the explicit new version to
+        Tuple of ``(True, new_version_string)`` where the boolean is a fixed
+        compatibility flag and ``new_version_string`` is the explicit version to
         bump to (not a bump-type keyword).
     """
     if bump_type:
