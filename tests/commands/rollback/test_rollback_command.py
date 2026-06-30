@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
-import rhiza_tools.commands.rollback as rollback_mod
 import rhiza_tools.commands.rollback.git as rollback_git_mod
 import rhiza_tools.commands.rollback.io as rollback_io_mod
+from rhiza_tools.commands import rollback as rollback_mod
 from rhiza_tools.commands.rollback import (
     RollbackOptions,
     _confirm_rollback,
@@ -1013,7 +1013,6 @@ class TestPushRevertEOF:
 
     def test_eof_in_confirm_proceeds_with_push(self):
         """rollback.py:325-327 – EOFError during confirm causes push to proceed."""
-        import rhiza_tools.commands.rollback.io as rollback_io_mod
         from rhiza_tools.commands.rollback import _push_revert
 
         mock_confirm = MagicMock()
@@ -1036,7 +1035,6 @@ class TestResolveTag:
 
     def test_non_interactive_with_recent_tag(self):
         """rollback.py:463-469 – non_interactive mode picks most recent tag."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import RollbackOptions, _resolve_tag
 
         with patch.object(rollback_mod, "_get_recent_tags", return_value=["v1.2.3"]):
@@ -1046,7 +1044,6 @@ class TestResolveTag:
 
     def test_non_interactive_no_tags_exits(self):
         """rollback.py:465-467 – non_interactive with no tags raises Exit."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import RollbackOptions, _resolve_tag
 
         with patch.object(rollback_mod, "_get_recent_tags", return_value=[]), pytest.raises(typer.Exit):
@@ -1054,7 +1051,6 @@ class TestResolveTag:
 
     def test_interactive_selection(self):
         """rollback.py:471-472 – interactive mode calls _select_tag_interactively."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import RollbackOptions, _resolve_tag
 
         with (
@@ -1107,7 +1103,6 @@ class TestExecuteRollback:
 
     def test_tag_commit_not_found_skips_revert(self):
         """rollback.py:546-548 – missing tag commit skips revert but continues."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
@@ -1129,7 +1124,6 @@ class TestExecuteRollback:
 
     def test_delete_local_tag_fails_not_dry_run(self):
         """rollback.py:561-563 – warning shown when local tag deletion fails."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
@@ -1150,7 +1144,6 @@ class TestExecuteRollback:
 
     def test_revert_bump_fails_not_dry_run(self):
         """rollback.py:568-571 – warning shown when bump revert fails."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
@@ -1173,7 +1166,6 @@ class TestExecuteRollback:
 
     def test_push_revert_fails(self):
         """rollback.py:573-574 – success=False when push revert fails."""
-        import rhiza_tools.commands.rollback as rollback_mod
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (

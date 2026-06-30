@@ -1510,7 +1510,7 @@ class TestHandleTagValidation:
 
     def test_dry_run_with_bump_tag_already_on_remote(self):
         """release.py:543-547 – dry_run with bump raises Exit when tag already on remote."""
-        import rhiza_tools.commands.release as release_mod
+        from rhiza_tools.commands import release as release_mod
         from rhiza_tools.commands.release import _handle_tag_validation
 
         with (
