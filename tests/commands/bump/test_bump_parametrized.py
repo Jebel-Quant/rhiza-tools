@@ -139,12 +139,10 @@ class TestLanguageDetection:
 
     def test_detect_python(self, python_project):
         """Test Python project detection."""
-        _project_path, _language = python_project
         assert Language.detect() == Language.PYTHON
 
     def test_detect_go(self, go_project):
         """Test Go project detection."""
-        _project_path, _language = go_project
         assert Language.detect() == Language.GO
 
     def test_detect_none(self, tmp_path, monkeypatch):
