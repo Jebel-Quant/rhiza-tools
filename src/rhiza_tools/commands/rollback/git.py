@@ -14,6 +14,9 @@ from rhiza_tools.commands._shared import run_git_command
 # Number of fields in the `%H|%ci|%s` git-show format (commit hash, date, subject).
 _TAG_DETAIL_FIELDS = 3
 
+# Keywords used to identify version bump commits from commit subjects.
+_BUMP_KEYWORDS = ["bump version", "bump:", "version bump", "release version", "chore: bump"]
+
 
 def _get_tag_commit(tag: str) -> str | None:
     """Get the commit hash that a tag points to.
@@ -73,8 +76,7 @@ def _is_bump_commit(tag: str) -> bool:
         return False
 
     message = result.stdout.strip().lower()
-    bump_keywords = ["bump version", "bump:", "version bump", "release version", "chore: bump"]
-    return any(keyword in message for keyword in bump_keywords)
+    return any(keyword in message for keyword in _BUMP_KEYWORDS)
 
 
 def _get_previous_version_from_tags(current_tag: str) -> str | None:
@@ -93,7 +95,11 @@ def _get_previous_version_from_tags(current_tag: str) -> str | None:
     if result.returncode != 0 or not result.stdout.strip():
         return None
 
-    tags = [t.strip() for t in result.stdout.strip().split("\n") if t.strip()]
+    tags: list[str] = []
+    for t in result.stdout.strip().split("\n"):
+        stripped = t.strip()
+        if stripped:
+            tags.append(stripped)
 
     try:
         idx = tags.index(current_tag)
@@ -103,6 +109,7 @@ def _get_previous_version_from_tags(current_tag: str) -> str | None:
         # current_tag is not present in the version-sorted tag list.
         return None
 
+    # current_tag is the oldest tag, so there is no previous version.
     return None
 
 
