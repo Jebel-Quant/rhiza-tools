@@ -136,6 +136,54 @@ class BumpOptions:
     config: Path | None = None
 
 
+def _read_python_version() -> str:
+    """Read the current version from ``pyproject.toml`` in semver format.
+
+    Returns:
+        The current version string, denormalized from PEP 440 to semver.
+
+    Raises:
+        typer.Exit: If the version cannot be read or parsed.
+    """
+    try:
+        with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+        # Convert PEP 440 format back to semver format for compatibility
+        # e.g., 0.1.1a1 -> 0.1.1-alpha.1
+        return _denormalize_pep440_to_semver(str(data["project"]["version"]))
+    except (OSError, tomllib.TOMLDecodeError, KeyError) as e:
+        console.error(f"Failed to read version from pyproject.toml: {e}")
+        raise typer.Exit(code=1) from None
+
+
+def _read_go_version() -> str:
+    """Read the current version from the ``VERSION`` file.
+
+    Returns:
+        The trimmed version string.
+
+    Raises:
+        typer.Exit: If the file cannot be read or is empty/whitespace-only.
+    """
+    try:
+        with open("VERSION") as f:
+            version = f.read().strip()
+    except OSError as e:
+        console.error(f"Failed to read version from VERSION file: {e}")
+        raise typer.Exit(code=1) from None
+
+    if not version:
+        console.error("VERSION file is empty")
+        raise typer.Exit(code=1)
+
+    # Validate that the version string is not just whitespace and looks valid
+    if not version or version.isspace():
+        console.error("VERSION file contains only whitespace")
+        raise typer.Exit(code=1)
+
+    return version
+
+
 def get_current_version(language: Language) -> str:
     """Read current version from project configuration for the specified language.
 
@@ -154,36 +202,11 @@ def get_current_version(language: Language) -> str:
         0.1.0
     """
     if language == Language.PYTHON:
-        try:
-            with open("pyproject.toml", "rb") as f:
-                data = tomllib.load(f)
-            # Convert PEP 440 format back to semver format for compatibility
-            # e.g., 0.1.1a1 -> 0.1.1-alpha.1
-            return _denormalize_pep440_to_semver(str(data["project"]["version"]))
-        except (OSError, tomllib.TOMLDecodeError, KeyError) as e:
-            console.error(f"Failed to read version from pyproject.toml: {e}")
-            raise typer.Exit(code=1) from None
-    elif language == Language.GO:
-        try:
-            with open("VERSION") as f:
-                version = f.read().strip()
-        except OSError as e:
-            console.error(f"Failed to read version from VERSION file: {e}")
-            raise typer.Exit(code=1) from None
-
-        if not version:
-            console.error("VERSION file is empty")
-            raise typer.Exit(code=1)
-
-        # Validate that the version string is not just whitespace and looks valid
-        if not version or version.isspace():
-            console.error("VERSION file contains only whitespace")
-            raise typer.Exit(code=1)
-
-        return version
-    else:
-        console.error(f"Unsupported language: {language}")
-        raise typer.Exit(code=1)
+        return _read_python_version()
+    if language == Language.GO:
+        return _read_go_version()
+    console.error(f"Unsupported language: {language}")
+    raise typer.Exit(code=1)
 
 
 def get_interactive_bump_type(current_version_str: str) -> str:
@@ -286,6 +309,48 @@ def _validate_project_exists(language: Language) -> None:
         raise typer.Exit(code=1)
 
 
+def _log_conventional_version_files(updated_version: str) -> None:
+    """List conventional version-bearing files whose contents include the new version.
+
+    Used as a fallback when the config declares no explicit files to modify.
+
+    Args:
+        updated_version: The version string after the bump.
+    """
+    for file_path in [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]:
+        if file_path.exists():
+            # Check if file was actually modified by checking content
+            try:
+                content = file_path.read_text()
+                if updated_version in content:
+                    console.info(f"  • {file_path}")
+            except Exception:  # nosec B110 - safe to ignore file read errors  # noqa: S110, BLE001
+                pass
+
+
+def _log_modified_files(config: BumpConfig, updated_version: str) -> None:
+    """Print the files that the bump modified.
+
+    When the config declares files to modify, list those that exist. Otherwise
+    fall back to the files that conventionally carry a version, reporting only
+    the ones whose contents now include ``updated_version``.
+
+    Args:
+        config: The bumpversion configuration object.
+        updated_version: The version string after the bump.
+    """
+    console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
+
+    files = _get_files_to_modify(config)
+    if files:
+        for file_path in files:
+            if file_path.exists():
+                console.info(f"  • {file_path}")
+        return
+
+    _log_conventional_version_files(updated_version)
+
+
 def _log_bump_success(current_version_str: str, config: BumpConfig, language: Language) -> None:
     """Log successful version bump and post-bump instructions.
 
@@ -301,25 +366,7 @@ def _log_bump_success(current_version_str: str, config: BumpConfig, language: La
     )
     console.success(success_msg)
 
-    # Show which files were actually modified
-    files = _get_files_to_modify(config)
-    if files:
-        console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
-        for file_path in files:
-            if file_path.exists():
-                console.info(f"  • {file_path}")
-    else:
-        # Show common files that typically get modified
-        console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
-        for file_path in [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]:
-            if file_path.exists():
-                # Check if file was actually modified by checking content
-                try:
-                    content = file_path.read_text()
-                    if updated_version in content:
-                        console.info(f"  • {file_path}")
-                except Exception:  # nosec B110 - safe to ignore file read errors  # noqa: S110, BLE001
-                    pass
+    _log_modified_files(config, updated_version)
 
     console.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
 

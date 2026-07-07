@@ -19,6 +19,8 @@ Example:
         bump_command(None)
 """
 
+from pathlib import Path
+
 import semver
 import typer
 
@@ -213,6 +215,97 @@ def _finalize_bump(
             _handle_push_to_remote(options.version)
 
 
+def _resolve_new_version(options: BumpOptions, bump_baseline: str) -> str:
+    """Resolve the target version string.
+
+    Explicit target versions are honoured as-is; otherwise the user is prompted
+    interactively for the bump type relative to ``bump_baseline``.
+
+    Args:
+        options: Configuration options for the bump command.
+        bump_baseline: The version to bump from (remote-aware baseline).
+
+    Returns:
+        The new version string.
+    """
+    if options.version:
+        return _parse_version_argument(options.version, bump_baseline)
+    return get_interactive_bump_type(bump_baseline)
+
+
+def _confirm_interactive_bump(
+    options: BumpOptions,
+    current_version_str: str,
+    new_version_str: str,
+    current_git_branch: str,
+) -> tuple[BumpConfig, Path, bool, bool]:
+    """Show the interactive preview and rebuild config from the user's choices.
+
+    Args:
+        options: Configuration options for the bump command.
+        current_version_str: The current version string.
+        new_version_str: The resolved target version string.
+        current_git_branch: The current git branch, for display.
+
+    Returns:
+        Tuple of (config, config_path, commit, push) reflecting the user's
+        commit/push decisions.
+
+    Raises:
+        typer.Exit: If the user cancels the bump.
+    """
+    proceed, commit, push = _show_interactive_preview(current_version_str, new_version_str, current_git_branch)
+    if not proceed:
+        console.info("Version bump cancelled by user")
+        raise typer.Exit(code=0)
+    # Rebuild configuration with the user's commit decision.
+    config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
+    return config, config_path, commit, push
+
+
+def _prepare_config_for_execution(
+    options: BumpOptions,
+    current_version_str: str,
+    new_version_str: str,
+    config: BumpConfig,
+    config_path: Path,
+    commit: bool,
+) -> tuple[BumpConfig, Path]:
+    """Run preflight validation and fold in changelog hooks before executing.
+
+    In dry-run mode this is a no-op. Otherwise it validates that the bump would
+    succeed, rebuilds a clean config to avoid stale dry-run state, and — when a
+    real commit will be made — appends the git-cliff changelog hooks.
+
+    Args:
+        options: Configuration options for the bump command.
+        current_version_str: The current version string.
+        new_version_str: The resolved target version string.
+        config: The current bumpversion configuration.
+        config_path: Path to the generated bumpversion config.
+        commit: Whether the bump will commit the change.
+
+    Returns:
+        The (config, config_path) to execute the bump with.
+    """
+    if options.dry_run:
+        return config, config_path
+
+    # Preflight: validate bump would succeed before making any changes.
+    _preflight_bump(new_version_str, config, config_path)
+    # Rebuild configuration to avoid stale state from the dry-run preflight.
+    config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
+
+    # When we are about to create a real commit, fold a freshly generated
+    # CHANGELOG.md into it via git-cliff (mirroring how uv.lock is included). This
+    # keeps the changelog current as part of the bump commit, avoiding a separate
+    # unreviewed push to the default branch. No-op for projects without a cliff.toml.
+    if commit:
+        config.pre_commit_hooks = list(config.pre_commit_hooks) + _build_changelog_hooks(new_version_str)
+
+    return config, config_path
+
+
 def bump_command(options: BumpOptions) -> None:
     """Bump version using bump-my-version.
 
@@ -279,12 +372,7 @@ def bump_command(options: BumpOptions) -> None:
     # Explicit target versions are honoured as-is; only relative bumps
     # (patch/minor/major/prerelease) follow the remote-aware baseline.
     bump_baseline = _resolve_bump_baseline(current_version_str)
-
-    # Determine new version string
-    if options.version:
-        new_version_str = _parse_version_argument(options.version, bump_baseline)
-    else:
-        new_version_str = get_interactive_bump_type(bump_baseline)
+    new_version_str = _resolve_new_version(options, bump_baseline)
 
     console.info(f"New version will be: {typer.style(new_version_str, fg=typer.colors.GREEN, bold=True)}")
 
@@ -293,29 +381,13 @@ def bump_command(options: BumpOptions) -> None:
 
     # Interactive preview and confirmation (only in true interactive mode)
     if is_interactive:
-        proceed, commit, push = _show_interactive_preview(
-            current_version_str,
-            new_version_str,
-            current_git_branch,
+        config, config_path, commit, push = _confirm_interactive_bump(
+            options, current_version_str, new_version_str, current_git_branch
         )
-        if not proceed:
-            console.info("Version bump cancelled by user")
-            raise typer.Exit(code=0)
-        # Rebuild configuration with the user's commit decision
-        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
 
-    # Preflight: validate bump would succeed before making any changes
-    if not options.dry_run:
-        _preflight_bump(new_version_str, config, config_path)
-        # Rebuild configuration to avoid stale state from dry-run
-        config, config_path = _build_configuration(current_version_str, options.allow_dirty, commit, options.config)
-
-    # When we are about to create a real commit, fold a freshly generated
-    # CHANGELOG.md into it via git-cliff (mirroring how uv.lock is included). This
-    # keeps the changelog current as part of the bump commit, avoiding a separate
-    # unreviewed push to the default branch. No-op for projects without a cliff.toml.
-    if commit and not options.dry_run:
-        config.pre_commit_hooks = list(config.pre_commit_hooks) + _build_changelog_hooks(new_version_str)
+    config, config_path = _prepare_config_for_execution(
+        options, current_version_str, new_version_str, config, config_path, commit
+    )
 
     _execute_bump(new_version_str, config, config_path, options.dry_run)
 

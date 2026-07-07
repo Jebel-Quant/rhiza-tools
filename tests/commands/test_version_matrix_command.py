@@ -3,6 +3,7 @@
 import json
 
 import pytest
+import typer
 
 from rhiza_tools.commands.version_matrix import (
     PyProjectError,
@@ -339,10 +340,10 @@ requires-python = ">=3.10,<3.12"
         monkeypatch.chdir(tmp_path)
 
         # Should exit with error
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(typer.Exit) as exc_info:
             version_matrix_command()
 
-        assert exc_info.value.code == 1
+        assert exc_info.value.exit_code == 1
 
         # Check error message
         captured = capsys.readouterr()
@@ -359,10 +360,10 @@ requires-python = "~=3.11"
 
         monkeypatch.chdir(tmp_path)
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(typer.Exit) as exc_info:
             version_matrix_command()
 
-        assert exc_info.value.code == 1
+        assert exc_info.value.exit_code == 1
 
         captured = capsys.readouterr()
         assert "Invalid specifier" in captured.err
@@ -378,10 +379,10 @@ requires-python = ">=4.0"
 
         monkeypatch.chdir(tmp_path)
 
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(typer.Exit) as exc_info:
             version_matrix_command()
 
-        assert exc_info.value.code == 1
+        assert exc_info.value.exit_code == 1
 
         captured = capsys.readouterr()
         assert "no supported Python versions match" in captured.err

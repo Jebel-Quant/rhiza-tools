@@ -223,7 +223,7 @@ def test_check_tag_exists():
             result.returncode = 1  # doesn't exist remotely
         return result
 
-    with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command):
         local, remote = check_tag_exists("v1.0.0")
         assert local is True
         assert remote is False
@@ -561,6 +561,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
         patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="1.2.3"),
@@ -603,6 +604,7 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
     ):
         # Should complete successfully in non-interactive mode
@@ -636,6 +638,7 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
         patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="1.2.3"),
@@ -740,6 +743,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.git.push_tag", side_effect=mock_push_tag),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
         patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="1.2.3"),
@@ -778,6 +782,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="MINOR", push=True, non_interactive=True)
@@ -900,6 +905,7 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, non_interactive=True)
@@ -956,7 +962,7 @@ def test_push_tag_dry_run_with_tag_details(monkeypatch):
         # Should complete without errors
 
 
-def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
+def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch, capsys):
     """Test _validate_tag_state shows tag details when available."""
     from rhiza_tools.commands.release import _validate_tag_state
 
@@ -968,7 +974,7 @@ def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
         """Stand in for run_git_command during the test."""
         result = MagicMock()
         result.returncode = 0
-        if "show" in cmd and "--format" in cmd:
+        if "show" in cmd:
             result.stdout = "abc123def|2024-01-15|Fix critical bug"
         else:
             result.stdout = ""
@@ -979,10 +985,15 @@ def test_validate_tag_state_with_tag_details(mock_pyproject, monkeypatch):
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
     ):
         _validate_tag_state("v1.2.3", "1.2.3")
-        # Should complete and show tag details
+
+    output = capsys.readouterr().out
+    assert "Tag 'v1.2.3' found locally" in output
+    # The git-show details are surfaced to the user.
+    assert "Commit: abc123de" in output
+    assert "Fix critical bug" in output
 
 
-def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
+def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch, capsys):
     """Test _validate_tag_state when git show fails."""
     from rhiza_tools.commands.release import _validate_tag_state
 
@@ -1006,7 +1017,12 @@ def test_validate_tag_state_git_show_fails(mock_pyproject, monkeypatch):
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
     ):
         _validate_tag_state("v1.2.3", "1.2.3")
-        # Should complete without showing tag details
+
+    output = capsys.readouterr().out
+    assert "Tag 'v1.2.3' found locally" in output
+    # When git show fails, no commit details are printed.
+    assert "Commit:" not in output
+    assert "Message:" not in output
 
 
 def test_resolve_required_bump_non_interactive_defaults_to_patch(mock_pyproject, monkeypatch):
@@ -1058,7 +1074,7 @@ def test_perform_version_bump_dry_run(mock_pyproject, monkeypatch):
     assert new_version == "1.3.0"
 
 
-def test_show_commits_since_last_tag_with_commits(monkeypatch):
+def test_show_commits_since_last_tag_with_commits(monkeypatch, capsys):
     """Test _show_commits_since_last_tag with actual commits."""
     from rhiza_tools.commands.release import _show_commits_since_last_tag
 
@@ -1067,7 +1083,7 @@ def test_show_commits_since_last_tag_with_commits(monkeypatch):
         result = MagicMock()
         result.returncode = 0
 
-        if "tag" in cmd and "--sort" in cmd:
+        if "tag" in cmd:
             result.stdout = "v1.2.3\nv1.2.2\nv1.2.1"
         elif "log" in cmd:
             # Return more than 10 commits to test the truncation
@@ -1080,10 +1096,15 @@ def test_show_commits_since_last_tag_with_commits(monkeypatch):
 
     with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command):
         _show_commits_since_last_tag("v1.2.3")
-        # Should complete and show commits
+
+    output = capsys.readouterr().out
+    # Commits since the previous tag are listed, capped at 10 with an overflow note.
+    assert "Commits included in this release (since v1.2.2):" in output
+    assert "Commit message 0" in output
+    assert "... and 5 more" in output
 
 
-def test_show_commits_since_last_tag_no_tags(monkeypatch):
+def test_show_commits_since_last_tag_no_tags(monkeypatch, capsys):
     """Test _show_commits_since_last_tag when git tag command fails."""
     from rhiza_tools.commands.release import _show_commits_since_last_tag
 
@@ -1096,10 +1117,12 @@ def test_show_commits_since_last_tag_no_tags(monkeypatch):
 
     with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command):
         _show_commits_since_last_tag("v1.2.3")
-        # Should complete without showing anything
+
+    # No tags resolved: nothing is printed.
+    assert capsys.readouterr().out == ""
 
 
-def test_show_commits_since_last_tag_no_previous_tags(monkeypatch):
+def test_show_commits_since_last_tag_no_previous_tags(monkeypatch, capsys):
     """Test _show_commits_since_last_tag when there's only one tag."""
     from rhiza_tools.commands.release import _show_commits_since_last_tag
 
@@ -1117,10 +1140,12 @@ def test_show_commits_since_last_tag_no_previous_tags(monkeypatch):
 
     with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command):
         _show_commits_since_last_tag("v1.2.3")
-        # Should complete without showing commits
+
+    # Only the current tag exists, so there is no prior tag to diff against.
+    assert "Commits included in this release" not in capsys.readouterr().out
 
 
-def test_push_tag_with_ssh_url(monkeypatch):
+def test_push_tag_with_ssh_url(monkeypatch, capsys):
     """Test push_tag with SSH repository URL."""
 
     def mock_run_git_command(cmd, check=True):
@@ -1135,10 +1160,12 @@ def test_push_tag_with_ssh_url(monkeypatch):
 
     with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command):
         push_tag("v1.0.0", dry_run=False)
-        # Should complete and show GitHub Actions URL
+
+    # The SSH remote is parsed into the GitHub Actions monitoring URL.
+    assert "https://github.com/user/repo/actions" in capsys.readouterr().out
 
 
-def test_push_tag_with_non_github_url(monkeypatch):
+def test_push_tag_with_non_github_url(monkeypatch, capsys):
     """Test push_tag with non-GitHub repository URL."""
 
     def mock_run_git_command(cmd, check=True):
@@ -1153,7 +1180,9 @@ def test_push_tag_with_non_github_url(monkeypatch):
 
     with patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command):
         push_tag("v1.0.0", dry_run=False)
-        # Should complete without showing GitHub Actions URL
+
+    # A non-GitHub remote yields no Actions monitoring URL.
+    assert "/actions" not in capsys.readouterr().out
 
 
 # ──────────────────────────────────────────────
@@ -1197,6 +1226,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
             patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
@@ -1236,6 +1266,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
             patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
@@ -1279,6 +1310,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
         ):
             release_command(bump_type="PATCH", push=True, non_interactive=True)
