@@ -6,6 +6,7 @@ This module provides common helpers used across multiple command modules
 Utilities:
     - COOL_STYLE: Shared questionary styling for interactive prompts
     - run_git_command: Execute git commands with standard error handling
+    - check_tag_exists: Report whether a tag exists locally and/or remotely
     - get_current_version: Read the project version from pyproject.toml
     - get_current_git_branch: Safely determine the current git branch
     - get_latest_remote_version: Highest semver tag published on the remote
@@ -101,6 +102,31 @@ def get_current_version() -> str:
     except (OSError, tomllib.TOMLDecodeError, KeyError, TypeError) as e:
         console.error(f"Failed to read version from pyproject.toml: {e}")
         raise typer.Exit(code=1) from None
+
+
+def check_tag_exists(tag: str) -> tuple[bool, bool]:
+    """Check if a tag exists locally and/or remotely.
+
+    Args:
+        tag: The tag name to check.
+
+    Returns:
+        Tuple of (exists_locally, exists_remotely).
+
+    Example:
+        >>> local, remote = check_tag_exists("v1.0.0")  # doctest: +SKIP
+        >>> if remote:  # doctest: +SKIP
+        ...     print("Tag already released")  # doctest: +SKIP
+    """
+    # Check local
+    result = run_git_command(["git", "rev-parse", tag], check=False)
+    exists_locally = result.returncode == 0
+
+    # Check remote
+    result = run_git_command(["git", "ls-remote", "--exit-code", "--tags", "origin", f"refs/tags/{tag}"], check=False)
+    exists_remotely = result.returncode == 0
+
+    return exists_locally, exists_remotely
 
 
 def get_current_git_branch() -> str:

@@ -6,8 +6,9 @@ JSON file for a coverage badge at a specified output path.
 """
 
 import json
-import sys
 from pathlib import Path
+
+import typer
 
 from rhiza_tools import console
 
@@ -65,7 +66,7 @@ def generate_coverage_badge_command(
         output_path: Path where the badge JSON should be written.
 
     Raises:
-        SystemExit: If the coverage JSON is invalid or missing required data.
+        typer.Exit: If the coverage JSON is invalid or missing required data.
 
     Example:
         Generate badge from coverage report::
@@ -95,21 +96,21 @@ def generate_coverage_badge_command(
             data = json.load(f)
     except json.JSONDecodeError as e:
         console.error(f"Failed to parse coverage JSON: {e}")
-        sys.exit(1)
+        raise typer.Exit(code=1) from e
 
     # Extract coverage percentage
     try:
         percent = data["totals"]["percent_covered"]
     except KeyError as e:
         console.error(f"Missing expected key in coverage JSON: {e}")
-        sys.exit(1)
+        raise typer.Exit(code=1) from e
 
     # Round to nearest integer
     coverage = round(percent)
 
     if not MIN_COVERAGE <= coverage <= MAX_COVERAGE:
         console.error(f"Coverage percentage {coverage} is out of valid range 0-100")
-        sys.exit(1)
+        raise typer.Exit(code=1)
 
     console.info(f"Coverage: {coverage}%")
 

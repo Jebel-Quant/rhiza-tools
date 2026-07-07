@@ -15,6 +15,7 @@ from __future__ import annotations
 import typer
 
 from rhiza_tools import console
+from rhiza_tools.commands._shared import check_tag_exists as check_tag_exists
 from rhiza_tools.commands._shared import run_git_command
 
 # Number of fields in the `%H|%ci|%s` git-show format (commit hash, date, subject).
@@ -139,31 +140,6 @@ def get_default_branch() -> str:
 
     console.error("Could not determine default branch from remote")
     raise typer.Exit(code=1)
-
-
-def check_tag_exists(tag: str) -> tuple[bool, bool]:
-    """Check if a tag exists locally and/or remotely.
-
-    Args:
-        tag: The tag name to check.
-
-    Returns:
-        Tuple of (exists_locally, exists_remotely).
-
-    Example:
-        >>> local, remote = check_tag_exists("v1.0.0")  # doctest: +SKIP
-        >>> if remote:  # doctest: +SKIP
-        ...     print("Tag already released")  # doctest: +SKIP
-    """
-    # Check local
-    result = run_git_command(["git", "rev-parse", tag], check=False)
-    exists_locally = result.returncode == 0
-
-    # Check remote
-    result = run_git_command(["git", "ls-remote", "--exit-code", "--tags", "origin", f"refs/tags/{tag}"], check=False)
-    exists_remotely = result.returncode == 0
-
-    return exists_locally, exists_remotely
 
 
 def push_tag(tag: str, dry_run: bool = False) -> None:

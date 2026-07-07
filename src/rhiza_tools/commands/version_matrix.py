@@ -18,9 +18,10 @@ Example:
 
 import json
 import re
-import sys
 import tomllib
 from pathlib import Path
+
+import typer
 
 from rhiza_tools import console
 
@@ -231,7 +232,7 @@ def version_matrix_command(
             :data:`DEFAULT_PYTHON_CANDIDATES`.
 
     Raises:
-        SystemExit: If pyproject.toml is missing, invalid, or no versions match.
+        typer.Exit: If pyproject.toml is missing, invalid, or no versions match.
 
     Example:
         Get supported versions (output to stdout)::
@@ -259,4 +260,4 @@ def version_matrix_command(
         print(json.dumps(versions))
     except (PyProjectError, VersionSpecifierError) as e:
         console.error(str(e))
-        sys.exit(1)
+        raise typer.Exit(code=1) from e

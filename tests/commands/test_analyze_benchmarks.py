@@ -4,6 +4,7 @@ import json
 from unittest.mock import patch
 
 import pytest
+import typer
 
 from rhiza_tools.commands.analyze_benchmarks import analyze_benchmarks_command
 
@@ -44,19 +45,19 @@ def test_analyze_benchmarks_missing_dependencies(tmp_path):
 
     # Mock the import to raise ImportError
     with patch("builtins.__import__", side_effect=ImportError("No module named 'pandas'")):
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(typer.Exit) as exc_info:
             analyze_benchmarks_command(benchmarks_json=json_file)
-        assert exc_info.value.code == 1
+        assert exc_info.value.exit_code == 1
 
 
 def test_analyze_benchmarks_file_not_found(tmp_path):
     """Test analyze_benchmarks when JSON file doesn't exist."""
     non_existent = tmp_path / "nonexistent.json"
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         analyze_benchmarks_command(benchmarks_json=non_existent)
 
-    assert exc_info.value.code == 0
+    assert exc_info.value.exit_code == 0
 
 
 def test_analyze_benchmarks_invalid_json(tmp_path):
@@ -64,10 +65,10 @@ def test_analyze_benchmarks_invalid_json(tmp_path):
     json_file = tmp_path / "invalid.json"
     json_file.write_text("{ invalid json }")
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         analyze_benchmarks_command(benchmarks_json=json_file)
 
-    assert exc_info.value.code == 0
+    assert exc_info.value.exit_code == 0
 
 
 def test_analyze_benchmarks_missing_benchmarks_key(tmp_path):
@@ -75,10 +76,10 @@ def test_analyze_benchmarks_missing_benchmarks_key(tmp_path):
     json_file = tmp_path / "no_benchmarks.json"
     json_file.write_text(json.dumps({"results": []}))
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         analyze_benchmarks_command(benchmarks_json=json_file)
 
-    assert exc_info.value.code == 0
+    assert exc_info.value.exit_code == 0
 
 
 def test_analyze_benchmarks_empty_benchmarks(tmp_path):
@@ -86,10 +87,10 @@ def test_analyze_benchmarks_empty_benchmarks(tmp_path):
     json_file = tmp_path / "empty_benchmarks.json"
     json_file.write_text(json.dumps({"benchmarks": []}))
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         analyze_benchmarks_command(benchmarks_json=json_file)
 
-    assert exc_info.value.code == 0
+    assert exc_info.value.exit_code == 0
 
 
 def test_analyze_benchmarks_success(benchmark_json_file, tmp_path):

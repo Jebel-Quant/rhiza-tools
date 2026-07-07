@@ -3,6 +3,7 @@
 import json
 
 import pytest
+import typer
 
 from rhiza_tools.commands.generate_badge import (
     generate_coverage_badge_command,
@@ -121,7 +122,7 @@ class TestGenerateCoverageBadgeCommand:
         assert not output_path.exists()
 
     def test_invalid_json_format(self, tmp_path, capsys):
-        """Test that invalid JSON format causes SystemExit."""
+        """Test that invalid JSON format causes typer.Exit."""
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
@@ -130,17 +131,17 @@ class TestGenerateCoverageBadgeCommand:
         coverage_json_path.write_text("{ invalid json }")
 
         # Execute and verify it exits with error
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(typer.Exit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
 
-        assert excinfo.value.code == 1
+        assert excinfo.value.exit_code == 1
 
         # Verify error message
         captured = capsys.readouterr()
         assert "Failed to parse coverage JSON" in captured.err
 
     def test_missing_totals_key(self, tmp_path, capsys):
-        """Test that missing 'totals' key causes SystemExit."""
+        """Test that missing 'totals' key causes typer.Exit."""
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
@@ -149,10 +150,10 @@ class TestGenerateCoverageBadgeCommand:
         coverage_json_path.write_text(json.dumps(coverage_data))
 
         # Execute and verify it exits with error
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(typer.Exit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
 
-        assert excinfo.value.code == 1
+        assert excinfo.value.exit_code == 1
 
         # Verify error message
         captured = capsys.readouterr()
@@ -160,7 +161,7 @@ class TestGenerateCoverageBadgeCommand:
         assert "totals" in captured.err
 
     def test_missing_percent_covered_key(self, tmp_path, capsys):
-        """Test that missing 'percent_covered' key causes SystemExit."""
+        """Test that missing 'percent_covered' key causes typer.Exit."""
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
@@ -169,10 +170,10 @@ class TestGenerateCoverageBadgeCommand:
         coverage_json_path.write_text(json.dumps(coverage_data))
 
         # Execute and verify it exits with error
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(typer.Exit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
 
-        assert excinfo.value.code == 1
+        assert excinfo.value.exit_code == 1
 
         # Verify error message
         captured = capsys.readouterr()
@@ -180,7 +181,7 @@ class TestGenerateCoverageBadgeCommand:
         assert "percent_covered" in captured.err
 
     def test_coverage_value_below_zero(self, tmp_path, capsys):
-        """Test that coverage value < 0 causes SystemExit."""
+        """Test that coverage value < 0 causes typer.Exit."""
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
@@ -189,17 +190,17 @@ class TestGenerateCoverageBadgeCommand:
         coverage_json_path.write_text(json.dumps(coverage_data))
 
         # Execute and verify it exits with error
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(typer.Exit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
 
-        assert excinfo.value.code == 1
+        assert excinfo.value.exit_code == 1
 
         # Verify error message
         captured = capsys.readouterr()
         assert "Coverage percentage -5 is out of valid range 0-100" in captured.err
 
     def test_coverage_value_above_100(self, tmp_path, capsys):
-        """Test that coverage value > 100 causes SystemExit."""
+        """Test that coverage value > 100 causes typer.Exit."""
         # Setup
         coverage_json_path = tmp_path / "coverage.json"
         output_path = tmp_path / "badge.json"
@@ -208,10 +209,10 @@ class TestGenerateCoverageBadgeCommand:
         coverage_json_path.write_text(json.dumps(coverage_data))
 
         # Execute and verify it exits with error
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(typer.Exit) as excinfo:
             generate_coverage_badge_command(coverage_json_path, output_path)
 
-        assert excinfo.value.code == 1
+        assert excinfo.value.exit_code == 1
 
         # Verify error message
         captured = capsys.readouterr()
