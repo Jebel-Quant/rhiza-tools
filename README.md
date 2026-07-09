@@ -232,6 +232,51 @@ rhiza-tools analyze-benchmarks \
 *   `--benchmarks-json PATH` - Path to benchmarks.json file (default: `_benchmarks/benchmarks.json`).
 *   `--output-html PATH` - Path to save HTML visualization (default: `_benchmarks/benchmarks.html`).
 
+### `pip-audit`
+
+Run `pip-audit` with a tiered vulnerability policy. Vulnerabilities in runtime
+dependencies fail the command; findings in build tooling (`pip`, `setuptools`,
+`wheel`, `distribute`) warn without failing. Any arguments after the command are
+forwarded verbatim to `pip-audit`.
+
+**Usage:**
+
+```bash
+# Audit the current environment
+rhiza-tools pip-audit
+
+# Forward flags through to pip-audit
+rhiza-tools pip-audit --ignore-vuln CVE-2024-1234
+```
+
+**Options:**
+
+*   `--verbose`, `-v` - Show verbose debug output.
+*   Any other arguments are forwarded to `pip-audit`.
+
+### `suppression-audit`
+
+Scan the codebase for inline suppression comments (`# noqa`, `# nosec`,
+`# type: ignore`, `# pragma: no cover`, `# noinspection`) and print a per-file
+report, an ASCII histogram, and a suppression-density letter grade.
+
+**Usage:**
+
+```bash
+# Report suppressions and grade
+rhiza-tools suppression-audit
+
+# Also fail on stale CVE-tagged # nosec comments
+rhiza-tools suppression-audit --fail-stale-nosec-cve
+```
+
+**Options:**
+
+*   `--fail-stale-nosec-cve` - Fail when `# nosec` comments reference CVEs that
+    `pip-audit` no longer reports.
+*   `--verbose`, `-v` - Show verbose debug output.
+*   Any other arguments are forwarded to `pip-audit` (for the stale-CVE gate).
+
 ## Development
 
 ### Prerequisites

@@ -20,8 +20,10 @@ from rhiza_tools.console import configure as configure_console
 from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.bump import bump_command
 from .commands.generate_badge import generate_coverage_badge_command
+from .commands.pip_audit import pip_audit_command
 from .commands.release import release_command
 from .commands.rollback import rollback_command
+from .commands.suppression import suppression_audit_command
 from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
 
@@ -337,3 +339,53 @@ def analyze_benchmarks(
     """
     _apply_verbose(verbose)
     analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html, show=show)
+
+
+@app.command(
+    name="pip-audit",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def pip_audit(ctx: typer.Context, verbose: bool = VERBOSE_OPTION) -> None:
+    """Run pip-audit with a tiered vulnerability policy.
+
+    Vulnerabilities in runtime dependencies fail the command; findings in build
+    tooling (pip, setuptools, wheel, distribute) warn without failing. Any extra
+    arguments after the command are forwarded verbatim to pip-audit
+    (e.g. ``rhiza-tools pip-audit --ignore-vuln CVE-2024-1234``).
+
+    Args:
+        ctx: Typer context; its extra args are forwarded verbatim to pip-audit.
+        verbose: If True, enable verbose debug output.
+    """
+    _apply_verbose(verbose)
+    raise typer.Exit(code=pip_audit_command(ctx.args))
+
+
+@app.command(
+    name="suppression-audit",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def suppression_audit(
+    ctx: typer.Context,
+    fail_stale_nosec_cve: bool = typer.Option(
+        False,
+        "--fail-stale-nosec-cve",
+        help="Fail when # nosec comments reference CVEs that pip-audit no longer reports.",
+    ),
+    verbose: bool = VERBOSE_OPTION,
+) -> None:
+    """Scan the codebase for inline suppressions and report a density grade.
+
+    Detects inline suppression comments (# noqa, # nosec, # type: ignore,
+    # pragma: no cover, # noinspection), and prints a per-file report, an ASCII
+    histogram, and a letter grade. With ``--fail-stale-nosec-cve`` it also
+    cross-checks CVE-tagged # nosec comments against live pip-audit findings and
+    fails on stale ones; extra arguments are forwarded to pip-audit.
+
+    Args:
+        ctx: Typer context; its extra args are forwarded to pip-audit.
+        fail_stale_nosec_cve: If True, fail on stale CVE-tagged # nosec comments.
+        verbose: If True, enable verbose debug output.
+    """
+    _apply_verbose(verbose)
+    raise typer.Exit(code=suppression_audit_command(fail_stale_nosec_cve, ctx.args))
