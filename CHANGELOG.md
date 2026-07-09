@@ -46,6 +46,7 @@ and entries are generated from [Conventional Commits](https://www.conventionalco
 - Fix for Empty except (#297)
 - Apply suggested fix to src/rhiza_tools/commands/release/versioning.py from Copilot Autofix (#298)
 - Apply suggested fix to src/rhiza_tools/commands/release/versioning.py from Copilot Autofix (#299)
+- Bump version 0.7.3 → 0.8.0
 
 ## [0.7.3] - 2026-06-14
 
