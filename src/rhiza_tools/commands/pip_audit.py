@@ -40,6 +40,52 @@ def _vuln_ids(vuln: dict) -> str:  # type: ignore[type-arg]
     return ", ".join(ids)
 
 
+def _run_pip_audit(extra_args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Invoke ``uvx pip-audit`` with JSON output, forwarding ``extra_args``.
+
+    Args:
+        extra_args: Additional arguments forwarded verbatim to pip-audit.
+
+    Returns:
+        The completed process, with ``stdout`` carrying pip-audit's JSON report.
+    """
+    uvx = shutil.which("uvx") or "uvx"
+    cmd = [uvx, "pip-audit", "--format", "json", *extra_args]
+    return subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603 - uvx/pip-audit is trusted  # noqa: S603
+
+
+def _partition_vulns(deps: list[dict]) -> tuple[list[dict], list[dict]]:  # type: ignore[type-arg]
+    """Split vulnerable dependencies into (tooling, runtime) buckets.
+
+    Args:
+        deps: The ``dependencies`` array from pip-audit's JSON output.
+
+    Returns:
+        A tuple ``(tooling_vulns, runtime_vulns)`` of the dependencies that carry
+        vulnerabilities, classified by whether their name is in :data:`_TOOLING`.
+    """
+    vulnerable = [d for d in deps if d.get("vulns")]
+    tooling = [d for d in vulnerable if d["name"].lower() in _TOOLING]
+    runtime = [d for d in vulnerable if d["name"].lower() not in _TOOLING]
+    return tooling, runtime
+
+
+def _report_tooling(tooling_vulns: list[dict]) -> None:  # type: ignore[type-arg]
+    """Print a yellow WARN line for each vulnerability in build tooling."""
+    for dep in tooling_vulns:
+        for v in dep["vulns"]:
+            print(
+                f"{_YELLOW}[WARN] {dep['name']}=={dep['version']}: {_vuln_ids(v)} (tooling — not failing build){_RESET}"
+            )
+
+
+def _report_runtime(runtime_vulns: list[dict]) -> None:  # type: ignore[type-arg]
+    """Print a red FAIL line for each vulnerability in a runtime dependency."""
+    for dep in runtime_vulns:
+        for v in dep["vulns"]:
+            print(f"{_RED}[FAIL] {dep['name']}=={dep['version']}: {_vuln_ids(v)}{_RESET}")
+
+
 def pip_audit_command(extra_args: list[str]) -> int:
     """Run pip-audit and apply the tiered vulnerability policy.
 
@@ -63,9 +109,7 @@ def pip_audit_command(extra_args: list[str]) -> int:
 
             pip_audit_command(["--ignore-vuln", "CVE-2024-1234"])
     """
-    uvx = shutil.which("uvx") or "uvx"
-    cmd = [uvx, "pip-audit", "--format", "json", *extra_args]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603 - uvx/pip-audit is trusted  # noqa: S603
+    proc = _run_pip_audit(extra_args)
 
     if proc.returncode == 0:
         print(f"{_GREEN}[OK] pip-audit: no vulnerabilities found{_RESET}")
@@ -78,20 +122,11 @@ def pip_audit_command(extra_args: list[str]) -> int:
         sys.stderr.write(proc.stderr)
         return proc.returncode
 
-    deps = data.get("dependencies", [])
-    tooling_vulns = [d for d in deps if d.get("vulns") and d["name"].lower() in _TOOLING]
-    runtime_vulns = [d for d in deps if d.get("vulns") and d["name"].lower() not in _TOOLING]
-
-    for dep in tooling_vulns:
-        for v in dep["vulns"]:
-            print(
-                f"{_YELLOW}[WARN] {dep['name']}=={dep['version']}: {_vuln_ids(v)} (tooling — not failing build){_RESET}"
-            )
+    tooling_vulns, runtime_vulns = _partition_vulns(data.get("dependencies", []))
+    _report_tooling(tooling_vulns)
 
     if not runtime_vulns:
         return 0
 
-    for dep in runtime_vulns:
-        for v in dep["vulns"]:
-            print(f"{_RED}[FAIL] {dep['name']}=={dep['version']}: {_vuln_ids(v)}{_RESET}")
+    _report_runtime(runtime_vulns)
     return 1

@@ -27,12 +27,14 @@ from pathlib import Path
 import typer
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import (
+from rhiza_tools.commands._git import (
     get_latest_remote_version,
-    parse_semver_or_exit,
 )
-from rhiza_tools.commands._shared import (
+from rhiza_tools.commands._git import (
     run_git_command as run_git_command,
+)
+from rhiza_tools.commands._project import (
+    parse_semver_or_exit,
 )
 from rhiza_tools.commands.bump import (
     Language,

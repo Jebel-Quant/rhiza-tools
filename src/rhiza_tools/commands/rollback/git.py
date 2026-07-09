@@ -9,7 +9,7 @@ and UI in ``rollback.py``, which re-exports them for its callers and tests.
 from __future__ import annotations
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import run_git_command
+from rhiza_tools.commands._git import run_git_command
 
 # Number of fields in the `%H|%ci|%s` git-show format (commit hash, date, subject).
 _TAG_DETAIL_FIELDS = 3

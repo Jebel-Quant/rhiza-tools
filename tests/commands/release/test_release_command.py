@@ -223,7 +223,7 @@ def test_check_tag_exists():
             result.returncode = 1  # doesn't exist remotely
         return result
 
-    with patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command):
+    with patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command):
         local, remote = check_tag_exists("v1.0.0")
         assert local is True
         assert remote is False
@@ -561,7 +561,7 @@ def test_release_command_user_declines_push(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
         patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="1.2.3"),
@@ -604,7 +604,7 @@ def test_release_command_success_non_dry_run(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
     ):
         # Should complete successfully in non-interactive mode
@@ -638,7 +638,7 @@ def test_release_command_user_declines_non_default_branch(mock_pyproject, monkey
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command),
         patch("typer.confirm", return_value=False),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
         patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="1.2.3"),
@@ -743,7 +743,7 @@ def test_release_with_push_flag(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
-        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
+        patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command),
         patch("rhiza_tools.commands.release.git.push_tag", side_effect=mock_push_tag),
         patch("rhiza_tools.commands.release.versioning.bump_command"),
         patch("rhiza_tools.commands.release.versioning.get_interactive_bump_type", return_value="1.2.3"),
@@ -782,7 +782,7 @@ def test_release_non_interactive_with_bump(mock_pyproject, monkeypatch):
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
-        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="MINOR", push=True, non_interactive=True)
@@ -905,7 +905,7 @@ def test_release_with_bump_push_checks_branch_before_pushing_commit(mock_pyproje
 
     with (
         patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
-        patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_git),
+        patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_git),
         patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
     ):
         release_command(bump_type="PATCH", push=True, non_interactive=True)
@@ -1226,7 +1226,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
-            patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command),
             patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
@@ -1266,7 +1266,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_run_git_command),
-            patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_run_git_command),
+            patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_run_git_command),
             patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
             pytest.raises(typer.Exit),
         ):
@@ -1310,7 +1310,7 @@ class TestReleasePreflightValidation:
 
         with (
             patch("rhiza_tools.commands.release.git.run_git_command", side_effect=mock_git),
-            patch("rhiza_tools.commands._shared.run_git_command", side_effect=mock_git),
+            patch("rhiza_tools.commands._git.run_git_command", side_effect=mock_git),
             patch("rhiza_tools.commands.release.versioning.bump_command", side_effect=mock_bump_command),
         ):
             release_command(bump_type="PATCH", push=True, non_interactive=True)

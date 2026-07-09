@@ -1,59 +1,19 @@
-"""Shared utilities for rhiza-tools commands.
+"""Git plumbing shared across rhiza-tools commands.
 
-This module provides common helpers used across multiple command modules
-(bump, release, rollback) to avoid duplication and ensure consistency.
+This module owns the git-facing helpers used by the bump, release, and rollback
+flows:
 
-Utilities:
-    - COOL_STYLE: Shared questionary styling for interactive prompts
-    - run_git_command: Execute git commands with standard error handling
-    - check_tag_exists: Report whether a tag exists locally and/or remotely
-    - get_current_version: Read the project version from pyproject.toml
-    - get_current_git_branch: Safely determine the current git branch
-    - get_latest_remote_version: Highest semver tag published on the remote
-    - validate_pyproject_exists: Guard against missing pyproject.toml
+    - run_git_command: Execute git commands with standard error handling.
+    - check_tag_exists: Report whether a tag exists locally and/or remotely.
+    - get_current_git_branch: Safely determine the current git branch.
+    - get_latest_remote_version: Highest semver tag published on the remote.
 """
 
 import subprocess  # nosec B404 - subprocess needed for git operations
-import tomllib
-from pathlib import Path
 
-import questionary as qs
 import semver
-import typer
 
 from rhiza_tools import console
-
-# The win32 import only succeeds on Windows, so exactly one platform exercises
-# each side of this branch; the fallback can never be covered on Windows.
-try:
-    from prompt_toolkit.output.win32 import (  # type: ignore[attr-defined]
-        NoConsoleScreenBufferError as _WinConsoleError,
-    )
-except (ImportError, AssertionError):  # pragma: no cover
-
-    class _WinConsoleError(Exception):  # type: ignore[no-redef]
-        """Sentinel: never raised outside of Windows environments."""
-
-
-# Tuple of exceptions indicating a non-interactive environment (no TTY).
-# Use this in except clauses instead of bare ``EOFError`` so that Windows CI
-# (which raises ``NoConsoleScreenBufferError`` instead of ``EOFError``) is
-# handled consistently.
-NON_INTERACTIVE_ERRORS: tuple[type[BaseException], ...] = (EOFError, _WinConsoleError)
-
-COOL_STYLE = qs.Style(
-    [
-        ("separator", "fg:#cc5454"),
-        ("qmark", "fg:#2FA4A9 bold"),
-        ("question", ""),
-        ("selected", "fg:#2FA4A9 bold"),
-        ("pointer", "fg:#2FA4A9 bold"),
-        ("highlighted", "fg:#2FA4A9 bold"),
-        ("answer", "fg:#2FA4A9 bold"),
-        ("text", "fg:#ffffff"),
-        ("disabled", "fg:#858585 italic"),
-    ]
-)
 
 
 def run_git_command(command: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -79,29 +39,6 @@ def run_git_command(command: list[str], check: bool = True) -> subprocess.Comple
         console.error(f"Error: {result.stderr}")
         raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
     return result
-
-
-def get_current_version() -> str:
-    """Read current version from pyproject.toml.
-
-    Returns:
-        The current version string from the project.version field.
-
-    Raises:
-        typer.Exit: If pyproject.toml cannot be read or parsed.
-
-    Example:
-        >>> version = get_current_version()  # doctest: +SKIP
-        >>> print(version)  # doctest: +SKIP
-        0.1.0
-    """
-    try:
-        with open("pyproject.toml", "rb") as f:
-            data = tomllib.load(f)
-        return str(data["project"]["version"])
-    except (OSError, tomllib.TOMLDecodeError, KeyError, TypeError) as e:
-        console.error(f"Failed to read version from pyproject.toml: {e}")
-        raise typer.Exit(code=1) from None
 
 
 def check_tag_exists(tag: str) -> tuple[bool, bool]:
@@ -189,42 +126,3 @@ def get_latest_remote_version(remote: str = "origin") -> semver.Version | None:
             continue
 
     return max(versions) if versions else None
-
-
-def parse_semver_or_exit(version_str: str, *, strip_v_prefix: bool = False) -> semver.Version:
-    """Parse a semantic version string, exiting with a consistent error on failure.
-
-    Centralises the parse-and-exit pattern that several commands previously
-    duplicated, so an unparseable version is always reported the same way.
-
-    Args:
-        version_str: The version to parse (e.g. ``"1.2.3"`` or ``"v1.2.3"``).
-        strip_v_prefix: If True, drop a leading ``"v"`` before parsing.
-
-    Returns:
-        The parsed :class:`semver.Version`.
-
-    Raises:
-        typer.Exit: If ``version_str`` is not a valid semantic version.
-
-    Example:
-        >>> parse_semver_or_exit("1.2.3")  # doctest: +SKIP
-        Version(major=1, minor=2, patch=3, ...)
-    """
-    candidate = version_str[1:] if strip_v_prefix and version_str.startswith("v") else version_str
-    try:
-        return semver.Version.parse(candidate)
-    except ValueError:
-        console.error(f"Invalid semantic version: {version_str}")
-        raise typer.Exit(code=1) from None
-
-
-def validate_pyproject_exists() -> None:
-    """Validate that pyproject.toml exists in the current directory.
-
-    Raises:
-        typer.Exit: If pyproject.toml is not found.
-    """
-    if not Path("pyproject.toml").exists():
-        console.error("pyproject.toml not found in current directory")
-        raise typer.Exit(code=1)

@@ -18,7 +18,7 @@ import typer
 
 from rhiza_tools.commands import bump as bump_mod
 from rhiza_tools.commands import release as release_mod
-from rhiza_tools.commands._shared import get_latest_remote_version
+from rhiza_tools.commands._git import get_latest_remote_version
 from rhiza_tools.commands.bump import BumpOptions, Language, _resolve_bump_baseline, bump_command, get_current_version
 
 _BUMPVERSION_CFG = """
@@ -60,7 +60,7 @@ def _ls_remote(*tags: str) -> MagicMock:
 def test_latest_remote_version_picks_highest():
     """The highest semver tag wins, regardless of listing order."""
     with patch(
-        "rhiza_tools.commands._shared.run_git_command",
+        "rhiza_tools.commands._git.run_git_command",
         return_value=_ls_remote("v0.3.2", "v0.10.0", "v0.4.0"),
     ):
         assert get_latest_remote_version() == semver.Version.parse("0.10.0")
@@ -77,7 +77,7 @@ def test_latest_remote_version_ignores_non_semver_and_peeled_refs():
             "sha\trefs/heads/main\n"  # not a tag at all
         ),
     )
-    with patch("rhiza_tools.commands._shared.run_git_command", return_value=listing):
+    with patch("rhiza_tools.commands._git.run_git_command", return_value=listing):
         assert get_latest_remote_version() == semver.Version.parse("1.0.0")
 
 
@@ -90,7 +90,7 @@ def test_latest_remote_version_ignores_non_semver_and_peeled_refs():
 )
 def test_latest_remote_version_returns_none_when_unavailable(result):
     """Degrade gracefully to None when the remote can't be read or has no tags."""
-    with patch("rhiza_tools.commands._shared.run_git_command", return_value=result):
+    with patch("rhiza_tools.commands._git.run_git_command", return_value=result):
         assert get_latest_remote_version() is None
 
 

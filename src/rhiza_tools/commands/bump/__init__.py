@@ -25,7 +25,7 @@ import semver
 import typer
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import (
+from rhiza_tools.commands._git import (
     get_current_git_branch,
     get_latest_remote_version,
 )

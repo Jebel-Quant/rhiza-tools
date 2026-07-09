@@ -17,10 +17,12 @@ import typer
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import (
+from rhiza_tools.commands._git import (
+    run_git_command,
+)
+from rhiza_tools.commands._prompts import (
     COOL_STYLE,
     NON_INTERACTIVE_ERRORS,
-    run_git_command,
 )
 
 
