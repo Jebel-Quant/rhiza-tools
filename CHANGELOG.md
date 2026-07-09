@@ -5,10 +5,53 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com),
 and entries are generated from [Conventional Commits](https://www.conventionalcommits.org).
 
+## [0.8.0] - 2026-07-09
+
+### New Features
+- Add ClusterFuzzLite fuzzing scaffold for rhiza_tools (#280)
+- *(commands)* Add pip-audit and suppression-audit commands (#311)
+
+### Bug Fixes
+- Combine three Copilot autofix findings (#303)
+
+### Maintenance
+- Chore(deps)(deps): bump the python-dependencies group with 5 updates (#270)
+- Chore(deps)(deps): bump actions/checkout in the github-actions group (#275)
+- Chore(deps)(deps): bump the python-dependencies group with 5 updates (#276)
+- *(fuzz)* Align .clusterfuzzlite with the rhiza-hooks build layout (#278)
+- *(commands)* Nest command modules into per-command subpackages (#279)
+- Chore(deps)(deps): bump the python-dependencies group with 3 updates (#282)
+- Chore(deps)(deps): bump the github-actions group with 3 updates (#283)
+- *(cli)* Deduplicate --language parsing into shared helper (#288)
+- *(version-matrix)* Hoist default Python candidates into a constant (#289)
+- *(commands)* Unify semver parse-and-exit into shared helper (#290)
+- Chore(deps)(deps): bump the github-actions group with 4 updates (#291)
+- Update rhiza to v1.0.1 (#292)
+- Tidy test imports and remove unused unpacking (#294)
+- Chore(deps)(deps): bump the github-actions group with 16 updates (#308)
+- Chore(deps-dev)(deps-dev): bump the python-dependencies group with 2 updates (#309)
+- Address quality findings #304–#307 (#310)
+
+### Other Changes
+- Add /rhiza_update Claude command (#271)
+- Sync Rhiza template v0.18.10 → v0.19.3 (#272)
+- Sync Rhiza template v0.19.3 → v0.19.4 (#273)
+- Add Architecture guide mapping the command-module layering (#274)
+- Bump pydantic-settings 2.14.1 → 2.14.2 (GHSA-4xgf-cpjx-pc3j) (#277)
+- Sync Rhiza template v0.19.4 → v0.19.6 (#281)
+- Sync Rhiza template v0.19.6 → v0.19.9 (#284)
+- Potential fixes for 2 code quality findings (#293)
+- Apply suggested fix to src/rhiza_tools/commands/release/versioning.py from Copilot Autofix (#295)
+- Apply suggested fix to .rhiza/tests/api/test_makefile_targets.py from Copilot Autofix (#296)
+- Fix for Empty except (#297)
+- Apply suggested fix to src/rhiza_tools/commands/release/versioning.py from Copilot Autofix (#298)
+- Apply suggested fix to src/rhiza_tools/commands/release/versioning.py from Copilot Autofix (#299)
+
 ## [0.7.3] - 2026-06-14
 
 ### Other Changes
 - Strip SLSA provenance from dist/ before PyPI publish (#267)
+- Bump version 0.7.2 → 0.7.3
 
 ## [0.7.2] - 2026-06-14
 
