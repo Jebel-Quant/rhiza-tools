@@ -15,8 +15,8 @@ from __future__ import annotations
 import typer
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import check_tag_exists as check_tag_exists
-from rhiza_tools.commands._shared import run_git_command
+from rhiza_tools.commands._git import check_tag_exists as check_tag_exists
+from rhiza_tools.commands._git import run_git_command
 
 # Number of fields in the `%H|%ci|%s` git-show format (commit hash, date, subject).
 _TAG_DETAIL_FIELDS = 3

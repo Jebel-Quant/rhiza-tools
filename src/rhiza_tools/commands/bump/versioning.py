@@ -13,7 +13,7 @@ import semver
 import typer
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import parse_semver_or_exit
+from rhiza_tools.commands._project import parse_semver_or_exit
 
 
 def _denormalize_pep440_to_semver(version_str: str) -> str:

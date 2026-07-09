@@ -23,10 +23,12 @@ import typer
 from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._shared import (
+from rhiza_tools.commands._project import (
+    parse_semver_or_exit,
+)
+from rhiza_tools.commands._prompts import (
     COOL_STYLE,
     NON_INTERACTIVE_ERRORS,
-    parse_semver_or_exit,
 )
 from rhiza_tools.commands.bump.engine import BumpConfig, _get_files_to_modify
 from rhiza_tools.commands.bump.versioning import (
