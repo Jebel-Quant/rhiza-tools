@@ -55,35 +55,45 @@ from rhiza_tools.commands.bump.git import (
 from rhiza_tools.commands.bump.git import (
     _restore_original_branch as _restore_original_branch,
 )
-from rhiza_tools.commands.bump.io import (
-    SUPPORTED_LANGUAGES_MSG as SUPPORTED_LANGUAGES_MSG,
-)
 
-# Project I/O, interactive UI, and public data model live in bump/io.py; re-exported
-# here so callers and tests that use ``rhiza_tools.commands.bump.<name>`` keep working.
-from rhiza_tools.commands.bump.io import (
-    BumpOptions as BumpOptions,
-)
-from rhiza_tools.commands.bump.io import (
-    Language as Language,
-)
-from rhiza_tools.commands.bump.io import (
-    _log_bump_success as _log_bump_success,
-)
-from rhiza_tools.commands.bump.io import (
-    _show_interactive_preview as _show_interactive_preview,
-)
+# Project file I/O (version reads + project validation) lives in bump/io.py;
+# re-exported here so callers and tests that use ``rhiza_tools.commands.bump.<name>``
+# keep working.
 from rhiza_tools.commands.bump.io import (
     _validate_project_exists as _validate_project_exists,
 )
 from rhiza_tools.commands.bump.io import (
     get_current_version as get_current_version,
 )
-from rhiza_tools.commands.bump.io import (
+
+# Public data model (Language, BumpOptions) and ``--language`` parsing live in
+# bump/models.py; re-exported here for the stable public import surface.
+from rhiza_tools.commands.bump.models import (
+    SUPPORTED_LANGUAGES_MSG as SUPPORTED_LANGUAGES_MSG,
+)
+from rhiza_tools.commands.bump.models import (
+    BumpOptions as BumpOptions,
+)
+from rhiza_tools.commands.bump.models import (
+    Language as Language,
+)
+from rhiza_tools.commands.bump.models import (
+    parse_language_option as parse_language_option,
+)
+
+# Interactive prompts (bump-type menu, proceed/commit/push confirmation) live in
+# bump/prompts.py; re-exported here so callers and tests keep working.
+from rhiza_tools.commands.bump.prompts import (
+    _show_interactive_preview as _show_interactive_preview,
+)
+from rhiza_tools.commands.bump.prompts import (
     get_interactive_bump_type as get_interactive_bump_type,
 )
-from rhiza_tools.commands.bump.io import (
-    parse_language_option as parse_language_option,
+
+# Post-bump reporting (success summary, modified-file listing) lives in
+# bump/reporting.py; re-exported here so callers and tests keep working.
+from rhiza_tools.commands.bump.reporting import (
+    _log_bump_success as _log_bump_success,
 )
 
 # Re-export pure version-math helpers so external callers and tests that reference

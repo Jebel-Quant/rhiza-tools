@@ -18,11 +18,11 @@ from rhiza_tools import __version__
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
-from .commands.bump import bump_command
+from .commands.bump import BumpOptions, bump_command, parse_language_option
 from .commands.generate_badge import generate_coverage_badge_command
 from .commands.pip_audit import pip_audit_command
 from .commands.release import release_command
-from .commands.rollback import rollback_command
+from .commands.rollback import RollbackOptions, rollback_command
 from .commands.suppression import suppression_audit_command
 from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
@@ -106,8 +106,6 @@ def bump(
         verbose: If True, enable verbose debug output.
     """
     _apply_verbose(verbose)
-    from rhiza_tools.commands.bump import BumpOptions, parse_language_option
-
     lang_enum = parse_language_option(language)
 
     options = BumpOptions(
@@ -195,8 +193,6 @@ def release(
         verbose: If True, enable verbose debug output.
     """
     _apply_verbose(verbose)
-    from rhiza_tools.commands.bump import parse_language_option
-
     lang_enum = parse_language_option(language)
 
     release_command(bump, push, dry_run, non_interactive, lang_enum, config, allow_older)
@@ -229,8 +225,6 @@ def rollback(
         verbose: If True, enable verbose debug output.
     """
     _apply_verbose(verbose)
-    from rhiza_tools.commands.rollback import RollbackOptions
-
     options = RollbackOptions(
         tag=tag,
         revert_bump=revert_bump,

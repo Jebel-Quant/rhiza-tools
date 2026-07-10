@@ -36,6 +36,25 @@ from rhiza_tools.config import CONFIG_FILENAME
 BumpConfig: TypeAlias = Config
 
 
+def _build_config_overrides(current_version_str: str, allow_dirty: bool, commit: bool) -> dict[str, str | bool]:
+    """Assemble the bumpversion config overrides for a bump.
+
+    Args:
+        current_version_str: The current version string.
+        allow_dirty: If True, allow bumping even with uncommitted changes.
+        commit: If True, automatically commit the version change to git.
+
+    Returns:
+        The overrides to pass to ``get_configuration``.
+    """
+    overrides: dict[str, str | bool] = {"current_version": current_version_str}
+    if allow_dirty:
+        overrides["allow_dirty"] = True
+    if commit:
+        overrides["commit"] = True
+    return overrides
+
+
 def _build_configuration(
     current_version_str: str,
     allow_dirty: bool,
@@ -58,11 +77,7 @@ def _build_configuration(
     """
     if config_path is None:
         config_path = Path(CONFIG_FILENAME)
-    overrides: dict[str, str | bool] = {"current_version": current_version_str}
-    if allow_dirty:
-        overrides["allow_dirty"] = True
-    if commit:
-        overrides["commit"] = True
+    overrides = _build_config_overrides(current_version_str, allow_dirty, commit)
 
     try:
         config = get_configuration(config_file=config_path, **overrides)
@@ -132,6 +147,34 @@ def _get_files_to_modify(config: BumpConfig) -> list[Path]:
     return files
 
 
+def _find_version_lines(content: str, current_version: str) -> list[tuple[int, str]]:
+    """Return the (1-based line number, line) pairs whose text contains the version.
+
+    Args:
+        content: The full file contents.
+        current_version: The version string to search for.
+
+    Returns:
+        Matching lines paired with their 1-based line numbers.
+    """
+    return [(i, line) for i, line in enumerate(content.split("\n"), 1) if current_version in line]
+
+
+def _print_line_diff(line_num: int, old_line: str, current_version: str, new_version: str) -> None:
+    """Print a single before/after diff for one line's version replacement.
+
+    Args:
+        line_num: The 1-based line number of the change.
+        old_line: The current line text.
+        current_version: The version string being replaced.
+        new_version: The version string it is replaced with.
+    """
+    new_line = old_line.replace(current_version, new_version)
+    console.info(f"    Line {line_num}:")
+    console.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
+    console.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
+
+
 def _show_file_changes(file_path: Path, current_version: str, new_version: str) -> None:
     """Show the changes that will be made to a file.
 
@@ -146,22 +189,16 @@ def _show_file_changes(file_path: Path, current_version: str, new_version: str) 
 
     try:
         content = file_path.read_text()
-        lines_with_version = []
-
-        for i, line in enumerate(content.split("\n"), 1):
-            if current_version in line:
-                lines_with_version.append((i, line))
-
-        if lines_with_version:
-            console.info(f"  Changes in {typer.style(str(file_path), fg=typer.colors.CYAN, bold=True)}:")
-            for line_num, old_line in lines_with_version:
-                new_line = old_line.replace(current_version, new_version)
-                console.info(f"    Line {line_num}:")
-                console.info(f"      {typer.style('-', fg=typer.colors.RED)} {old_line.strip()}")
-                console.info(f"      {typer.style('+', fg=typer.colors.GREEN)} {new_line.strip()}")
     except OSError as e:
         # Previewing is best-effort; an unreadable file should not abort the bump.
         logger.debug(f"Could not preview changes for {file_path}: {e}")
+        return
+
+    lines_with_version = _find_version_lines(content, current_version)
+    if lines_with_version:
+        console.info(f"  Changes in {typer.style(str(file_path), fg=typer.colors.CYAN, bold=True)}:")
+        for line_num, old_line in lines_with_version:
+            _print_line_diff(line_num, old_line, current_version, new_version)
 
 
 def _preview_file_modifications(config: BumpConfig, current_version: str, new_version: str) -> None:

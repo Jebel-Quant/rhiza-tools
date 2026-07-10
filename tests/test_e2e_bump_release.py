@@ -142,8 +142,8 @@ class TestInteractiveBump:
             """Stand in for confirm during the test."""
             return MockConfirm()
 
-        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
-        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.confirm", mock_confirm)
+        monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
+        monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.confirm", mock_confirm)
 
         bump_command(BumpOptions(version=None))
 
@@ -169,8 +169,8 @@ class TestInteractiveBump:
                 confirm_calls.append(True)
                 return len(confirm_calls) == 1
 
-        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", lambda *a, **kw: MockSelect())
-        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.confirm", lambda *a, **kw: MockConfirm())
+        monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", lambda *a, **kw: MockSelect())
+        monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.confirm", lambda *a, **kw: MockConfirm())
 
         bump_command(BumpOptions(version=None))
 
@@ -196,8 +196,8 @@ class TestInteractiveBump:
                 confirm_calls.append(True)
                 return len(confirm_calls) == 1
 
-        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", lambda *a, **kw: MockSelect())
-        monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.confirm", lambda *a, **kw: MockConfirm())
+        monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", lambda *a, **kw: MockSelect())
+        monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.confirm", lambda *a, **kw: MockConfirm())
 
         bump_command(BumpOptions(version=None))
 
