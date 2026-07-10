@@ -1,141 +1,28 @@
-"""Project I/O and interactive UI helpers for the bump command.
+"""Project file I/O for the bump command.
 
-This module holds the ``Language`` enum and ``BumpOptions`` dataclass (the public
-data model for bump), plus the helpers that read project files
-(``get_current_version``, ``_validate_project_exists``), show interactive prompts
-(``get_interactive_bump_type``, ``_show_interactive_preview``), and log the outcome
-(``_log_bump_success``).
+This module reads the current version from a project's version files
+(``get_current_version`` and its per-language ``_read_python_version`` /
+``_read_go_version`` backends) and validates that the files a language requires
+are present (``_validate_project_exists``). The public data model lives in
+``bump/models.py``, interactive prompts in ``bump/prompts.py``, and post-bump
+reporting in ``bump/reporting.py``.
 
-All symbols defined here are re-exported by ``bump.py`` so the public import
-surface is unchanged.
+All public symbols defined here are re-exported by ``bump/__init__.py`` so the
+public import surface is unchanged.
 """
 
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
-from typing import cast
 
-import questionary as qs
 import typer
-from loguru import logger
 
 from rhiza_tools import console
-from rhiza_tools.commands._project import (
-    parse_semver_or_exit,
-)
-from rhiza_tools.commands._prompts import (
-    COOL_STYLE,
-    NON_INTERACTIVE_ERRORS,
-)
-from rhiza_tools.commands.bump.engine import BumpConfig, _get_files_to_modify
+from rhiza_tools.commands.bump.models import Language
 from rhiza_tools.commands.bump.versioning import (
     _denormalize_pep440_to_semver,
-    get_next_prerelease,
 )
-
-
-class Language(StrEnum):
-    """Supported programming languages for version bumping.
-
-    Attributes:
-        PYTHON: Python projects using pyproject.toml
-        GO: Go projects using VERSION file with go.mod
-    """
-
-    PYTHON = "python"
-    GO = "go"
-
-    @classmethod
-    def detect(cls) -> Language | None:
-        """Detect the project language based on files present.
-
-        Returns:
-            Language enum if detected, None if no supported language is found.
-
-        Example:
-            >>> lang = Language.detect()  # doctest: +SKIP
-            >>> if lang:
-            ...     print(lang.value)  # doctest: +SKIP
-            python
-        """
-        if Path("pyproject.toml").exists():
-            return cls.PYTHON
-        elif Path("go.mod").exists() and Path("VERSION").exists():
-            return cls.GO
-        return None
-
-    def get_version_file(self) -> Path:
-        """Get the version file path for this language.
-
-        Returns:
-            Path to the version file.
-
-        Example:
-            >>> lang = Language.PYTHON
-            >>> lang.get_version_file()  # doctest: +SKIP
-            PosixPath('pyproject.toml')
-        """
-        if self == Language.PYTHON:
-            return Path("pyproject.toml")
-        # Language.GO
-        return Path("VERSION")
-
-
-# User-facing hint listing the languages accepted by ``--language``. Defined once
-# so the message stays consistent everywhere it is shown (invalid value, failed
-# auto-detection).
-SUPPORTED_LANGUAGES_MSG = "Supported languages: python, go"
-
-
-def parse_language_option(language: str | None) -> Language | None:
-    """Parse the ``--language`` CLI option into a :class:`Language`.
-
-    Args:
-        language: The raw ``--language`` value, or ``None`` when the option was
-            not supplied (auto-detection happens later).
-
-    Returns:
-        The matching :class:`Language`, or ``None`` when ``language`` is ``None``.
-
-    Raises:
-        typer.Exit: If ``language`` is given but is not a supported value.
-    """
-    if language is None:
-        return None
-    try:
-        return Language(language.lower())
-    except ValueError:
-        console.error(f"Invalid language: {language}")
-        console.error(SUPPORTED_LANGUAGES_MSG)
-        raise typer.Exit(code=1) from None
-
-
-@dataclass
-class BumpOptions:
-    """Configuration options for bump command.
-
-    Attributes:
-        version: The version to bump to. Can be an explicit version, bump type, or None.
-        dry_run: If True, show what would change without actually changing anything.
-        commit: If True, automatically commit the version change to git.
-        push: If True, push changes to remote after commit (implies commit=True).
-        branch: Branch to perform the bump on (default: current branch).
-        allow_dirty: If True, allow bumping even with uncommitted changes.
-        language: The programming language (python or go). If None, auto-detect.
-        config: Path to the .cfg.toml config file. Defaults to CONFIG_FILENAME.
-    """
-
-    version: str | None = None
-    dry_run: bool = False
-    commit: bool = False
-    push: bool = False
-    branch: str | None = None
-    allow_dirty: bool = False
-    language: Language | None = None
-    config: Path | None = None
 
 
 def _read_python_version() -> str:
@@ -211,76 +98,36 @@ def get_current_version(language: Language) -> str:
     raise typer.Exit(code=1)
 
 
-def get_interactive_bump_type(current_version_str: str) -> str:
-    """Get bump type from user through interactive prompt.
-
-    Displays an interactive menu with all available bump types and their
-    resulting versions. Returns the selected new version string.
-
-    Args:
-        current_version_str: The current version string (semver-compatible).
-
-    Returns:
-        The new version string selected by the user.
-
-    Raises:
-        typer.Exit: If the current version is invalid or user cancels selection.
-
-    Example:
-        Interactive prompt shows::
-
-            Select bump type (Current: 1.0.0)
-            > Patch (1.0.0 -> 1.0.1)
-              Minor (1.0.0 -> 1.1.0)
-              Major (1.0.0 -> 2.0.0)
-              ...
-    """
-    current_version = parse_semver_or_exit(current_version_str)
-
-    next_patch = current_version.bump_patch()
-    next_minor = current_version.bump_minor()
-    next_major = current_version.bump_major()
-    next_prerelease = current_version.bump_prerelease()
-    next_build = current_version.bump_build()
-
-    next_alpha = get_next_prerelease(current_version, "alpha")
-    next_beta = get_next_prerelease(current_version, "beta")
-    next_rc = get_next_prerelease(current_version, "rc")
-    next_dev = get_next_prerelease(current_version, "dev")
-
-    try:
-        choice = qs.select(
-            f"Select bump type (Current: {current_version_str})",
-            choices=[
-                f"Patch ({current_version_str} -> {next_patch})",
-                f"Minor ({current_version_str} -> {next_minor})",
-                f"Major ({current_version_str} -> {next_major})",
-                qs.Separator("-" * 30),
-                f"Prerelease ({current_version_str} -> {next_prerelease})",
-                f"Alpha ({current_version_str} -> {next_alpha})",
-                f"Beta ({current_version_str} -> {next_beta})",
-                f"RC ({current_version_str} -> {next_rc})",
-                f"Dev ({current_version_str} -> {next_dev})",
-                f"Build ({current_version_str} -> {next_build})",
-            ],
-            style=COOL_STYLE,
-        ).ask()
-    except NON_INTERACTIVE_ERRORS:
-        console.error("Interactive selection not available in non-interactive environment")
-        raise typer.Exit(code=1) from None
-
-    if not choice:
-        raise typer.Exit(code=0)
-
-    # Extract the new version string from the choice. Each menu label has the
-    # form Label (Current -> New); the portion after the arrow is what we keep.
-    # Check if the choice contains the expected format (skip separators)
-    if "-> " not in choice:
-        console.error("Invalid choice selection")
-        raise typer.Exit(code=1)
-
-    new_version: str = choice.split("-> ")[1].rstrip(")")
-    return new_version
+# Files each language requires, paired with the error lines to print when the
+# file is missing. Driving ``_validate_project_exists`` from this table keeps the
+# per-language branching flat and makes adding a language a data-only change.
+_REQUIRED_PROJECT_FILES: dict[Language, tuple[tuple[str, tuple[str, ...]], ...]] = {
+    Language.PYTHON: (
+        (
+            "pyproject.toml",
+            (
+                "Python project detected but pyproject.toml not found.",
+                "Please create a pyproject.toml file with the current version.",
+            ),
+        ),
+    ),
+    Language.GO: (
+        (
+            "go.mod",
+            (
+                "Go language specified but go.mod not found.",
+                "Please create a go.mod file for your Go project.",
+            ),
+        ),
+        (
+            "VERSION",
+            (
+                "Go project detected but VERSION file not found.",
+                "Please create a VERSION file with the current version.",
+            ),
+        ),
+    ),
+}
 
 
 def _validate_project_exists(language: Language) -> None:
@@ -292,135 +139,13 @@ def _validate_project_exists(language: Language) -> None:
     Raises:
         typer.Exit: If required project files are not found.
     """
-    if language == Language.PYTHON:
-        if not Path("pyproject.toml").exists():
-            console.error("Python project detected but pyproject.toml not found.")
-            console.error("Please create a pyproject.toml file with the current version.")
-            raise typer.Exit(code=1)
-    elif language == Language.GO:
-        if not Path("go.mod").exists():
-            console.error("Go language specified but go.mod not found.")
-            console.error("Please create a go.mod file for your Go project.")
-            raise typer.Exit(code=1)
-        if not Path("VERSION").exists():
-            console.error("Go project detected but VERSION file not found.")
-            console.error("Please create a VERSION file with the current version.")
-            raise typer.Exit(code=1)
-    else:
+    required = _REQUIRED_PROJECT_FILES.get(language)
+    if required is None:
         console.error(f"Unsupported language: {language}")
         raise typer.Exit(code=1)
 
-
-def _log_conventional_version_files(updated_version: str) -> None:
-    """List conventional version-bearing files whose contents include the new version.
-
-    Used as a fallback when the config declares no explicit files to modify.
-
-    Args:
-        updated_version: The version string after the bump.
-    """
-    for file_path in [Path("pyproject.toml"), Path("VERSION"), Path("setup.py"), Path("setup.cfg")]:
-        if file_path.exists():
-            # Check if file was actually modified by checking content
-            try:
-                content = file_path.read_text()
-                if updated_version in content:
-                    console.info(f"  • {file_path}")
-            except Exception:  # nosec B110 - safe to ignore file read errors  # noqa: S110, BLE001
-                pass
-
-
-def _log_modified_files(config: BumpConfig, updated_version: str) -> None:
-    """Print the files that the bump modified.
-
-    When the config declares files to modify, list those that exist. Otherwise
-    fall back to the files that conventionally carry a version, reporting only
-    the ones whose contents now include ``updated_version``.
-
-    Args:
-        config: The bumpversion configuration object.
-        updated_version: The version string after the bump.
-    """
-    console.info(f"\n{typer.style('Modified files:', fg=typer.colors.CYAN, bold=True)}")
-
-    files = _get_files_to_modify(config)
-    if files:
-        for file_path in files:
-            if file_path.exists():
-                console.info(f"  • {file_path}")
-        return
-
-    _log_conventional_version_files(updated_version)
-
-
-def _log_bump_success(current_version_str: str, config: BumpConfig, language: Language) -> None:
-    """Log successful version bump and post-bump instructions.
-
-    Args:
-        current_version_str: The original version string before the bump.
-        config: The bumpversion configuration object.
-        language: The programming language (python or go).
-    """
-    updated_version = get_current_version(language)
-    success_msg = (
-        f"\n{typer.style('✓', fg=typer.colors.GREEN, bold=True)} "
-        f"Version bumped: {current_version_str} -> {updated_version}"
-    )
-    console.success(success_msg)
-
-    _log_modified_files(config, updated_version)
-
-    console.info("\nDon't forget to run 'uv lock' to update the lockfile if needed.")
-
-
-def _show_interactive_preview(
-    current_version_str: str,
-    new_version_str: str,
-    current_git_branch: str,
-) -> tuple[bool, bool, bool]:
-    """Show interactive preview and prompt for commit/push decisions.
-
-    In interactive mode, the user is asked step-by-step whether to proceed
-    with the bump, whether to commit the changes, and whether to push.
-
-    Args:
-        current_version_str: Current version.
-        new_version_str: New version.
-        current_git_branch: Current git branch.
-
-    Returns:
-        Tuple of (proceed, commit, push). ``proceed`` is False if the user
-        cancels the bump entirely.
-    """
-    # Show preview
-    console.info("\nPreview of changes:")
-    console.info(f"  Version: {current_version_str} → {new_version_str}")
-    console.info(f"  Branch: {current_git_branch}")
-
-    # Confirm bump
-    try:
-        proceed = cast(bool, qs.confirm("Proceed with version bump?", default=True, style=COOL_STYLE).ask())
-    except NON_INTERACTIVE_ERRORS:
-        logger.debug("Running in non-interactive environment, proceeding automatically")
-        proceed = True
-
-    if not proceed:
-        return False, False, False
-
-    # Ask about commit
-    try:
-        commit = cast(bool, qs.confirm("Commit the changes?", default=True, style=COOL_STYLE).ask())
-    except NON_INTERACTIVE_ERRORS:
-        logger.debug("Running in non-interactive environment, committing automatically")
-        commit = True
-
-    # Ask about push (only if committing)
-    push = False
-    if commit:
-        try:
-            push = cast(bool, qs.confirm("Push changes to remote?", default=False, style=COOL_STYLE).ask())
-        except NON_INTERACTIVE_ERRORS:
-            logger.debug("Running in non-interactive environment, skipping push")
-            push = False
-
-    return True, commit, push
+    for filename, error_lines in required:
+        if not Path(filename).exists():
+            for line in error_lines:
+                console.error(line)
+            raise typer.Exit(code=1)

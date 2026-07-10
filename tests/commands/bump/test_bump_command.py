@@ -164,7 +164,7 @@ def test_bump_interactive_patch(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -185,7 +185,7 @@ def test_bump_interactive_minor(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -206,7 +206,7 @@ def test_bump_interactive_cancel(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
 
     # Should exit with code 0 if cancelled
     with pytest.raises(typer.Exit) as excinfo:
@@ -273,7 +273,7 @@ def test_bump_interactive_rc(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -294,7 +294,7 @@ def test_bump_interactive_build(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -345,7 +345,7 @@ def test_bump_interactive_alpha(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -366,7 +366,7 @@ def test_bump_interactive_beta(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -387,7 +387,7 @@ def test_bump_interactive_dev(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -410,7 +410,7 @@ def test_bump_interactive_prerelease(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -431,7 +431,7 @@ def test_bump_interactive_major(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
     monkeypatch.setattr("rhiza_tools.commands.bump._handle_push_to_remote", lambda *a, **kw: None)
 
     bump_command(BumpOptions(version=None))
@@ -495,7 +495,7 @@ def test_bump_interactive_invalid_semver_in_config(bump_project, monkeypatch):
         """Stand in for select during the test."""
         return MockQuestion()
 
-    monkeypatch.setattr("rhiza_tools.commands.bump.io.qs.select", mock_select)
+    monkeypatch.setattr("rhiza_tools.commands.bump.prompts.qs.select", mock_select)
 
     # Should fail with exit code 1 due to invalid semver
     with pytest.raises(typer.Exit) as excinfo:

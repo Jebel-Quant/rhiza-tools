@@ -26,6 +26,27 @@ from rhiza_tools.commands._prompts import (
 )
 
 
+def _checkout_branch(branch: str, dry_run: bool) -> None:
+    """Check out ``branch``, or log the intent in dry-run mode.
+
+    Args:
+        branch: Branch to checkout.
+        dry_run: If True, only log what would happen.
+
+    Raises:
+        typer.Exit: If the checkout fails.
+    """
+    if dry_run:
+        console.info(f"[DRY-RUN] Would checkout branch {branch}")
+        return
+
+    result = run_git_command(["git", "checkout", branch], check=False)
+    if result.returncode != 0:
+        console.error(f"Failed to checkout branch {branch}: {result.stderr}")
+        console.error(f"Ensure the branch '{branch}' exists: git branch -a")
+        raise typer.Exit(code=1)
+
+
 def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
     """Handle branch checkout if specified.
 
@@ -52,15 +73,7 @@ def _handle_branch_checkout(branch: str | None, dry_run: bool) -> str | None:
         return None
 
     console.info(f"Switching from {current_branch} to {branch}")
-    if not dry_run:
-        result = run_git_command(["git", "checkout", branch], check=False)
-        if result.returncode != 0:
-            console.error(f"Failed to checkout branch {branch}: {result.stderr}")
-            console.error(f"Ensure the branch '{branch}' exists: git branch -a")
-            raise typer.Exit(code=1)
-    else:
-        console.info(f"[DRY-RUN] Would checkout branch {branch}")
-
+    _checkout_branch(branch, dry_run)
     return current_branch
 
 
