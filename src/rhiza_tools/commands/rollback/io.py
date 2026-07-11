@@ -195,3 +195,34 @@ def _confirm_rollback(non_interactive: bool) -> bool:
     except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment, proceeding")
         return True
+
+
+def _print_rollback_summary(dry_run: bool, success: bool, previous_tag: str | None) -> None:
+    """Print a summary after rollback execution.
+
+    Args:
+        dry_run: Whether this was a dry run.
+        success: Whether all rollback steps succeeded.
+        previous_tag: The previous version tag, if any.
+    """
+    if dry_run:
+        console.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
+        return
+
+    if not success:
+        console.warning("\nRollback completed with warnings. Review the output above.")
+        return
+
+    success_msg = typer.style("✓", fg=typer.colors.GREEN, bold=True)
+    console.success(f"\n{success_msg} Rollback completed successfully!")
+
+    if previous_tag:
+        console.info(f"Previous version was: {previous_tag}")
+        console.info("To re-release at the previous version, run:")
+        console.info("  rhiza-tools release")
+        console.info("To bump to a new version instead:")
+        console.info("  rhiza-tools bump")
+    else:
+        console.info("No previous version tag found.")
+        console.info("To set a new version:")
+        console.info("  rhiza-tools bump <version>")

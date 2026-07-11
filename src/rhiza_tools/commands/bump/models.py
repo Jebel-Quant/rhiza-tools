@@ -120,3 +120,30 @@ class BumpOptions:
     allow_dirty: bool = False
     language: Language | None = None
     config: Path | None = None
+
+
+def _resolve_language(options: BumpOptions) -> Language:
+    """Resolve the project language from options, auto-detecting when unset.
+
+    Args:
+        options: Configuration options for the bump command.
+
+    Returns:
+        The resolved programming language.
+
+    Raises:
+        typer.Exit: If no language is given and none can be detected.
+    """
+    if options.language is None:
+        detected_language = Language.detect()
+        if detected_language is None:
+            console.error("Unable to detect project language.")
+            console.error("Please specify language explicitly with --language option.")
+            console.error(SUPPORTED_LANGUAGES_MSG)
+            raise typer.Exit(code=1)
+        language = detected_language
+        console.info(f"Detected language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+    else:
+        language = options.language
+        console.info(f"Using language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
+    return language

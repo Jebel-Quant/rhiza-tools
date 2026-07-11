@@ -4,6 +4,13 @@ This module implements rollback functionality that safely reverses release
 and bump operations. It can delete local and remote tags, revert bump commits,
 and restore the project to a previous version state.
 
+The command entrypoint (``rollback_command``) and its tag-resolution helpers
+live here; the state-mutating execution steps live in ``rollback/engine.py``,
+the git plumbing in ``rollback/git.py``, the interactive UI and display helpers
+in ``rollback/io.py``, and the ``RollbackOptions`` model in ``rollback/models.py``.
+Those modules' symbols are re-exported here so the public import surface — and
+the ``rollback.<helper>`` paths callers and tests use — stays unchanged.
+
 Example:
     Rollback the most recent release::
 
@@ -21,8 +28,6 @@ Example:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import questionary as qs
 import typer
 from loguru import logger
@@ -39,50 +44,56 @@ from rhiza_tools.commands._prompts import (
     COOL_STYLE,
     NON_INTERACTIVE_ERRORS,
 )
+from rhiza_tools.commands.rollback.engine import (
+    _delete_rollback_tags as _delete_rollback_tags,
+)
+
+# Execution engine (tag deletion, bump-revert resolution/push, orchestration)
+# lives in rollback/engine.py; re-exported here so ``rollback.<helper>`` keeps working.
+from rhiza_tools.commands.rollback.engine import (
+    _execute_rollback,
+)
+from rhiza_tools.commands.rollback.engine import (
+    _resolve_revert_commit as _resolve_revert_commit,
+)
+from rhiza_tools.commands.rollback.engine import (
+    _revert_and_push as _revert_and_push,
+)
+from rhiza_tools.commands.rollback.git import (
+    _delete_local_tag as _delete_local_tag,
+)
+from rhiza_tools.commands.rollback.git import (
+    _delete_remote_tag as _delete_remote_tag,
+)
 
 # Git tag/commit plumbing lives in rollback/git.py; re-exported here so callers and
 # existing tests keep importing ``rollback.<helper>``.
 from rhiza_tools.commands.rollback.git import (
-    _delete_local_tag,
-    _delete_remote_tag,
     _get_previous_version_from_tags,
-    _get_tag_commit,
     _get_tag_details,
     _is_bump_commit,
-    _revert_bump_commit,
+)
+from rhiza_tools.commands.rollback.git import (
+    _get_tag_commit as _get_tag_commit,
+)
+from rhiza_tools.commands.rollback.git import (
+    _revert_bump_commit as _revert_bump_commit,
 )
 
 # Interactive UI and display helpers live in rollback/io.py; re-exported here so
 # callers and existing tests keep importing ``rollback.<helper>``.
 from rhiza_tools.commands.rollback.io import (
-    _confirm_rollback as _confirm_rollback,
+    _confirm_rollback,
+    _print_rollback_summary,
+    _select_tag_interactively,
+    _show_rollback_plan,
 )
 from rhiza_tools.commands.rollback.io import (
     _push_revert as _push_revert,
 )
-from rhiza_tools.commands.rollback.io import (
-    _select_tag_interactively as _select_tag_interactively,
-)
-from rhiza_tools.commands.rollback.io import (
-    _show_rollback_plan as _show_rollback_plan,
-)
 
-
-@dataclass
-class RollbackOptions:
-    """Configuration options for the rollback command.
-
-    Attributes:
-        tag: The tag to rollback (e.g., "v1.2.3"). None for interactive selection.
-        revert_bump: If True, also revert the version bump commit.
-        dry_run: If True, show what would change without actually changing anything.
-        non_interactive: If True, skip all confirmation prompts.
-    """
-
-    tag: str | None = None
-    revert_bump: bool = False
-    dry_run: bool = False
-    non_interactive: bool = False
+# Public data model lives in rollback/models.py; re-exported for the stable surface.
+from rhiza_tools.commands.rollback.models import RollbackOptions as RollbackOptions
 
 
 def _get_recent_tags(limit: int = 10) -> list[str]:
@@ -189,169 +200,6 @@ def _should_revert_bump(options: RollbackOptions, exists_locally: bool, is_bump:
     except NON_INTERACTIVE_ERRORS:
         logger.debug("Running in non-interactive environment")
         return False
-
-
-def _delete_rollback_tags(
-    tag: str,
-    exists_locally: bool,
-    exists_remotely: bool,
-    dry_run: bool,
-) -> bool:
-    """Delete the remote then local tag for a rollback.
-
-    The remote tag is deleted first to stop any in-progress release. A failure
-    to delete the remote tag aborts the rollback in non-dry-run mode.
-
-    Args:
-        tag: The tag to delete.
-        exists_locally: Whether the tag exists locally.
-        exists_remotely: Whether the tag exists on remote.
-        dry_run: If True, only simulate changes.
-
-    Returns:
-        True if all attempted deletions succeeded.
-
-    Raises:
-        typer.Exit: If the remote tag deletion fails (non-dry-run).
-    """
-    success = True
-
-    # Delete remote tag first to stop any in-progress release
-    if exists_remotely and not _delete_remote_tag(tag, dry_run):
-        success = False
-        if not dry_run:
-            console.error("Failed to delete remote tag. Aborting remaining steps.")
-            console.error("You can retry or manually delete with:")
-            console.error(f"  git push origin :refs/tags/{tag}")
-            raise typer.Exit(code=1)
-
-    # Delete local tag
-    if exists_locally and not _delete_local_tag(tag, dry_run):
-        success = False
-        if not dry_run:
-            console.warning(f"Failed to delete local tag. Delete manually: git tag -d {tag}")
-
-    return success
-
-
-def _resolve_revert_commit(
-    tag: str,
-    revert_bump: bool,
-    is_bump: bool,
-    exists_locally: bool,
-) -> tuple[str | None, bool]:
-    """Resolve the commit to revert, before any tags are deleted.
-
-    Args:
-        tag: The tag to rollback.
-        revert_bump: Whether a bump revert was requested.
-        is_bump: Whether the tagged commit is a bump commit.
-        exists_locally: Whether the tag exists locally.
-
-    Returns:
-        Tuple of (tag_commit, revert_bump). ``tag_commit`` is the resolved commit
-        hash, or None when a revert is not applicable or the commit can't be
-        found; ``revert_bump`` is disabled when the commit can't be found.
-    """
-    if not (revert_bump and is_bump and exists_locally):
-        return None, revert_bump
-
-    tag_commit = _get_tag_commit(tag)
-    if not tag_commit:
-        console.error(f"Could not find commit for tag: {tag}")
-        console.error("Skipping bump revert but proceeding with tag deletion.")
-        return None, False
-
-    return tag_commit, revert_bump
-
-
-def _revert_and_push(tag_commit: str, dry_run: bool, non_interactive: bool) -> bool:
-    """Revert the bump commit and push the revert.
-
-    Args:
-        tag_commit: The commit hash to revert.
-        dry_run: If True, only simulate changes.
-        non_interactive: If True, skip confirmation prompts.
-
-    Returns:
-        True if both the revert and its push succeeded.
-    """
-    if not _revert_bump_commit(tag_commit, dry_run):
-        if not dry_run:
-            console.warning("Bump revert failed. Tags were still deleted.")
-            console.warning("You may need to manually revert the bump commit.")
-        return False
-
-    return _push_revert(dry_run, non_interactive)
-
-
-def _execute_rollback(
-    tag: str,
-    exists_locally: bool,
-    exists_remotely: bool,
-    revert_bump: bool,
-    is_bump: bool,
-    dry_run: bool,
-    non_interactive: bool,
-) -> bool:
-    """Execute the rollback steps: delete tags, revert bump, push.
-
-    Args:
-        tag: The tag to rollback.
-        exists_locally: Whether the tag exists locally.
-        exists_remotely: Whether the tag exists on remote.
-        revert_bump: Whether to revert the bump commit.
-        is_bump: Whether the tagged commit is a bump commit.
-        dry_run: If True, only simulate changes.
-        non_interactive: If True, skip confirmation prompts.
-
-    Returns:
-        True if all steps succeeded.
-
-    Raises:
-        typer.Exit: If the remote tag deletion fails (non-dry-run).
-    """
-    # Get commit hash BEFORE deleting tags (needed for revert)
-    tag_commit, revert_bump = _resolve_revert_commit(tag, revert_bump, is_bump, exists_locally)
-
-    success = _delete_rollback_tags(tag, exists_locally, exists_remotely, dry_run)
-
-    # Revert bump commit and push (if requested)
-    if revert_bump and is_bump and tag_commit and not _revert_and_push(tag_commit, dry_run, non_interactive):
-        success = False
-
-    return success
-
-
-def _print_rollback_summary(dry_run: bool, success: bool, previous_tag: str | None) -> None:
-    """Print a summary after rollback execution.
-
-    Args:
-        dry_run: Whether this was a dry run.
-        success: Whether all rollback steps succeeded.
-        previous_tag: The previous version tag, if any.
-    """
-    if dry_run:
-        console.info("\n[DRY-RUN] Rollback preview complete (no changes made)")
-        return
-
-    if not success:
-        console.warning("\nRollback completed with warnings. Review the output above.")
-        return
-
-    success_msg = typer.style("✓", fg=typer.colors.GREEN, bold=True)
-    console.success(f"\n{success_msg} Rollback completed successfully!")
-
-    if previous_tag:
-        console.info(f"Previous version was: {previous_tag}")
-        console.info("To re-release at the previous version, run:")
-        console.info("  rhiza-tools release")
-        console.info("To bump to a new version instead:")
-        console.info("  rhiza-tools bump")
-    else:
-        console.info("No previous version tag found.")
-        console.info("To set a new version:")
-        console.info("  rhiza-tools bump <version>")
 
 
 def rollback_command(options: RollbackOptions) -> None:

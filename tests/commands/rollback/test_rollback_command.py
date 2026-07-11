@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
+import rhiza_tools.commands.rollback.engine as rollback_engine_mod
 import rhiza_tools.commands.rollback.git as rollback_git_mod
 import rhiza_tools.commands.rollback.io as rollback_io_mod
 from rhiza_tools.commands import rollback as rollback_mod
@@ -1106,9 +1107,9 @@ class TestExecuteRollback:
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
-            patch.object(rollback_mod, "_get_tag_commit", return_value=None),
-            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
-            patch.object(rollback_mod, "_delete_local_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_get_tag_commit", return_value=None),
+            patch.object(rollback_engine_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_delete_local_tag", return_value=True),
         ):
             result = _execute_rollback(
                 tag="v1.0.0",
@@ -1127,8 +1128,8 @@ class TestExecuteRollback:
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
-            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
-            patch.object(rollback_mod, "_delete_local_tag", return_value=False),
+            patch.object(rollback_engine_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_delete_local_tag", return_value=False),
         ):
             result = _execute_rollback(
                 tag="v1.0.0",
@@ -1147,10 +1148,10 @@ class TestExecuteRollback:
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
-            patch.object(rollback_mod, "_get_tag_commit", return_value="abc1234"),
-            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
-            patch.object(rollback_mod, "_delete_local_tag", return_value=True),
-            patch.object(rollback_mod, "_revert_bump_commit", return_value=False),
+            patch.object(rollback_engine_mod, "_get_tag_commit", return_value="abc1234"),
+            patch.object(rollback_engine_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_delete_local_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_revert_bump_commit", return_value=False),
         ):
             result = _execute_rollback(
                 tag="v1.0.0",
@@ -1169,11 +1170,11 @@ class TestExecuteRollback:
         from rhiza_tools.commands.rollback import _execute_rollback
 
         with (
-            patch.object(rollback_mod, "_get_tag_commit", return_value="abc1234"),
-            patch.object(rollback_mod, "_delete_remote_tag", return_value=True),
-            patch.object(rollback_mod, "_delete_local_tag", return_value=True),
-            patch.object(rollback_mod, "_revert_bump_commit", return_value=True),
-            patch.object(rollback_mod, "_push_revert", return_value=False),
+            patch.object(rollback_engine_mod, "_get_tag_commit", return_value="abc1234"),
+            patch.object(rollback_engine_mod, "_delete_remote_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_delete_local_tag", return_value=True),
+            patch.object(rollback_engine_mod, "_revert_bump_commit", return_value=True),
+            patch.object(rollback_engine_mod, "_push_revert", return_value=False),
         ):
             result = _execute_rollback(
                 tag="v1.0.0",
