@@ -16,13 +16,52 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+import semver
 import typer
 
 from rhiza_tools import console
+from rhiza_tools.commands._git import get_latest_remote_version
 from rhiza_tools.commands.bump.models import Language
 from rhiza_tools.commands.bump.versioning import (
     _denormalize_pep440_to_semver,
 )
+
+
+def _resolve_bump_baseline(current_version_str: str) -> str:
+    """Return the version to bump *from*, never lower than the latest remote tag.
+
+    The local ``pyproject.toml`` can be stale (a branch that diverged before the
+    previous release was merged), which historically caused relative bumps to
+    generate already-released version numbers (issue #1126). When the highest
+    semver tag on the remote is newer than the local version, that remote
+    version is used as the baseline instead and the discrepancy is reported.
+
+    The remote is queried best-effort: if it cannot be reached (offline, no
+    remote configured) the local version is used unchanged.
+
+    Args:
+        current_version_str: The version read from the local project files.
+
+    Returns:
+        The version string to use as the basis for relative bumps.
+    """
+    latest_remote = get_latest_remote_version()
+    if latest_remote is None:
+        return current_version_str
+
+    try:
+        local_version = semver.Version.parse(current_version_str)
+    except ValueError:
+        local_version = None
+
+    if local_version is None or latest_remote > local_version:
+        console.warning(
+            f"Local version {current_version_str} is behind the latest remote tag v{latest_remote}; "
+            f"bumping from v{latest_remote} instead to avoid releasing an older version."
+        )
+        return str(latest_remote)
+
+    return current_version_str
 
 
 def _read_python_version() -> str:

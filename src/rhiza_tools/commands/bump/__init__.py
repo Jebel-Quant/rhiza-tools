@@ -21,13 +21,11 @@ Example:
 
 from pathlib import Path
 
-import semver
 import typer
 
 from rhiza_tools import console
 from rhiza_tools.commands._git import (
     get_current_git_branch,
-    get_latest_remote_version,
 )
 
 # Re-export the bump-my-version adapter helpers for the same reason. Names called
@@ -60,6 +58,9 @@ from rhiza_tools.commands.bump.git import (
 # re-exported here so callers and tests that use ``rhiza_tools.commands.bump.<name>``
 # keep working.
 from rhiza_tools.commands.bump.io import (
+    _resolve_bump_baseline as _resolve_bump_baseline,
+)
+from rhiza_tools.commands.bump.io import (
     _validate_project_exists as _validate_project_exists,
 )
 from rhiza_tools.commands.bump.io import (
@@ -76,6 +77,9 @@ from rhiza_tools.commands.bump.models import (
 )
 from rhiza_tools.commands.bump.models import (
     Language as Language,
+)
+from rhiza_tools.commands.bump.models import (
+    _resolve_language,
 )
 from rhiza_tools.commands.bump.models import (
     parse_language_option as parse_language_option,
@@ -124,70 +128,6 @@ from rhiza_tools.commands.bump.versioning import (
 from rhiza_tools.commands.bump.versioning import (
     get_next_prerelease as get_next_prerelease,
 )
-
-
-def _resolve_bump_baseline(current_version_str: str) -> str:
-    """Return the version to bump *from*, never lower than the latest remote tag.
-
-    The local ``pyproject.toml`` can be stale (a branch that diverged before the
-    previous release was merged), which historically caused relative bumps to
-    generate already-released version numbers (issue #1126). When the highest
-    semver tag on the remote is newer than the local version, that remote
-    version is used as the baseline instead and the discrepancy is reported.
-
-    The remote is queried best-effort: if it cannot be reached (offline, no
-    remote configured) the local version is used unchanged.
-
-    Args:
-        current_version_str: The version read from the local project files.
-
-    Returns:
-        The version string to use as the basis for relative bumps.
-    """
-    latest_remote = get_latest_remote_version()
-    if latest_remote is None:
-        return current_version_str
-
-    try:
-        local_version = semver.Version.parse(current_version_str)
-    except ValueError:
-        local_version = None
-
-    if local_version is None or latest_remote > local_version:
-        console.warning(
-            f"Local version {current_version_str} is behind the latest remote tag v{latest_remote}; "
-            f"bumping from v{latest_remote} instead to avoid releasing an older version."
-        )
-        return str(latest_remote)
-
-    return current_version_str
-
-
-def _resolve_language(options: BumpOptions) -> Language:
-    """Resolve the project language from options, auto-detecting when unset.
-
-    Args:
-        options: Configuration options for the bump command.
-
-    Returns:
-        The resolved programming language.
-
-    Raises:
-        typer.Exit: If no language is given and none can be detected.
-    """
-    if options.language is None:
-        detected_language = Language.detect()
-        if detected_language is None:
-            console.error("Unable to detect project language.")
-            console.error("Please specify language explicitly with --language option.")
-            console.error(SUPPORTED_LANGUAGES_MSG)
-            raise typer.Exit(code=1)
-        language = detected_language
-        console.info(f"Detected language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
-    else:
-        language = options.language
-        console.info(f"Using language: {typer.style(language.value, fg=typer.colors.CYAN, bold=True)}")
-    return language
 
 
 def _finalize_bump(

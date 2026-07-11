@@ -16,10 +16,10 @@ import pytest
 import semver
 import typer
 
-from rhiza_tools.commands import bump as bump_mod
 from rhiza_tools.commands import release as release_mod
 from rhiza_tools.commands._git import get_latest_remote_version
 from rhiza_tools.commands.bump import BumpOptions, Language, _resolve_bump_baseline, bump_command, get_current_version
+from rhiza_tools.commands.bump import io as bump_io_mod
 
 _BUMPVERSION_CFG = """
 [tool.bumpversion]
@@ -99,13 +99,13 @@ def test_latest_remote_version_returns_none_when_unavailable(result):
 
 def test_baseline_uses_remote_when_local_is_stale(monkeypatch):
     """The exact #1126 scenario: local 0.3.2, remote 0.4.0 -> bump from 0.4.0."""
-    monkeypatch.setattr(bump_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
+    monkeypatch.setattr(bump_io_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
     assert _resolve_bump_baseline("0.3.2") == "0.4.0"
 
 
 def test_baseline_keeps_local_when_ahead_of_remote(monkeypatch):
     """A local version newer than the remote is kept as the baseline."""
-    monkeypatch.setattr(bump_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
+    monkeypatch.setattr(bump_io_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
     assert _resolve_bump_baseline("0.5.0") == "0.5.0"
 
 
@@ -120,7 +120,7 @@ def test_baseline_uses_remote_when_local_version_is_unparseable(monkeypatch):
     A corrupt or non-semver ``version`` in pyproject.toml must not crash the bump
     or let a relative bump compute from nothing — the remote tag is authoritative.
     """
-    monkeypatch.setattr(bump_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
+    monkeypatch.setattr(bump_io_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
     assert _resolve_bump_baseline("not-a-semver") == "0.4.0"
 
 
@@ -128,7 +128,7 @@ def test_bump_patch_from_stale_branch_jumps_past_remote(bump_project, monkeypatc
     """End-to-end: `bump patch` on a stale 0.3.2 branch yields 0.4.1, not 0.3.3."""
     pyproject = bump_project / "pyproject.toml"
     pyproject.write_text('[project]\nname = "test-project"\nversion = "0.3.2"\n')
-    monkeypatch.setattr(bump_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
+    monkeypatch.setattr(bump_io_mod, "get_latest_remote_version", lambda *a, **k: semver.Version.parse("0.4.0"))
 
     bump_command(BumpOptions(version="patch"))
 

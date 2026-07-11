@@ -27,9 +27,12 @@ def _no_remote_version(monkeypatch):
     monotonicity guard skipped). Tests that exercise the remote-aware paths
     override these with ``monkeypatch.setattr`` to return a specific version.
     """
-    from rhiza_tools.commands import bump, release
+    from rhiza_tools.commands import release
+    from rhiza_tools.commands.bump import io as bump_io
 
-    for module in (bump, release):
+    # ``get_latest_remote_version`` is looked up in the module that calls it:
+    # ``bump/io.py`` (via ``_resolve_bump_baseline``) and ``release`` directly.
+    for module in (bump_io, release):
         monkeypatch.setattr(module, "get_latest_remote_version", lambda *args, **kwargs: None)
 
 
