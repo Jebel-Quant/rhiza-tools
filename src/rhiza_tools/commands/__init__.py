@@ -6,7 +6,6 @@ Each command is implemented as a separate module with its own logic.
 Available commands:
     - bump_command: Version bumping with semantic versioning support
     - update_readme_command: README synchronization with make help output
-    - generate_coverage_badge_command: Coverage badge generation
     - version_matrix_command: Python version matrix generation from pyproject.toml
     - analyze_benchmarks_command: Analyze and visualize pytest-benchmark results
     - release_command: Create and push release tags

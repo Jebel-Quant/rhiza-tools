@@ -19,7 +19,6 @@ from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.bump import BumpOptions, bump_command, parse_language_option
-from .commands.generate_badge import generate_coverage_badge_command
 from .commands.pip_audit import pip_audit_command
 from .commands.release import release_command
 from .commands.rollback import RollbackOptions, rollback_command
@@ -109,33 +108,6 @@ def bump(
         config=config,
     )
     bump_command(options)
-
-
-@app.command()
-def generate_coverage_badge(
-    coverage_json: Annotated[
-        Path,
-        typer.Option(
-            "--coverage-json",
-            help="Path to coverage.json file",
-        ),
-    ] = Path("_tests/coverage.json"),
-    output: Annotated[
-        Path,
-        typer.Option(
-            help="Path to output badge JSON",
-        ),
-    ] = Path("_book/tests/coverage-badge.json"),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Generate a coverage badge for the project.
-
-    Reads a coverage report JSON file and creates a shields.io endpoint JSON file
-    for displaying a coverage badge. The badge color automatically adjusts based
-    on the coverage percentage. Each argument is documented by its ``--help`` text.
-    """
-    _apply_verbose(verbose)
-    generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
 
 
 @app.command()
