@@ -17,7 +17,6 @@ nav:
     - release: commands/release.md
     - rollback: commands/rollback.md
     - update-readme: commands/update_readme.md
-    - generate-coverage-badge: commands/generate_coverage_badge.md
     - version-matrix: commands/version_matrix.md
     - analyze-benchmarks: commands/analyze_benchmarks.md
   - Architecture Decisions:
