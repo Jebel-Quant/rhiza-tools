@@ -1,30 +1,29 @@
 """Rhiza Tools — Extra utilities and tools for the Rhiza ecosystem.
 
-Rhiza Tools provides additional commands and utilities that extend the capabilities
-of the main Rhiza CLI. It includes tools for version management, release automation,
-and documentation maintenance.
+Rhiza Tools provides additional commands and utilities for the Rhiza ecosystem.
+It includes tools for version management, release automation, and documentation
+maintenance.
 
 ## Key features
 
 - **Version Bumping**: Automate version updates in `pyproject.toml`.
 - **Release Management**: Streamline the release process with git tag automation.
 - **Documentation Helpers**: Keep your README up-to-date with CLI help output.
-- **Flexible Usage**: Use as a `rhiza` plugin or as a standalone CLI.
+- **Standalone CLI**: Run directly via `uvx rhiza-tools` — invoked by the Rhiza
+  Makefile targets and CI.
 
 ## Quick start
 
 Bump the project version:
 
 ```bash
-rhiza tools bump 1.0.1
-# or standalone
 rhiza-tools bump 1.0.1
 ```
 
 Create a release tag:
 
 ```bash
-rhiza tools release
+rhiza-tools release
 ```
 
 ## Main modules
