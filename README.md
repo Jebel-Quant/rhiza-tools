@@ -31,46 +31,6 @@ pip install rhiza-tools
 
 ## Commands
 
-### `bump`
-
-Bump the version of the project in `pyproject.toml` using semantic versioning.
-Supports interactive selection, explicit version targets, and prerelease types.
-
-**Usage:**
-
-```bash
-# Interactive (prompts for bump type)
-rhiza-tools bump
-
-# Explicit bump type
-rhiza-tools bump patch
-rhiza-tools bump minor
-rhiza-tools bump major
-
-# Explicit version
-rhiza-tools bump 2.0.0
-
-# Prerelease types
-rhiza-tools bump alpha
-rhiza-tools bump beta
-rhiza-tools bump rc
-```
-
-**Arguments:**
-
-*   `VERSION` - The version to bump to. Can be an explicit version (e.g., `1.0.1`),
-    a bump type (`patch`, `minor`, `major`), a prerelease type (`alpha`, `beta`, `rc`, `dev`),
-    or omitted for interactive selection.
-
-**Options:**
-
-*   `--dry-run` - Show what would change without actually modifying files.
-*   `--commit` - Automatically commit the version change to git.
-*   `--push` - Push changes to remote after commit (implies `--commit`).
-*   `--branch BRANCH` - Branch to perform the bump on (switches back after).
-*   `--allow-dirty` - Allow bumping even with uncommitted changes.
-*   `--verbose`, `-v` - Show detailed output from bump-my-version.
-
 ### `release`
 
 Push a release tag to remote to trigger the automated release workflow.
@@ -102,46 +62,6 @@ rhiza-tools release --bump PATCH --push --non-interactive
 *   `--push` - Push changes to remote (default: prompt in interactive mode).
 *   `--dry-run` - Show what would happen without making any changes.
 *   `--non-interactive`, `-y` - Skip all confirmation prompts (for CI/CD).
-
-### `rollback`
-
-Reverse a release and/or version bump. Deletes the release tag locally and on the
-remote, and optionally reverts the version-bump commit. Uses `git revert` (not
-`git reset`), so it is safe even after the changes have been pushed.
-
-**Usage:**
-
-```bash
-# Interactive (choose from recent tags)
-rhiza-tools rollback
-
-# Preview a specific tag's rollback
-rhiza-tools rollback v1.2.3 --dry-run
-
-# Also revert the version-bump commit, no prompts (for CI/CD)
-rhiza-tools rollback v1.2.3 --revert-bump --non-interactive
-```
-
-**Options:**
-
-*   `--revert-bump` - Also revert the version-bump commit associated with the tag.
-*   `--dry-run` - Show what would happen without making any changes.
-*   `--non-interactive`, `-y` - Skip all confirmation prompts (for CI/CD).
-*   `--verbose` - Enable verbose debug output.
-
-### `update-readme`
-
-Update `README.md` with the current output from `make help`.
-
-**Usage:**
-
-```bash
-rhiza-tools update-readme
-```
-
-**Options:**
-
-*   `--dry-run` - Print what would happen without actually changing files.
 
 ### `version-matrix`
 

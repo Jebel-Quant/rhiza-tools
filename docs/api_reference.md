@@ -25,7 +25,6 @@ rhiza_tools/
     ├── analyze_benchmarks.py   # Benchmark analysis & visualization
     ├── bump.py                 # Version bumping (semver)
     ├── release.py              # Release tag management
-    ├── update_readme.py        # README synchronization
     └── version_matrix.py       # Python version matrix
 ```
 
@@ -49,5 +48,4 @@ core logic, making commands testable independently of the CLI layer.
 | `analyze_benchmarks` | `analyze_benchmarks_command()` |
 | `bump` | `bump_command()` |
 | `release` | `release_command()` |
-| `update_readme` | `update_readme_command()` |
 | `version_matrix` | `version_matrix_command()` |

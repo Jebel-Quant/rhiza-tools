@@ -1,8 +1,8 @@
 """CLI commands for Rhiza Tools.
 
 This module defines the main Typer application and all command-line interface
-commands for rhiza-tools. It provides commands for version bumping, coverage
-badge generation, release management, and README updates.
+commands for rhiza-tools. It provides commands for release management and the
+CI version matrix.
 
 The CLI can be used either as a standalone tool (`rhiza-tools`) or as a
 subcommand of the rhiza CLI (`rhiza tools`). See the project README for usage
@@ -18,12 +18,10 @@ from rhiza_tools import __version__
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
-from .commands.bump import BumpOptions, bump_command, parse_language_option
+from .commands.bump import parse_language_option
 from .commands.pip_audit import pip_audit_command
 from .commands.release import release_command
-from .commands.rollback import RollbackOptions, rollback_command
 from .commands.suppression import suppression_audit_command
-from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
 
 
@@ -68,49 +66,6 @@ def main(
 
 
 @app.command()
-def bump(
-    version: str | None = typer.Argument(None, help="The version to bump to (e.g., 1.0.1, major, minor, patch, etc)"),
-    language: str | None = typer.Option(
-        None, "--language", "-l", help="Programming language (python or go). Auto-detected if not specified."
-    ),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-    commit: bool = typer.Option(False, "--commit", help="Commit the changes to git."),
-    push: bool = typer.Option(False, "--push", help="Push changes to remote after commit (implies --commit)."),
-    branch: str | None = typer.Option(
-        None, "--branch", help="Branch to perform the bump on (default: current branch)."
-    ),
-    allow_dirty: bool = typer.Option(
-        False, "--allow-dirty", help="Allow bumping even if the working directory is dirty."
-    ),
-    config: Path | None = CONFIG_OPTION,
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Bump the version of the project.
-
-    This command updates the version for Python (pyproject.toml) or Go (VERSION file)
-    projects using semantic versioning. You can provide an explicit version number,
-    a bump type (patch, minor, major), or leave it blank for an interactive prompt.
-
-    Each argument is documented by its ``--help`` text above; see
-    :func:`rhiza_tools.commands.bump.bump_command` for the underlying behaviour.
-    """
-    _apply_verbose(verbose)
-    lang_enum = parse_language_option(language)
-
-    options = BumpOptions(
-        version=version,
-        dry_run=dry_run,
-        commit=commit,
-        push=push,
-        branch=branch,
-        allow_dirty=allow_dirty,
-        language=lang_enum,
-        config=config,
-    )
-    bump_command(options)
-
-
-@app.command()
 def release(
     bump: str | None = typer.Option(
         None, "--bump", help="Bump type (MAJOR, MINOR, PATCH). Selected interactively when omitted."
@@ -145,51 +100,6 @@ def release(
     lang_enum = parse_language_option(language)
 
     release_command(bump, push, dry_run, non_interactive, lang_enum, config, allow_older)
-
-
-@app.command()
-def rollback(
-    tag: str | None = typer.Argument(None, help="Tag to rollback (e.g., v1.2.3). Interactive if omitted."),
-    revert_bump: bool = typer.Option(False, "--revert-bump", help="Also revert the version bump commit."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-    non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Rollback a release and/or version bump.
-
-    This command safely reverses release and bump operations by deleting
-    the release tag from local and remote repositories, and optionally
-    reverting the version bump commit.
-
-    It uses ``git revert`` rather than ``git reset``, making it safe
-    even when changes have already been pushed to remote.
-
-    Each argument is documented by its ``--help`` text above; see
-    :func:`rhiza_tools.commands.rollback.rollback_command` for the underlying behaviour.
-    """
-    _apply_verbose(verbose)
-    options = RollbackOptions(
-        tag=tag,
-        revert_bump=revert_bump,
-        dry_run=dry_run,
-        non_interactive=non_interactive,
-    )
-    rollback_command(options)
-
-
-@app.command(name="update-readme")
-def update_readme(
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Update README.md with the current output from `make help`.
-
-    This command runs `make help` and updates the README.md file with the current
-    help output, keeping the documentation in sync with available Make targets.
-    Each argument is documented by its ``--help`` text above.
-    """
-    _apply_verbose(verbose)
-    update_readme_command(dry_run)
 
 
 @app.command(name="version-matrix")
