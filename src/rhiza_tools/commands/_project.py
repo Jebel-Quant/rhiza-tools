@@ -1,7 +1,7 @@
 """Project-metadata and version helpers shared across rhiza-tools commands.
 
 This module owns the ``pyproject.toml``-facing and semver-parsing helpers used
-by the bump, release, and rollback flows:
+by the bump and release flows:
 
     - get_current_version: Read the project version from pyproject.toml.
     - parse_semver_or_exit: Parse a semver string, exiting consistently on error.

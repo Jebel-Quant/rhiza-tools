@@ -1,7 +1,6 @@
 """Git plumbing shared across rhiza-tools commands.
 
-This module owns the git-facing helpers used by the bump, release, and rollback
-flows:
+This module owns the git-facing helpers used by the bump and release flows:
 
     - run_git_command: Execute git commands with standard error handling.
     - check_tag_exists: Report whether a tag exists locally and/or remotely.
