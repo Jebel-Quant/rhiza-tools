@@ -11,7 +11,7 @@ generation. Its own development infrastructure is synced from Rhiza.
 ## Rhiza-managed files — do NOT edit directly
 
 This project syncs its development infrastructure from the **Rhiza** template repo
-(`jebel-quant/rhiza`) via `rhiza-cli`. The configuration lives in
+(`jebel-quant/rhiza`). The configuration lives in
 [`.rhiza/template.yml`](.rhiza/template.yml) (profile `github-project` + the `legal`
 template).
 

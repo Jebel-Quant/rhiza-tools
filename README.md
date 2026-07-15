@@ -9,39 +9,21 @@
 
 Extra utilities and tools serving the mothership [rhiza](https://github.com/Jebel-Quant/rhiza).
 
-**📖 New to Rhiza? Check out the [Getting Started Guide](https://github.com/Jebel-Quant/rhiza-cli/blob/ad816ff3e91a8d6f07fcba979bc64576de3d0116/GETTING_STARTED.md) for a beginner-friendly introduction!**
+**📖 New to Rhiza? See the [mothership repository](https://github.com/Jebel-Quant/rhiza) for a beginner-friendly introduction to the ecosystem.**
 
-This package provides additional commands for the Rhiza ecosystem, such as version bumping, release management, and documentation helpers. It can be used as a plugin for `rhiza-cli` or as a standalone tool.
+This package provides additional commands for the Rhiza ecosystem, such as version bumping, release management, and documentation helpers. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
 
 ## Installation
 
-### As a Rhiza Plugin (Recommended)
+`rhiza-tools` is published to PyPI and runs as a standalone tool — no `rhiza-cli` install required.
 
-You can install `rhiza-tools` alongside `rhiza-cli` using `uvx` or `pip`. This automatically registers the tools as subcommands under `rhiza tools`.
-
-#### Using uvx (run without installation)
-
-```bash
-uvx "rhiza[tools]" tools --help
-```
-
-#### Using pip
-
-```bash
-pip install "rhiza[tools]"
-```
-
-### Standalone Usage
-
-You can also use `rhiza-tools` independently if you don't need the full `rhiza` CLI.
-
-#### Using uvx
+### Using uvx (run without installation)
 
 ```bash
 uvx rhiza-tools --help
 ```
 
-#### Using pip
+### Using pip
 
 ```bash
 pip install rhiza-tools
@@ -154,10 +136,6 @@ Update `README.md` with the current output from `make help`.
 **Usage:**
 
 ```bash
-# As plugin
-rhiza tools update-readme
-
-# Standalone
 rhiza-tools update-readme
 ```
 
