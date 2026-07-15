@@ -42,7 +42,7 @@ there:
 | `engine.py` | Adapter wrapping the `bump-my-version` library ([ADR-0001](adr/0001-bump-my-version-adapter.md)) | `bump/engine.py` |
 
 Commands that never outgrew a single file stay flat: `version_matrix.py`,
-`update_readme.py`, `analyze_benchmarks.py`. Helpers used by
+`analyze_benchmarks.py`. Helpers used by
 more than one command (git-command runner, remote-version lookup,
 `pyproject.toml` validation) live in `commands/_shared.py`.
 

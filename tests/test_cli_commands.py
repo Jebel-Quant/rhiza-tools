@@ -112,23 +112,6 @@ def test_release_command(monkeypatch):
     mock_release_command.assert_called_once_with(None, False, True, False, None, Path("/custom/.cfg.toml"), False)
 
 
-def test_update_readme(monkeypatch):
-    """Test the update-readme command."""
-    # Mock the command function to avoid actual file operations
-    mock_update_readme = MagicMock()
-    monkeypatch.setattr("rhiza_tools.cli.update_readme_command", mock_update_readme)
-
-    result = runner.invoke(app, ["update-readme", "--dry-run"])
-    assert result.exit_code == 0
-    mock_update_readme.assert_called_once_with(True)
-
-    mock_update_readme.reset_mock()
-
-    result = runner.invoke(app, ["update-readme"])
-    assert result.exit_code == 0
-    mock_update_readme.assert_called_once_with(False)
-
-
 def test_version_matrix_command_no_candidates(monkeypatch, tmp_path):
     """Test the version-matrix command with default candidates."""
     # Create a temporary pyproject.toml

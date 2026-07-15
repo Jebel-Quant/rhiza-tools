@@ -1,8 +1,8 @@
 """CLI commands for Rhiza Tools.
 
 This module defines the main Typer application and all command-line interface
-commands for rhiza-tools. It provides commands for version bumping, coverage
-badge generation, release management, and README updates.
+commands for rhiza-tools. It provides commands for version bumping, release
+management, and the CI version matrix.
 
 The CLI can be used either as a standalone tool (`rhiza-tools`) or as a
 subcommand of the rhiza CLI (`rhiza tools`). See the project README for usage
@@ -23,7 +23,6 @@ from .commands.pip_audit import pip_audit_command
 from .commands.release import release_command
 from .commands.rollback import RollbackOptions, rollback_command
 from .commands.suppression import suppression_audit_command
-from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
 
 
@@ -175,21 +174,6 @@ def rollback(
         non_interactive=non_interactive,
     )
     rollback_command(options)
-
-
-@app.command(name="update-readme")
-def update_readme(
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Update README.md with the current output from `make help`.
-
-    This command runs `make help` and updates the README.md file with the current
-    help output, keeping the documentation in sync with available Make targets.
-    Each argument is documented by its ``--help`` text above.
-    """
-    _apply_verbose(verbose)
-    update_readme_command(dry_run)
 
 
 @app.command(name="version-matrix")
