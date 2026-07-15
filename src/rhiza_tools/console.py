@@ -9,9 +9,9 @@ Usage in commands::
 
     from rhiza_tools.console import console
 
-    console.info("Current version: 1.0.0")
-    console.success("Version bumped successfully!")
-    console.warning("Branch is ahead of remote")
+    console.info("Analyzing benchmarks...")
+    console.success("Report written successfully!")
+    console.warning("No benchmarks found")
     console.error("pyproject.toml not found")
 """
 

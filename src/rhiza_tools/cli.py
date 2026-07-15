@@ -1,8 +1,8 @@
 """CLI commands for Rhiza Tools.
 
 This module defines the main Typer application and all command-line interface
-commands for rhiza-tools. It provides commands for release management and the
-CI version matrix.
+commands for rhiza-tools. It provides the CI version matrix, benchmark
+analysis, and dependency/suppression auditing.
 
 The CLI can be used either as a standalone tool (`rhiza-tools`) or as a
 subcommand of the rhiza CLI (`rhiza tools`). See the project README for usage
@@ -18,9 +18,7 @@ from rhiza_tools import __version__
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
-from .commands.bump import parse_language_option
 from .commands.pip_audit import pip_audit_command
-from .commands.release import release_command
 from .commands.suppression import suppression_audit_command
 from .commands.version_matrix import version_matrix_command
 
@@ -36,12 +34,6 @@ app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
 
 # Shared option so --verbose / -v works both before and after the subcommand.
 VERBOSE_OPTION = typer.Option(False, "--verbose", "-v", help="Show verbose debug output.")
-CONFIG_OPTION = typer.Option(
-    None,
-    "--config",
-    "-c",
-    help="Path to the .cfg.toml bumpversion config file. Defaults to .rhiza/.cfg.toml.",
-)
 
 
 def _apply_verbose(verbose: bool) -> None:
@@ -63,43 +55,6 @@ def main(
 ) -> None:
     """Rhiza Tools - Extra utilities for Rhiza."""
     configure_console(verbose=verbose)
-
-
-@app.command()
-def release(
-    bump: str | None = typer.Option(
-        None, "--bump", help="Bump type (MAJOR, MINOR, PATCH). Selected interactively when omitted."
-    ),
-    push: bool = typer.Option(False, "--push", help="Push changes to remote (default: prompt in interactive mode)."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-    non_interactive: bool = typer.Option(False, "--non-interactive", "-y", help="Skip all confirmation prompts."),
-    language: str | None = typer.Option(
-        None, "--language", "-l", help="Programming language (python or go). Auto-detected if not specified."
-    ),
-    allow_older: bool = typer.Option(
-        False,
-        "--allow-older",
-        help="Allow releasing a version not newer than the latest remote release (maintenance/back-branch).",
-    ),
-    config: Path | None = CONFIG_OPTION,
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Bump the version and push a release tag to remote to trigger the release workflow.
-
-    A release always bumps the version before tagging: the bump type is taken
-    from ``--bump`` when given, selected interactively otherwise, or defaults to
-    patch in non-interactive mode. The command then validates the repository
-    state and pushes the git tag, which triggers the automated release workflow.
-    Supports Python projects (pyproject.toml) and Go projects (go.mod + VERSION
-    file). The project language is auto-detected when not explicitly specified.
-
-    Each argument is documented by its ``--help`` text above; see
-    :func:`rhiza_tools.commands.release.release_command` for the underlying behaviour.
-    """
-    _apply_verbose(verbose)
-    lang_enum = parse_language_option(language)
-
-    release_command(bump, push, dry_run, non_interactive, lang_enum, config, allow_older)
 
 
 @app.command(name="version-matrix")

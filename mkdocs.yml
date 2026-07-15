@@ -10,10 +10,8 @@ docs_dir: docs   # always set this explicitly — base uses docs_dir: . which
 
 nav:
   - Home: index.md
-  - Configuration: configuration.md
   - Releasing: RELEASING.md
   - Commands:
-    - release: commands/release.md
     - version-matrix: commands/version_matrix.md
     - analyze-benchmarks: commands/analyze_benchmarks.md
   - Architecture Decisions:

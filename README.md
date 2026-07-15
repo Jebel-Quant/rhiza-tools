@@ -11,7 +11,7 @@ Extra utilities and tools serving the mothership [rhiza](https://github.com/Jebe
 
 **📖 New to Rhiza? See the [mothership repository](https://github.com/Jebel-Quant/rhiza) for a beginner-friendly introduction to the ecosystem.**
 
-This package provides additional commands for the Rhiza ecosystem, such as version bumping, release management, and documentation helpers. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
+This package provides additional commands for the Rhiza ecosystem, such as the CI Python-version matrix, benchmark analysis, and dependency/suppression auditing. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
 
 ## Installation
 
@@ -30,38 +30,6 @@ pip install rhiza-tools
 ```
 
 ## Commands
-
-### `release`
-
-Push a release tag to remote to trigger the automated release workflow.
-Optionally bumps the version before releasing.
-
-**Usage:**
-
-```bash
-# Interactive (prompts for bump and push)
-rhiza-tools release
-
-# Dry-run preview
-rhiza-tools release --dry-run
-
-# Bump and release in one step
-rhiza-tools release --bump MINOR --push
-
-# Interactive bump selection with dry-run preview
-rhiza-tools release --with-bump --push --dry-run
-
-# Non-interactive (for CI/CD)
-rhiza-tools release --bump PATCH --push --non-interactive
-```
-
-**Options:**
-
-*   `--bump TYPE` - Bump type (`MAJOR`, `MINOR`, `PATCH`) to apply before release.
-*   `--with-bump` - Interactively select bump type before release (works with `--dry-run`).
-*   `--push` - Push changes to remote (default: prompt in interactive mode).
-*   `--dry-run` - Show what would happen without making any changes.
-*   `--non-interactive`, `-y` - Skip all confirmation prompts (for CI/CD).
 
 ### `version-matrix`
 
