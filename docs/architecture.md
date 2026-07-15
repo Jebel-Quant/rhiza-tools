@@ -42,7 +42,9 @@ there:
 | `report.py` | Formatting and output rendering | `suppression/report.py` |
 
 Commands that never outgrew a single file stay flat: `version_matrix.py`,
-`generate_badge.py`, `update_readme.py`, `analyze_benchmarks.py`, `pip_audit.py`.
+`update_readme.py`, `analyze_benchmarks.py`. Helpers used by
+more than one command (git-command runner, remote-version lookup,
+`pyproject.toml` validation) live in `commands/_shared.py`.
 
 Extracted helpers are **re-exported** from the orchestration `__init__.py`, so
 callers and tests keep importing `commands.<command>.<helper>` even after a move.

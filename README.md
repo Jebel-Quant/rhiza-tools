@@ -49,28 +49,6 @@ rhiza-tools update-readme
 
 *   `--dry-run` - Print what would happen without actually changing files.
 
-### `generate-coverage-badge`
-
-Generate a coverage badge JSON file from a pytest-cov coverage report.
-The badge color adjusts automatically based on the coverage percentage.
-
-**Usage:**
-
-```bash
-# Default paths
-rhiza-tools generate-coverage-badge
-
-# Custom paths
-rhiza-tools generate-coverage-badge \
-    --coverage-json tests/coverage.json \
-    --output assets/badge.json
-```
-
-**Options:**
-
-*   `--coverage-json PATH` - Path to the coverage.json file (default: `_tests/coverage.json`).
-*   `--output PATH` - Path to output badge JSON (default: `_book/tests/coverage-badge.json`).
-
 ### `version-matrix`
 
 Emit supported Python versions from `pyproject.toml` as a JSON array.

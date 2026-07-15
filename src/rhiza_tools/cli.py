@@ -19,10 +19,8 @@ from rhiza_tools import __version__
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
-from .commands.generate_badge import generate_coverage_badge_command
 from .commands.pip_audit import pip_audit_command
 from .commands.suppression import suppression_audit_command
-from .commands.update_readme import update_readme_command
 from .commands.version_matrix import version_matrix_command
 
 
@@ -58,81 +56,6 @@ def main(
 ) -> None:
     """Rhiza Tools - Extra utilities for Rhiza."""
     configure_console(verbose=verbose)
-
-
-@app.command()
-def generate_coverage_badge(
-    coverage_json: Annotated[
-        Path,
-        typer.Option(
-            "--coverage-json",
-            help="Path to coverage.json file",
-        ),
-    ] = Path("_tests/coverage.json"),
-    output: Annotated[
-        Path,
-        typer.Option(
-            help="Path to output badge JSON",
-        ),
-    ] = Path("_book/tests/coverage-badge.json"),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Generate a coverage badge for the project.
-
-    Reads a coverage report JSON file and creates a shields.io endpoint JSON file
-    for displaying a coverage badge. The badge color automatically adjusts based
-    on the coverage percentage. Each argument is documented by its ``--help`` text.
-    """
-    _apply_verbose(verbose)
-    generate_coverage_badge_command(coverage_json_path=coverage_json, output_path=output)
-
-
-@app.command(name="update-readme")
-def update_readme(
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen without doing it."),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Update README.md with the current output from `make help`.
-
-    This command runs `make help` and updates the README.md file with the current
-    help output, keeping the documentation in sync with available Make targets.
-    Each argument is documented by its ``--help`` text above.
-    """
-    _apply_verbose(verbose)
-    update_readme_command(dry_run)
-
-
-@app.command(name="version-matrix")
-def version_matrix(
-    pyproject: Annotated[
-        Path,
-        typer.Option(
-            "--pyproject",
-            help="Path to pyproject.toml file",
-        ),
-    ] = Path("pyproject.toml"),
-    candidates: Annotated[
-        str | None,
-        typer.Option(
-            "--candidates",
-            help="Comma-separated list of candidate Python versions (e.g., '3.11,3.12,3.13')",
-        ),
-    ] = None,
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Emit supported Python versions from pyproject.toml as JSON.
-
-    This command reads the requires-python field from pyproject.toml and outputs
-    a JSON array of Python versions that satisfy the constraint. This is primarily
-    used in GitHub Actions to compute the test matrix. Each argument is documented
-    by its ``--help`` text above.
-    """
-    _apply_verbose(verbose)
-    candidates_list = None
-    if candidates:
-        candidates_list = [v.strip() for v in candidates.split(",")]
-
-    version_matrix_command(pyproject_path=pyproject, candidates=candidates_list)
 
 
 @app.command(name="analyze-benchmarks")
