@@ -4,11 +4,13 @@ This package contains all command implementations for the rhiza-tools CLI.
 Each command is implemented as a separate module with its own logic.
 
 Available commands:
-    - bump_command: Version bumping with semantic versioning support
     - version_matrix_command: Python version matrix generation from pyproject.toml
     - analyze_benchmarks_command: Analyze and visualize pytest-benchmark results
     - release_command: Create and push release tags
-    - rollback_command: Rollback a release and/or version bump
+
+The ``bump_command`` helper (in the :mod:`rhiza_tools.commands.bump` subpackage)
+remains as an internal library used by :func:`release_command`; it is no longer
+exposed as a standalone CLI command.
 
 Example:
     Import and use commands::
@@ -22,13 +24,11 @@ Example:
 from .analyze_benchmarks import analyze_benchmarks_command
 from .bump import bump_command
 from .release import release_command
-from .rollback import rollback_command
 from .version_matrix import version_matrix_command
 
 __all__ = [
     "analyze_benchmarks_command",
     "bump_command",
     "release_command",
-    "rollback_command",
     "version_matrix_command",
 ]

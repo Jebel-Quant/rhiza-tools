@@ -1,7 +1,7 @@
 """Interactive-prompt styling and non-interactive detection.
 
 This module owns the presentation concerns shared by the interactive command
-flows (bump, release, rollback):
+flows (bump, release):
 
     - COOL_STYLE: Shared questionary styling for interactive prompts.
     - NON_INTERACTIVE_ERRORS: Exceptions signalling a missing TTY, so callers can

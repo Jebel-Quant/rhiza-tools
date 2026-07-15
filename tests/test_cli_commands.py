@@ -19,42 +19,6 @@ def test_version_flag():
     assert __version__ in result.stdout
 
 
-def test_bump_command(monkeypatch):
-    """Test the bump command."""
-    from rhiza_tools.commands.bump import BumpOptions
-
-    mock_bump_command = MagicMock()
-    monkeypatch.setattr("rhiza_tools.cli.bump_command", mock_bump_command)
-
-    result = runner.invoke(app, ["bump", "1.0.1", "--dry-run"])
-    assert result.exit_code == 0
-    # bump_command should be called with a BumpOptions object
-    assert mock_bump_command.call_count == 1
-    options = mock_bump_command.call_args[0][0]
-    assert isinstance(options, BumpOptions)
-    assert options.version == "1.0.1"
-    assert options.dry_run is True
-    assert options.commit is False
-    assert options.push is False
-    assert options.branch is None
-    assert options.allow_dirty is False
-
-    mock_bump_command.reset_mock()
-
-    result = runner.invoke(app, ["bump", "patch", "--commit", "--allow-dirty"])
-    assert result.exit_code == 0
-    # bump_command should be called with a BumpOptions object
-    assert mock_bump_command.call_count == 1
-    options = mock_bump_command.call_args[0][0]
-    assert isinstance(options, BumpOptions)
-    assert options.version == "patch"
-    assert options.dry_run is False
-    assert options.commit is True
-    assert options.push is False
-    assert options.branch is None
-    assert options.allow_dirty is True
-
-
 def test_release_command(monkeypatch):
     """Test the release command."""
     mock_release_command = MagicMock()
@@ -165,11 +129,6 @@ class TestCLI:
         with patch("rhiza_tools.cli.configure_console") as mock_configure:
             _apply_verbose(True)
             mock_configure.assert_called_once_with(verbose=True)
-
-    def test_bump_invalid_language(self):
-        """cli.py:146-151 – invalid language exits with code 1."""
-        result = runner.invoke(app, ["bump", "--language", "ruby"])
-        assert result.exit_code == 1
 
     def test_release_invalid_language(self):
         """cli.py:272-276 – invalid language in release exits with code 1."""

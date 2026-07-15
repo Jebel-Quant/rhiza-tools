@@ -72,9 +72,7 @@ nav:
     - Overview: architecture.md
     - Decision Records: adr/README.md
   - Commands:
-    - bump: commands/bump.md
     - release: commands/release.md
-    - rollback: commands/rollback.md
     - version-matrix: commands/version_matrix.md
     - analyze-benchmarks: commands/analyze_benchmarks.md
   - API Reference: api_reference.md

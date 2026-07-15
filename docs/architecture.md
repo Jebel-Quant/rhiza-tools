@@ -35,10 +35,10 @@ there:
 
 | Module | Responsibility | Examples |
 | ------ | -------------- | -------- |
-| `__init__.py` | Typer-facing command orchestration — the entry point invoked from `cli.py` | `bump/__init__.py`, `release/__init__.py`, `rollback/__init__.py` |
+| `__init__.py` | Typer-facing command orchestration — the entry point invoked from `cli.py` | `bump/__init__.py`, `release/__init__.py` |
 | `versioning.py` | Pure version math and bump-type resolution; no I/O, no git | `bump/versioning.py`, `release/versioning.py` |
-| `io.py` | Project-file reads/writes, interactive prompts/UI, and public data models (`BumpOptions`, `RollbackOptions`, `Language`) | `bump/io.py`, `rollback/io.py` |
-| `git.py` | Git plumbing — tag/commit/branch lookups, pushes, working-tree checks | `bump/git.py`, `release/git.py`, `rollback/git.py` |
+| `io.py` | Project-file reads/writes, interactive prompts/UI, and public data models (`BumpOptions`, `Language`) | `bump/io.py` |
+| `git.py` | Git plumbing — tag/commit/branch lookups, pushes, working-tree checks | `bump/git.py`, `release/git.py` |
 | `engine.py` | Adapter wrapping the `bump-my-version` library ([ADR-0001](adr/0001-bump-my-version-adapter.md)) | `bump/engine.py` |
 
 Commands that never outgrew a single file stay flat: `version_matrix.py`,
@@ -51,7 +51,7 @@ callers and tests keep importing `commands.bump.<helper>` /
 `commands.release.<helper>` even after a move. When a moved function resolves a
 dependency in its **new** module's namespace, the test patch target moves with
 it (e.g. `commands.release.versioning.bump_command`,
-`commands.rollback.git.run_git_command`).
+`commands.release.git.run_git_command`).
 
 ## Where does my code go?
 
@@ -77,7 +77,7 @@ lines.
 
 `tests/` mirrors this layout: per-command tests live under
 `tests/commands/<command>/` (e.g. `tests/commands/bump/`,
-`tests/commands/release/`, `tests/commands/rollback/`), single-file command
+`tests/commands/release/`), single-file command
 tests sit directly in `tests/commands/`, and cross-cutting suites (CLI wiring,
 end-to-end flows, structural meta-tests) stay at the `tests/` root. Test module
 basenames are kept unique across the tree because pytest runs in `prepend`
