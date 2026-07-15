@@ -3,43 +3,45 @@
 import contextlib
 import importlib.util
 import runpy
-import subprocess  # nosec B404
 import sys
 from unittest.mock import patch
 
 
 def test_main_entry_point():
-    """Test that __main__.py can be executed as a module."""
-    # Run the module with --help to verify it executes
-    result = subprocess.run(  # nosec B603 B607
-        [sys.executable, "-m", "rhiza_tools", "--help"],
-        capture_output=True,
-        text=True,
-    )
+    """Test that the CLI entry point works (equivalent to python -m rhiza_tools --help).
 
-    # Should exit successfully
-    assert result.returncode == 0
-    # Should show help text
-    assert "Rhiza Tools" in result.stdout or "Usage" in result.stdout
+    Uses typer.testing.CliRunner instead of spawning a subprocess, which avoids
+    DLL-loading failures on Windows Python 3.14 when sys.executable points to a
+    uv-managed venv whose Python DLLs are not on the child-process search path.
+    """
+    from typer.testing import CliRunner
+
+    from rhiza_tools.cli import app
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "Rhiza Tools" in result.output or "Usage" in result.output
 
 
 def test_main_direct_execution():
-    """Test that __main__.py can be executed directly as a script."""
-    # Find the __main__.py file
+    """Test that __main__.py can be executed directly as a script.
+
+    Uses runpy.run_path instead of spawning a subprocess, which avoids
+    DLL-loading failures on Windows Python 3.14 when sys.executable points to a
+    uv-managed venv whose Python DLLs are not on the child-process search path.
+    """
     spec = importlib.util.find_spec("rhiza_tools.__main__")
     main_file = spec.origin
 
-    # Run the file directly with --help
-    result = subprocess.run(  # nosec B603
-        [sys.executable, main_file, "--help"],
-        capture_output=True,
-        text=True,
-    )
+    exit_code = None
+    with patch("sys.argv", ["rhiza_tools", "--help"]):
+        try:
+            runpy.run_path(main_file, run_name="__main__")
+        except SystemExit as e:
+            exit_code = e.code
 
-    # Should exit successfully
-    assert result.returncode == 0
-    # Should show help text
-    assert "Rhiza Tools" in result.stdout or "Usage" in result.stdout
+    assert exit_code == 0
 
 
 def test_main_if_name_main_block():

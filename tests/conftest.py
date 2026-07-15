@@ -8,13 +8,9 @@ Security Notes:
   as the test environment is controlled and git is a required development dependency
 """
 
-import shutil
 import subprocess  # nosec B404
 
 import pytest
-
-# Get absolute path for git executable
-GIT = shutil.which("git") or "git"
 
 
 @pytest.fixture(autouse=True)
@@ -53,10 +49,14 @@ def temp_project(tmp_path, monkeypatch):
     # Prevent git from walking up to the real repo if anything goes wrong
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
-    # Initialize git repository
-    subprocess.run([GIT, "init"], check=True, capture_output=True)  # nosec B603 B607
-    subprocess.run([GIT, "config", "user.email", "test@example.com"], check=True, capture_output=True)  # nosec B603 B607
-    subprocess.run([GIT, "config", "user.name", "Test User"], check=True, capture_output=True)  # nosec B603 B607
+    # Initialize git repository.
+    # Use stdout/stderr=DEVNULL instead of capture_output=True: on Windows with
+    # Python 3.14 the pipe handles created by capture_output can trigger
+    # STATUS_DLL_INIT_FAILED (0xC0000142) in the MinGW64 git runtime.
+    _null = subprocess.DEVNULL
+    subprocess.run(["git", "init"], check=True, stdout=_null, stderr=_null)  # nosec B603 B607
+    subprocess.run(["git", "config", "user.email", "test@example.com"], check=True, stdout=_null, stderr=_null)  # nosec B603 B607
+    subprocess.run(["git", "config", "user.name", "Test User"], check=True, stdout=_null, stderr=_null)  # nosec B603 B607
 
     # Create pyproject.toml with initial version
     pyproject_content = """[project]
@@ -67,7 +67,7 @@ version = "0.1.0"
     pyproject_path.write_text(pyproject_content)
 
     # Commit the initial state
-    subprocess.run([GIT, "add", "."], check=True, capture_output=True)  # nosec B603 B607
-    subprocess.run([GIT, "commit", "-m", "Initial commit"], check=True, capture_output=True)  # nosec B603 B607
+    subprocess.run(["git", "add", "."], check=True, stdout=_null, stderr=_null)  # nosec B603 B607
+    subprocess.run(["git", "commit", "-m", "Initial commit"], check=True, stdout=_null, stderr=_null)  # nosec B603 B607
 
     return tmp_path
