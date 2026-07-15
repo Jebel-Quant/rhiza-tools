@@ -1,29 +1,24 @@
 """Rhiza Tools — Extra utilities and tools for the Rhiza ecosystem.
 
 Rhiza Tools provides additional commands and utilities for the Rhiza ecosystem.
-It includes tools for version management, release automation, and documentation
-maintenance.
+It includes tools for CI orchestration, benchmark analysis, and code hygiene
+auditing.
 
 ## Key features
 
-- **Version Bumping**: Automate version updates in `pyproject.toml`.
-- **Release Management**: Streamline the release process with git tag automation.
-- **Documentation Helpers**: Keep your README up-to-date with CLI help output.
+- **Version Matrix**: Emit the supported Python versions for the CI test matrix.
+- **Benchmark Analysis**: Summarize and visualize pytest-benchmark results.
+- **Dependency & Suppression Auditing**: Tiered `pip-audit` policy and an
+  inline-suppression density report.
 - **Standalone CLI**: Run directly via `uvx rhiza-tools` — invoked by the Rhiza
   Makefile targets and CI.
 
 ## Quick start
 
-Bump the project version:
+Emit the CI Python-version matrix:
 
 ```bash
-rhiza-tools bump 1.0.1
-```
-
-Create a release tag:
-
-```bash
-rhiza-tools release
+rhiza-tools version-matrix
 ```
 
 ## Main modules

@@ -20,11 +20,11 @@ rhiza_tools/
 ├── __init__.py          # Package metadata and version
 ├── __main__.py          # Entry point (Typer app)
 ├── cli.py               # CLI command definitions
-├── config.py            # Configuration loading
+├── console.py           # Console / logging configuration
 └── commands/
     ├── analyze_benchmarks.py   # Benchmark analysis & visualization
-    ├── bump.py                 # Version bumping (semver)
-    ├── release.py              # Release tag management
+    ├── pip_audit.py            # Tiered pip-audit vulnerability policy
+    ├── suppression/            # Inline-suppression density audit
     └── version_matrix.py       # Python version matrix
 ```
 
@@ -34,9 +34,9 @@ rhiza_tools/
 
 The main Typer application. Defines all CLI commands and their option parsing.
 
-### `rhiza_tools.config`
+### `rhiza_tools.console`
 
-Configuration loading from `pyproject.toml` and the Rhiza config file.
+Console output and logging configuration shared across commands.
 
 ### `rhiza_tools.commands`
 
@@ -46,6 +46,6 @@ core logic, making commands testable independently of the CLI layer.
 | Module | Entry Function |
 |--------|---------------|
 | `analyze_benchmarks` | `analyze_benchmarks_command()` |
-| `bump` | `bump_command()` |
-| `release` | `release_command()` |
+| `pip_audit` | `pip_audit_command()` |
+| `suppression` | `suppression_audit_command()` |
 | `version_matrix` | `version_matrix_command()` |

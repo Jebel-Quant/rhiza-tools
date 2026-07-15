@@ -1,22 +1,17 @@
 # Architecture
 
 This page is the map for **where code goes** in `rhiza_tools`. The rationale
-behind the layout lives in the Architecture Decision Records —
-[ADR-0001](adr/0001-bump-my-version-adapter.md) (the bump-my-version adapter)
-and [ADR-0005](adr/0005-command-module-split.md) (splitting command modules by
+behind the layout lives in the Architecture Decision Records — see
+[ADR-0005](adr/0005-command-module-split.md) (splitting command modules by
 responsibility). This page is the living reference; the ADRs are the history.
 
 ## Layers
 
 ```
 cli.py                          Typer surface — argument parsing, --help text, option wiring
-  └─ commands/<command>/__init__.py  orchestration — the workflow for one command
-       ├─ versioning.py         pure version math / bump-type resolution (no side effects)
-       ├─ io.py                 project-file I/O, interactive prompts, public data models
-       ├─ git.py                git plumbing (tag / commit / branch / push)
-       └─ engine.py             third-party adapter (bump-my-version) — see ADR-0001
   └─ commands/<command>.py      single-file commands that never grew satellites
-  └─ commands/_shared.py        helpers reused across commands
+  └─ commands/<command>/__init__.py  orchestration — the workflow for one command
+       └─ <sibling>.py          an extracted responsibility (parsing, reporting, …)
 ```
 
 A command that has only one responsibility stays a single module
@@ -26,32 +21,28 @@ becomes a **subpackage** (`commands/<command>/`) whose `__init__.py` holds the
 orchestration and whose siblings own the extracted responsibilities.
 
 Dependencies point downward only: the orchestration `__init__.py` calls into its
-sibling modules and `_shared`; the siblings do not import the package back.
+sibling modules; the siblings do not import the package back.
 
 ## The command-subpackage convention
 
-Inside a `commands/<command>/` subpackage, the file name tells you what lives
-there:
+Inside a `commands/<command>/` subpackage the file name tells you what lives
+there: `__init__.py` is the Typer-facing command orchestration (the entry point
+invoked from `cli.py`), and each sibling owns one extracted responsibility. The
+`suppression/` command is the current example:
 
-| Module | Responsibility | Examples |
-| ------ | -------------- | -------- |
-| `__init__.py` | Typer-facing command orchestration — the entry point invoked from `cli.py` | `bump/__init__.py`, `release/__init__.py` |
-| `versioning.py` | Pure version math and bump-type resolution; no I/O, no git | `bump/versioning.py`, `release/versioning.py` |
-| `io.py` | Project-file reads/writes, interactive prompts/UI, and public data models (`BumpOptions`, `Language`) | `bump/io.py` |
-| `git.py` | Git plumbing — tag/commit/branch lookups, pushes, working-tree checks | `bump/git.py`, `release/git.py` |
-| `engine.py` | Adapter wrapping the `bump-my-version` library ([ADR-0001](adr/0001-bump-my-version-adapter.md)) | `bump/engine.py` |
+| Module | Responsibility |
+| ------ | -------------- |
+| `suppression/__init__.py` | Command orchestration — `suppression_audit_command`, invoked from `cli.py` |
+| `suppression/parse.py` | Scan the codebase and parse inline-suppression comments |
+| `suppression/report.py` | Render the per-file report, histogram, and density grade |
 
 Commands that never outgrew a single file stay flat: `version_matrix.py`,
-`analyze_benchmarks.py`. Helpers used by
-more than one command (git-command runner, remote-version lookup,
-`pyproject.toml` validation) live in `commands/_shared.py`.
+`analyze_benchmarks.py`, `pip_audit.py`.
 
 Extracted helpers are **re-exported** from the orchestration `__init__.py`, so
-callers and tests keep importing `commands.bump.<helper>` /
-`commands.release.<helper>` even after a move. When a moved function resolves a
-dependency in its **new** module's namespace, the test patch target moves with
-it (e.g. `commands.release.versioning.bump_command`,
-`commands.release.git.run_git_command`).
+callers and tests keep importing `commands.<command>.<helper>` even after a
+move. When a moved function resolves a dependency in its **new** module's
+namespace, the test patch target moves with it.
 
 ## Where does my code go?
 
@@ -61,24 +52,18 @@ Work top-down through the first match:
    `--help`) and a `commands/<command>.py` orchestration module for the workflow.
    Promote it to a `commands/<command>/` subpackage only once it outgrows one
    file.
-2. **Pure version/number logic** (parse, compare, compute the next version)? →
-   `<command>/versioning.py`.
-3. **Reads/writes project files or prompts the user?** → `<command>/io.py`.
-4. **Shells out to git?** → `<command>/git.py`.
-5. **Wraps `bump-my-version`?** → `<command>/engine.py`.
-6. **Reused by more than one command?** → `_shared.py`.
+2. **A distinct responsibility within a command** (parsing, reporting, I/O)? →
+   a sibling module inside that command's subpackage.
 
 Keep modules at or below the 500-line ceiling; when one approaches it, extract
 the next responsibility into a sibling module within the subpackage and
-re-export it from `__init__.py`. The current largest command module is ~380
-lines.
+re-export it from `__init__.py`.
 
 ## Tests mirror the package
 
 `tests/` mirrors this layout: per-command tests live under
-`tests/commands/<command>/` (e.g. `tests/commands/bump/`,
-`tests/commands/release/`), single-file command
-tests sit directly in `tests/commands/`, and cross-cutting suites (CLI wiring,
-end-to-end flows, structural meta-tests) stay at the `tests/` root. Test module
-basenames are kept unique across the tree because pytest runs in `prepend`
-import mode without `__init__.py` package markers.
+`tests/commands/<command>/` (e.g. `tests/commands/suppression/`), single-file
+command tests sit directly in `tests/commands/`, and cross-cutting suites (CLI
+wiring, structural meta-tests) stay at the `tests/` root. Test module basenames
+are kept unique across the tree because pytest runs in `prepend` import mode
+without `__init__.py` package markers.
