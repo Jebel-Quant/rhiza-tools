@@ -23,9 +23,9 @@ rhiza_tools/
 ├── config.py            # Configuration loading
 └── commands/
     ├── analyze_benchmarks.py   # Benchmark analysis & visualization
-    ├── bump.py                 # Version bumping (semver)
     ├── generate_badge.py       # Coverage badge generation
-    ├── release.py              # Release tag management
+    ├── pip_audit.py            # Tiered pip-audit vulnerability policy
+    ├── suppression/            # Inline-suppression density audit
     ├── update_readme.py        # README synchronization
     └── version_matrix.py       # Python version matrix
 ```
@@ -48,8 +48,8 @@ core logic, making commands testable independently of the CLI layer.
 | Module | Entry Function |
 |--------|---------------|
 | `analyze_benchmarks` | `analyze_benchmarks_command()` |
-| `bump` | `bump_command()` |
 | `generate_badge` | `generate_coverage_badge_command()` |
-| `release` | `release_command()` |
+| `pip_audit` | `pip_audit_command()` |
+| `suppression` | `suppression_audit_command()` |
 | `update_readme` | `update_readme_command()` |
 | `version_matrix` | `version_matrix_command()` |

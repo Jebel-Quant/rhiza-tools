@@ -7,12 +7,12 @@ application defined in rhiza_tools.cli.
 Example:
     Run as a module::
 
-        $ python -m rhiza_tools bump patch
+        $ python -m rhiza_tools version-matrix
         $ python -m rhiza_tools --help
 
     Or use the installed entry point::
 
-        $ rhiza-tools bump patch
+        $ rhiza-tools version-matrix
         $ rhiza-tools --help
 """
 

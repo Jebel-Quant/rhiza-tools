@@ -1,29 +1,30 @@
 """Rhiza Tools — Extra utilities and tools for the Rhiza ecosystem.
 
-Rhiza Tools provides additional commands and utilities for the Rhiza ecosystem.
-It includes tools for version management, release automation, and documentation
-maintenance.
+Rhiza Tools provides headless CI/CD commands and utilities for the Rhiza
+ecosystem: the CI version matrix, coverage badge generation, benchmark
+analysis, dependency/suppression auditing, and documentation maintenance.
 
 ## Key features
 
-- **Version Bumping**: Automate version updates in `pyproject.toml`.
-- **Release Management**: Streamline the release process with git tag automation.
+- **CI Version Matrix**: Emit supported Python versions from `pyproject.toml`.
+- **Coverage Badges**: Generate a shields.io coverage badge from a coverage report.
+- **Security Auditing**: Tiered `pip-audit` and suppression-density reporting.
 - **Documentation Helpers**: Keep your README up-to-date with CLI help output.
 - **Standalone CLI**: Run directly via `uvx rhiza-tools` — invoked by the Rhiza
   Makefile targets and CI.
 
 ## Quick start
 
-Bump the project version:
+Emit the CI version matrix:
 
 ```bash
-rhiza-tools bump 1.0.1
+rhiza-tools version-matrix
 ```
 
-Create a release tag:
+Generate a coverage badge:
 
 ```bash
-rhiza-tools release
+rhiza-tools generate-coverage-badge
 ```
 
 ## Main modules

@@ -72,9 +72,6 @@ nav:
     - Overview: architecture.md
     - Decision Records: adr/README.md
   - Commands:
-    - bump: commands/bump.md
-    - release: commands/release.md
-    - rollback: commands/rollback.md
     - update-readme: commands/update_readme.md
     - generate-coverage-badge: commands/generate_coverage_badge.md
     - version-matrix: commands/version_matrix.md
