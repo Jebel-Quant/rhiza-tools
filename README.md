@@ -129,20 +129,6 @@ rhiza-tools rollback v1.2.3 --revert-bump --non-interactive
 *   `--non-interactive`, `-y` - Skip all confirmation prompts (for CI/CD).
 *   `--verbose` - Enable verbose debug output.
 
-### `update-readme`
-
-Update `README.md` with the current output from `make help`.
-
-**Usage:**
-
-```bash
-rhiza-tools update-readme
-```
-
-**Options:**
-
-*   `--dry-run` - Print what would happen without actually changing files.
-
 ### `version-matrix`
 
 Emit supported Python versions from `pyproject.toml` as a JSON array.

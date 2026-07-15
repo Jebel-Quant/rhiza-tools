@@ -5,7 +5,6 @@ Each command is implemented as a separate module with its own logic.
 
 Available commands:
     - bump_command: Version bumping with semantic versioning support
-    - update_readme_command: README synchronization with make help output
     - version_matrix_command: Python version matrix generation from pyproject.toml
     - analyze_benchmarks_command: Analyze and visualize pytest-benchmark results
     - release_command: Create and push release tags
@@ -14,10 +13,9 @@ Available commands:
 Example:
     Import and use commands::
 
-        from rhiza_tools.commands import bump_command, update_readme_command, version_matrix_command
+        from rhiza_tools.commands import bump_command, version_matrix_command
 
         bump_command("patch")
-        update_readme_command()
         version_matrix_command()
 """
 
@@ -25,7 +23,6 @@ from .analyze_benchmarks import analyze_benchmarks_command
 from .bump import bump_command
 from .release import release_command
 from .rollback import rollback_command
-from .update_readme import update_readme_command
 from .version_matrix import version_matrix_command
 
 __all__ = [
@@ -33,6 +30,5 @@ __all__ = [
     "bump_command",
     "release_command",
     "rollback_command",
-    "update_readme_command",
     "version_matrix_command",
 ]

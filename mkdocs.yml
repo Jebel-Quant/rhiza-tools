@@ -16,7 +16,6 @@ nav:
     - bump: commands/bump.md
     - release: commands/release.md
     - rollback: commands/rollback.md
-    - update-readme: commands/update_readme.md
     - version-matrix: commands/version_matrix.md
     - analyze-benchmarks: commands/analyze_benchmarks.md
   - Architecture Decisions:
