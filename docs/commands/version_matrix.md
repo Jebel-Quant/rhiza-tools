@@ -4,23 +4,22 @@ Emit supported Python versions from `pyproject.toml` as JSON.
 
 ## Overview
 
-The `version-matrix` command reads the `requires-python` field from
-`pyproject.toml` and outputs a JSON array of Python versions that satisfy the
-constraint. This is primarily used in GitHub Actions to compute the test matrix
-dynamically.
+The `version-matrix` command reads the
+`Programming Language :: Python :: X.Y` trove classifiers from `pyproject.toml`
+and outputs a JSON array of those versions. This is primarily used in GitHub
+Actions to compute the test matrix dynamically, so the matrix always mirrors
+exactly what the project advertises — adding or removing a classifier changes
+CI coverage.
 
 ## Usage
 
 ```bash
-# Get supported versions with defaults
+# Get supported versions
 rhiza-tools version-matrix
-# Output: ["3.11", "3.12", "3.13"]
+# Output: ["3.11", "3.12"]
 
-# Use custom pyproject.toml path
+# Use a custom pyproject.toml path
 rhiza-tools version-matrix --pyproject /path/to/pyproject.toml
-
-# Use custom candidate versions
-rhiza-tools version-matrix --candidates "3.10,3.11,3.12"
 ```
 
 ## Options
@@ -28,7 +27,6 @@ rhiza-tools version-matrix --candidates "3.10,3.11,3.12"
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--pyproject` | `pyproject.toml` | Path to the `pyproject.toml` file |
-| `--candidates` | `3.11,3.12,3.13,3.14` | Comma-separated list of candidate Python versions |
 
 ## GitHub Actions Example
 

@@ -10,7 +10,7 @@ pip3 install --upgrade "pip==24.3.1"
 
 # Install the package and its runtime dependencies so PyInstaller can discover
 # and bundle rhiza_tools into each frozen fuzzer binary. The fuzz target only
-# touches the pure-Python version-matrix parser, so no compiled-extension
+# touches the pure-Python suppression comment parser, so no compiled-extension
 # dependencies need a --collect-all here.
 pip3 install .
 

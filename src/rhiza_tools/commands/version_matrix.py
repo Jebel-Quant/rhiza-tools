@@ -1,8 +1,10 @@
 """Command to emit supported Python versions from pyproject.toml.
 
-This module implements functionality to parse pyproject.toml and determine which
-Python versions are supported based on the requires-python specifier. It's
-primarily used in GitHub Actions to compute the test matrix.
+This module reads the ``Programming Language :: Python :: 3.x`` trove
+classifiers declared in ``pyproject.toml`` and emits the corresponding minor
+versions as a JSON array. It's primarily used in GitHub Actions to compute the
+test matrix, so the matrix always mirrors exactly what the project advertises
+that it supports — adding or removing a classifier changes CI coverage.
 
 Example:
     Get supported versions as JSON::
@@ -10,10 +12,6 @@ Example:
         from rhiza_tools.commands.version_matrix import version_matrix_command
         version_matrix_command()
         # Output: ["3.11", "3.12"]
-
-    Use with custom candidates::
-
-        version_matrix_command(candidates=["3.11", "3.12", "3.13", "3.14"])
 """
 
 import json
@@ -22,169 +20,45 @@ import tomllib
 from pathlib import Path
 
 import typer
+from packaging.version import InvalidVersion, Version
 
 from rhiza_tools import console
 
-# Candidate Python versions evaluated against ``requires-python`` when the caller
-# does not pass an explicit list. Single source of truth so the runtime default
-# and the docstrings that mention it cannot drift apart.
-DEFAULT_PYTHON_CANDIDATES = ["3.11", "3.12", "3.13", "3.14"]
+# Matches a ``major.minor`` Python trove classifier, e.g.
+# "Programming Language :: Python :: 3.11". The major-only classifier
+# ("... :: 3") and suffixed variants ("... :: 3 :: Only") are intentionally
+# not matched — only concrete minor versions belong in the test matrix.
+_CLASSIFIER_RE = re.compile(r"^Programming Language :: Python :: (\d+\.\d+)$")
 
 
 class RhizaError(Exception):
     """Base exception for Rhiza-related errors."""
 
 
-class VersionSpecifierError(RhizaError):
-    """Raised when a version string or specifier is invalid."""
-
-
 class PyProjectError(RhizaError):
     """Raised when there are issues with pyproject.toml configuration."""
 
 
-def parse_version(v: str) -> tuple[int, ...]:
-    """Parse a version string into a tuple of integers.
+def get_supported_versions(pyproject_path: Path) -> list[str]:
+    """Return the Python minor versions declared in pyproject.toml classifiers.
 
-    This is intentionally simple and only supports numeric components.
-    If a component contains non-numeric suffixes (e.g. '3.11.0rc1'),
-    the leading numeric portion will be used (e.g. '0rc1' -> 0). If a
-    component has no leading digits at all, a VersionSpecifierError is raised.
-
-    Args:
-        v: Version string to parse (e.g., "3.11", "3.11.0rc1").
-
-    Returns:
-        Tuple of integers representing the version.
-
-    Raises:
-        VersionSpecifierError: If a version component has no numeric prefix.
-
-    Example:
-        >>> parse_version("3.11")
-        (3, 11)
-
-        >>> parse_version("3.11.0rc1")
-        (3, 11, 0)
-    """
-    parts: list[int] = []
-    for part in v.split("."):
-        match = re.match(r"\d+", part)
-        if not match:
-            msg = f"Invalid version component {part!r} in version {v!r}; expected a numeric prefix."
-            raise VersionSpecifierError(msg)
-        parts.append(int(match.group(0)))
-    return tuple(parts)
-
-
-def _check_operator(version_tuple: tuple[int, ...], op: str, spec_v_tuple: tuple[int, ...]) -> bool:
-    """Check if a version tuple satisfies an operator constraint.
-
-    Args:
-        version_tuple: The version to check as a tuple of integers.
-        op: The comparison operator (>=, <=, >, <, ==, !=).
-        spec_v_tuple: The specification version as a tuple of integers.
-
-    Returns:
-        True if the version satisfies the operator constraint, False otherwise.
-
-    Example:
-        >>> _check_operator((3, 11), ">=", (3, 10))
-        True
-
-        >>> _check_operator((3, 9), ">=", (3, 10))
-        False
-    """
-    if op == ">=":
-        return version_tuple >= spec_v_tuple
-    elif op == "<=":
-        return version_tuple <= spec_v_tuple
-    elif op == ">":
-        return version_tuple > spec_v_tuple
-    elif op == "<":
-        return version_tuple < spec_v_tuple
-    elif op == "==":
-        return version_tuple == spec_v_tuple
-    elif op == "!=":
-        return version_tuple != spec_v_tuple
-    else:
-        msg = f"Unknown operator: {op}"
-        raise VersionSpecifierError(msg)
-
-
-def satisfies(version: str, specifier: str) -> bool:
-    """Check if a version satisfies a comma-separated list of specifiers.
-
-    This is a simplified version of packaging.specifiers.SpecifierSet.
-    Supported operators: >=, <=, >, <, ==, !=
-
-    Args:
-        version: Version string to check (e.g., "3.11").
-        specifier: Comma-separated specifier string (e.g., ">=3.11,<3.14").
-
-    Returns:
-        True if the version satisfies all specifiers, False otherwise.
-
-    Raises:
-        VersionSpecifierError: If the specifier format is invalid.
-
-    Example:
-        >>> satisfies("3.11", ">=3.11")
-        True
-
-        >>> satisfies("3.10", ">=3.11")
-        False
-
-        >>> satisfies("3.12", ">=3.11,<3.14")
-        True
-    """
-    version_tuple = parse_version(version)
-
-    # Split by comma for multiple constraints
-    for raw_spec in specifier.split(","):
-        spec = raw_spec.strip()
-        # Match operator and version part
-        match = re.match(r"(>=|<=|>|<|==|!=)\s*([\d.]+)", spec)
-        if not match:
-            # If no operator, assume ==
-            if re.match(r"[\d.]+", spec):
-                if version_tuple != parse_version(spec):
-                    return False
-                continue
-            msg = f"Invalid specifier {spec!r}; expected format like '>=3.11' or '3.11'"
-            raise VersionSpecifierError(msg)
-
-        op, spec_v = match.groups()
-        spec_v_tuple = parse_version(spec_v)
-
-        if not _check_operator(version_tuple, op, spec_v_tuple):
-            return False
-
-    return True
-
-
-def get_supported_versions(pyproject_path: Path, candidates: list[str]) -> list[str]:
-    """Return all supported Python versions declared in pyproject.toml.
-
-    Reads project.requires-python, evaluates candidate versions against the
-    specifier, and returns the subset that satisfy the constraint, in ascending order.
+    Reads ``project.classifiers`` and extracts every
+    ``Programming Language :: Python :: X.Y`` entry, returning the versions in
+    ascending order.
 
     Args:
         pyproject_path: Path to the pyproject.toml file.
-        candidates: List of candidate Python versions to check (e.g., ["3.11", "3.12"]).
 
     Returns:
         List of supported versions (e.g., ["3.11", "3.12"]).
 
     Raises:
-        PyProjectError: If pyproject.toml doesn't exist, requires-python is missing,
-            or no candidates match.
+        PyProjectError: If pyproject.toml doesn't exist or declares no
+            ``Programming Language :: Python :: X.Y`` classifiers.
 
     Example:
         >>> from pathlib import Path
-        >>> path = Path("pyproject.toml")
-        >>> candidates = ["3.11", "3.12", "3.13"]
-        >>> versions = get_supported_versions(path, candidates)  # doctest: +SKIP
+        >>> versions = get_supported_versions(Path("pyproject.toml"))  # doctest: +SKIP
         >>> print(versions)  # doctest: +SKIP
         ['3.11', '3.12']
     """
@@ -196,43 +70,44 @@ def get_supported_versions(pyproject_path: Path, candidates: list[str]) -> list[
     with pyproject_path.open("rb") as f:
         data = tomllib.load(f)
 
-    # Extract the requires-python field from project metadata
-    # This specifies the Python version constraint (e.g., ">=3.11")
-    spec_str = data.get("project", {}).get("requires-python")
-    if not spec_str:
-        msg = "pyproject.toml: missing 'project.requires-python'"
-        raise PyProjectError(msg)
+    classifiers = data.get("project", {}).get("classifiers", [])
 
-    # Filter candidate versions to find which ones satisfy the constraint
-    versions: list[str] = []
-    for v in candidates:
-        if satisfies(v, spec_str):
-            versions.append(v)
+    # Extract the minor version from each matching classifier, de-duplicating.
+    versions: set[str] = set()
+    for classifier in classifiers:
+        match = _CLASSIFIER_RE.match(classifier.strip())
+        if match:
+            versions.add(match.group(1))
 
     if not versions:
-        msg = f"pyproject.toml: no supported Python versions match '{spec_str}'. Evaluated candidates: {candidates}"
+        msg = (
+            "pyproject.toml: no 'Programming Language :: Python :: X.Y' classifiers found. "
+            "Declare the supported Python versions as trove classifiers."
+        )
         raise PyProjectError(msg)
 
-    return versions
+    # Sort by semantic version so 3.9 orders before 3.11 (string sort would not).
+    try:
+        return sorted(versions, key=Version)
+    except InvalidVersion as e:  # pragma: no cover - guards against malformed classifiers
+        msg = f"pyproject.toml: invalid Python version in classifiers: {e}"
+        raise PyProjectError(msg) from e
 
 
-def version_matrix_command(
-    pyproject_path: Path | None = None,
-    candidates: list[str] | None = None,
-) -> None:
-    """Emit the list of supported Python versions from pyproject.toml as JSON.
+def version_matrix_command(pyproject_path: Path | None = None) -> None:
+    """Emit the supported Python versions from pyproject.toml classifiers as JSON.
 
-    This command reads pyproject.toml, parses the requires-python field, and outputs
-    a JSON array of Python versions that satisfy the constraint. This is used in
-    GitHub Actions to compute the test matrix.
+    This command reads pyproject.toml, extracts the
+    ``Programming Language :: Python :: X.Y`` classifiers, and prints a JSON
+    array of those versions. This is used in GitHub Actions to compute the test
+    matrix.
 
     Args:
         pyproject_path: Path to pyproject.toml. Defaults to ./pyproject.toml.
-        candidates: List of candidate Python versions to evaluate. Defaults to
-            :data:`DEFAULT_PYTHON_CANDIDATES`.
 
     Raises:
-        typer.Exit: If pyproject.toml is missing, invalid, or no versions match.
+        typer.Exit: If pyproject.toml is missing or declares no Python
+            classifiers.
 
     Example:
         Get supported versions (output to stdout)::
@@ -240,24 +115,16 @@ def version_matrix_command(
             version_matrix_command()
             # Output: ["3.11", "3.12"]
 
-        Use custom pyproject.toml path::
+        Use a custom pyproject.toml path::
 
             version_matrix_command(pyproject_path=Path("/path/to/pyproject.toml"))
-
-        Use custom candidates::
-
-            version_matrix_command(candidates=["3.10", "3.11", "3.12"])
     """
     if pyproject_path is None:
         pyproject_path = Path("pyproject.toml")
 
-    if candidates is None:
-        candidates = list(DEFAULT_PYTHON_CANDIDATES)
-
     try:
-        versions = get_supported_versions(pyproject_path, candidates)
-        # Output as JSON array (matches the behavior of the original script)
+        versions = get_supported_versions(pyproject_path)
         print(json.dumps(versions))
-    except (PyProjectError, VersionSpecifierError) as e:
+    except PyProjectError as e:
         console.error(str(e))
         raise typer.Exit(code=1) from e
