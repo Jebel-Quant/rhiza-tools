@@ -33,26 +33,25 @@ pip install rhiza-tools
 
 ### `version-matrix`
 
-Emit supported Python versions from `pyproject.toml` as a JSON array.
-Primarily used in GitHub Actions to compute the CI test matrix.
+Emit supported Python versions from `pyproject.toml` as a JSON array, read from
+the `Programming Language :: Python :: X.Y` trove classifiers. Primarily used in
+GitHub Actions to compute the CI test matrix, so the matrix mirrors exactly what
+the project advertises.
 
 **Usage:**
 
 ```bash
-# Default candidates
+# Read versions from the project's classifiers
 rhiza-tools version-matrix
+# Output: ["3.11", "3.12"]
 
 # Custom pyproject path
 rhiza-tools version-matrix --pyproject /path/to/pyproject.toml
-
-# Custom candidate versions
-rhiza-tools version-matrix --candidates "3.10,3.11,3.12"
 ```
 
 **Options:**
 
 *   `--pyproject PATH` - Path to pyproject.toml (default: `pyproject.toml`).
-*   `--candidates TEXT` - Comma-separated list of candidate Python versions (default: `3.11,3.12,3.13,3.14`).
 
 ### `analyze-benchmarks`
 

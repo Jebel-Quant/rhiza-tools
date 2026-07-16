@@ -20,6 +20,7 @@ authors = [
 
 dependencies = [
     "loguru>=0.7.3,<0.8",
+    "packaging>=24.0",   # semver ordering of Python-version classifiers (version-matrix)
     "typer>=0.16.0,<1.0",
     # pandas + plotly back only the optional `analyze-benchmarks` visualization
     # command, where they are imported lazily (see commands/analyze_benchmarks.py).
@@ -88,6 +89,7 @@ ignore_missing_imports = true
 "marimo" = "marimo"
 "mutmut" = "mutmut"
 "numpy" = "numpy"
+"packaging" = "packaging"
 "pandas" = "pandas"
 "plotly" = "plotly"
 "pytest" = "pytest"

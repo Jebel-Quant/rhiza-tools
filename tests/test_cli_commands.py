@@ -19,14 +19,14 @@ def test_version_flag():
     assert __version__ in result.stdout
 
 
-def test_version_matrix_command_no_candidates(monkeypatch, tmp_path):
-    """Test the version-matrix command with default candidates."""
+def test_version_matrix_command(monkeypatch, tmp_path):
+    """The version-matrix command forwards the pyproject path to the command function."""
     # Create a temporary pyproject.toml
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text("""
 [project]
 name = "test-project"
-requires-python = ">=3.11"
+classifiers = ["Programming Language :: Python :: 3.11"]
 """)
 
     # Mock the command function
@@ -35,26 +35,7 @@ requires-python = ">=3.11"
 
     result = runner.invoke(app, ["version-matrix", "--pyproject", str(pyproject)])
     assert result.exit_code == 0
-    mock_version_matrix.assert_called_once_with(pyproject_path=pyproject, candidates=None)
-
-
-def test_version_matrix_command_with_candidates(monkeypatch, tmp_path):
-    """Test the version-matrix command with custom candidates."""
-    # Create a temporary pyproject.toml
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text("""
-[project]
-name = "test-project"
-requires-python = ">=3.11"
-""")
-
-    # Mock the command function
-    mock_version_matrix = MagicMock()
-    monkeypatch.setattr("rhiza_tools.cli.version_matrix_command", mock_version_matrix)
-
-    result = runner.invoke(app, ["version-matrix", "--pyproject", str(pyproject), "--candidates", "3.10,3.11,3.12"])
-    assert result.exit_code == 0
-    mock_version_matrix.assert_called_once_with(pyproject_path=pyproject, candidates=["3.10", "3.11", "3.12"])
+    mock_version_matrix.assert_called_once_with(pyproject_path=pyproject)
 
 
 # ---------------------------------------------------------------------------

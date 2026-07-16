@@ -66,28 +66,17 @@ def version_matrix(
             help="Path to pyproject.toml file",
         ),
     ] = Path("pyproject.toml"),
-    candidates: Annotated[
-        str | None,
-        typer.Option(
-            "--candidates",
-            help="Comma-separated list of candidate Python versions (e.g., '3.11,3.12,3.13')",
-        ),
-    ] = None,
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Emit supported Python versions from pyproject.toml as JSON.
 
-    This command reads the requires-python field from pyproject.toml and outputs
-    a JSON array of Python versions that satisfy the constraint. This is primarily
-    used in GitHub Actions to compute the test matrix. Each argument is documented
-    by its ``--help`` text above.
+    This command reads the ``Programming Language :: Python :: X.Y`` trove
+    classifiers from pyproject.toml and outputs a JSON array of those versions.
+    This is primarily used in GitHub Actions to compute the test matrix. Each
+    argument is documented by its ``--help`` text above.
     """
     _apply_verbose(verbose)
-    candidates_list = None
-    if candidates:
-        candidates_list = [v.strip() for v in candidates.split(",")]
-
-    version_matrix_command(pyproject_path=pyproject, candidates=candidates_list)
+    version_matrix_command(pyproject_path=pyproject)
 
 
 @app.command(name="analyze-benchmarks")

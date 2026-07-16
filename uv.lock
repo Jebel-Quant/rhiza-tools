@@ -1063,6 +1063,7 @@ version = "0.8.1"
 source = { editable = "." }
 dependencies = [
     { name = "loguru" },
+    { name = "packaging" },
     { name = "pandas" },
     { name = "plotly" },
     { name = "typer" },
@@ -1089,6 +1090,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.3,<0.8" },
+    { name = "packaging", specifier = ">=24.0" },
     { name = "pandas", specifier = ">=3,<3.1" },
     { name = "plotly", specifier = ">=6.5.0,<7.0" },
     { name = "typer", specifier = ">=0.16.0,<1.0" },
