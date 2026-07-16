@@ -32,8 +32,6 @@ from typing import Any, cast
 
 import typer
 
-from rhiza_tools import console
-
 
 class BenchmarkError(Exception):
     """Base exception for benchmark analysis errors."""
@@ -53,15 +51,21 @@ def _read_benchmarks_data(benchmarks_json: Path) -> object:
             command skips gracefully rather than failing CI.
     """
     if not benchmarks_json.exists():
-        console.warning(f"benchmarks.json not found at {benchmarks_json}; skipping analysis and exiting successfully.")
+        typer.secho(
+            f"benchmarks.json not found at {benchmarks_json}; skipping analysis and exiting successfully.",
+            fg=typer.colors.YELLOW,
+            err=True,
+        )
         raise typer.Exit()
 
     try:
         with benchmarks_json.open() as f:
             return json.load(f)
     except json.JSONDecodeError:
-        console.warning(
-            f"benchmarks.json at {benchmarks_json} is invalid or empty; skipping analysis and exiting successfully."
+        typer.secho(
+            f"benchmarks.json at {benchmarks_json} is invalid or empty; skipping analysis and exiting successfully.",
+            fg=typer.colors.YELLOW,
+            err=True,
         )
         raise typer.Exit() from None
 
@@ -81,15 +85,19 @@ def _extract_benchmark_records(data: object, benchmarks_json: Path) -> list[dict
     """
     benchmarks = data.get("benchmarks") if isinstance(data, dict) else None
     if not isinstance(benchmarks, list):
-        console.warning(
+        typer.secho(
             f"benchmarks.json at {benchmarks_json} missing valid 'benchmarks' list; "
-            "skipping analysis and exiting successfully."
+            "skipping analysis and exiting successfully.",
+            fg=typer.colors.YELLOW,
+            err=True,
         )
         raise typer.Exit()
 
     if not benchmarks:
-        console.warning(
-            f"benchmarks.json at {benchmarks_json} contains no benchmarks; skipping analysis and exiting successfully."
+        typer.secho(
+            f"benchmarks.json at {benchmarks_json} contains no benchmarks; skipping analysis and exiting successfully.",
+            fg=typer.colors.YELLOW,
+            err=True,
         )
         raise typer.Exit()
 
@@ -136,7 +144,7 @@ def _render_benchmark_chart(px: Any, df: Any, output_html: Path, show: bool) -> 
 
     # Save HTML visualization
     fig.write_html(output_html)
-    console.success(f"Visualization saved to {output_html}")
+    typer.echo(f"Visualization saved to {output_html}")
 
     # Optionally open the interactive plot in a browser
     if show:
@@ -183,9 +191,11 @@ def analyze_benchmarks_command(
         import pandas as pd
         import plotly.express as px
     except ImportError:
-        console.error(
+        typer.secho(
             "pandas and plotly are required for this command. "
-            "Install them with: uv pip install -e '.[dev]' or pip install 'rhiza-tools[dev]'"
+            "Install them with: uv pip install -e '.[dev]' or pip install 'rhiza-tools[dev]'",
+            fg=typer.colors.RED,
+            err=True,
         )
         raise typer.Exit(code=1) from None
 
@@ -204,7 +214,7 @@ def analyze_benchmarks_command(
     df = df.sort_values("Mean_ms")
 
     # Display reduced table
-    console.info("Benchmark Results:")
+    typer.echo("Benchmark Results:")
     print(df[["Benchmark", "Mean_ms", "OPS"]].to_string(index=False, float_format="%.3f"))
 
     _render_benchmark_chart(px, df, output_html, show)

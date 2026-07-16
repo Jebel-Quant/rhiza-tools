@@ -21,7 +21,6 @@ authors = [
 ]
 
 dependencies = [
-    "loguru>=0.7.3,<0.8",
     "packaging>=24.0",   # semver ordering of Python-version classifiers (version-matrix)
     "typer>=0.16.0,<1.0",
     # pandas + plotly back only the optional `analyze-benchmarks` visualization
@@ -87,7 +86,6 @@ ignore_missing_imports = true
 
 [tool.deptry.package_module_name_map]
 "hypothesis" = "hypothesis"
-"loguru" = "loguru"
 "marimo" = "marimo"
 "mutmut" = "mutmut"
 "numpy" = "numpy"

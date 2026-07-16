@@ -15,7 +15,6 @@ from typing import Annotated
 import typer
 
 from rhiza_tools import __version__
-from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.version_matrix import version_matrix_command
@@ -30,29 +29,18 @@ def version_callback(value: bool) -> None:
 
 app = typer.Typer(help="Rhiza Tools — CI helper CLI for the Rhiza ecosystem.")
 
-# Shared option so --verbose / -v works both before and after the subcommand.
-VERBOSE_OPTION = typer.Option(False, "--verbose", "-v", help="Show verbose debug output.")
-
-
-def _apply_verbose(verbose: bool) -> None:
-    """Enable verbose output if the flag was passed on the subcommand."""
-    if verbose:
-        configure_console(verbose=True)
-
 
 @app.callback()
 def main(
-    version: bool = typer.Option(  # noqa: ARG001 — eager option; value is consumed by version_callback, not the body
+    version: bool = typer.Option(  # eager option; value is consumed by version_callback, not the body
         None,
         "--version",
         help="Show the version and exit.",
         callback=version_callback,
         is_eager=True,
     ),
-    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Rhiza Tools — CI helper CLI for the Rhiza ecosystem."""
-    configure_console(verbose=verbose)
 
 
 @app.command(name="version-matrix")
@@ -64,7 +52,6 @@ def version_matrix(
             help="Path to pyproject.toml file",
         ),
     ] = Path("pyproject.toml"),
-    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Emit supported Python versions from pyproject.toml as JSON.
 
@@ -73,7 +60,6 @@ def version_matrix(
     This is primarily used in GitHub Actions to compute the test matrix. Each
     argument is documented by its ``--help`` text above.
     """
-    _apply_verbose(verbose)
     version_matrix_command(pyproject_path=pyproject)
 
 
@@ -100,7 +86,6 @@ def analyze_benchmarks(
             help="Open the interactive chart in a browser after saving (default: no-show)",
         ),
     ] = False,
-    verbose: bool = VERBOSE_OPTION,
 ) -> None:
     """Analyze pytest-benchmark results and visualize them.
 
@@ -113,5 +98,4 @@ def analyze_benchmarks(
 
     Each argument is documented by its ``--help`` text above.
     """
-    _apply_verbose(verbose)
     analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html, show=show)
