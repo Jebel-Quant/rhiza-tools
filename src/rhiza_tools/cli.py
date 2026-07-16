@@ -30,7 +30,7 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-app = typer.Typer(help="Rhiza Tools - Extra utilities for Rhiza.")
+app = typer.Typer(help="Rhiza Tools — CI, quality, and security helper CLI for the Rhiza ecosystem.")
 
 # Shared option so --verbose / -v works both before and after the subcommand.
 VERBOSE_OPTION = typer.Option(False, "--verbose", "-v", help="Show verbose debug output.")
@@ -53,7 +53,7 @@ def main(
     ),
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
-    """Rhiza Tools - Extra utilities for Rhiza."""
+    """Rhiza Tools — CI, quality, and security helper CLI for the Rhiza ecosystem."""
     configure_console(verbose=verbose)
 
 
