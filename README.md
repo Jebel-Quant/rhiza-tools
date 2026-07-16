@@ -7,11 +7,11 @@
 [![Downloads](https://static.pepy.tech/personalized-badge/rhiza-tools?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/rhiza-tools)
 [![CodeFactor](https://www.codefactor.io/repository/github/jebel-quant/rhiza-tools/badge)](https://www.codefactor.io/repository/github/jebel-quant/rhiza-tools)
 
-Extra utilities and tools serving the mothership [rhiza](https://github.com/Jebel-Quant/rhiza).
+The Rhiza ecosystem's shared CI / quality / security helper CLI, serving the mothership [rhiza](https://github.com/Jebel-Quant/rhiza).
 
 **📖 New to Rhiza? See the [mothership repository](https://github.com/Jebel-Quant/rhiza) for a beginner-friendly introduction to the ecosystem.**
 
-This package provides additional commands for the Rhiza ecosystem, such as the CI Python-version matrix, benchmark analysis, and dependency/suppression auditing. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
+rhiza-tools is the Rhiza ecosystem's shared **CI / quality / security helper CLI** — it provides the CI Python-version matrix, benchmark analysis, and dependency/suppression auditing. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
 
 ## Installation
 

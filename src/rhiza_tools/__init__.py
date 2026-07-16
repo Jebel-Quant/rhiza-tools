@@ -1,7 +1,7 @@
-"""Rhiza Tools — Extra utilities and tools for the Rhiza ecosystem.
+"""Rhiza Tools — CI, quality, and security helper CLI for the Rhiza ecosystem.
 
-Rhiza Tools provides additional commands and utilities for the Rhiza ecosystem.
-It includes tools for CI orchestration, benchmark analysis, and code hygiene
+Rhiza Tools is the shared helper CLI for Rhiza-managed projects. It provides the
+CI Python-version matrix, benchmark analysis, and dependency/suppression
 auditing.
 
 ## Key features
