@@ -14,8 +14,8 @@ cli.py                          Typer surface — argument parsing, --help text,
        └─ <sibling>.py          an extracted responsibility (parsing, reporting, …)
 ```
 
-Every current command is a single module — `commands/version_matrix.py` and
-`commands/analyze_benchmarks.py`. A command that outgrows the
+The only current command is a single module — `commands/version_matrix.py`.
+A command that outgrows the
 [500-line gate](adr/0004-structural-meta-tests.md) (`tests/test_module_size.py`)
 is promoted to a **subpackage** (`commands/<command>/`) whose `__init__.py`
 holds the orchestration and whose siblings own the extracted responsibilities.

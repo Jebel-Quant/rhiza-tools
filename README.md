@@ -11,7 +11,7 @@ The Rhiza ecosystem's shared CI helper CLI, serving the mothership [rhiza](https
 
 **📖 New to Rhiza? See the [mothership repository](https://github.com/Jebel-Quant/rhiza) for a beginner-friendly introduction to the ecosystem.**
 
-rhiza-tools is the Rhiza ecosystem's shared **CI helper CLI** — it provides the CI Python-version matrix and benchmark analysis. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
+rhiza-tools is the Rhiza ecosystem's shared **CI helper CLI** — it provides the CI Python-version matrix. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
 
 ## Installation
 
@@ -52,28 +52,6 @@ rhiza-tools version-matrix --pyproject /path/to/pyproject.toml
 **Options:**
 
 *   `--pyproject PATH` - Path to pyproject.toml (default: `pyproject.toml`).
-
-### `analyze-benchmarks`
-
-Analyze pytest-benchmark results and generate an interactive HTML visualization.
-Prints a table of benchmark names, mean runtimes, and operations per second.
-
-**Usage:**
-
-```bash
-# Default paths
-rhiza-tools analyze-benchmarks
-
-# Custom paths
-rhiza-tools analyze-benchmarks \
-    --benchmarks-json tests/benchmarks.json \
-    --output-html reports/benchmarks.html
-```
-
-**Options:**
-
-*   `--benchmarks-json PATH` - Path to benchmarks.json file (default: `_benchmarks/benchmarks.json`).
-*   `--output-html PATH` - Path to save HTML visualization (default: `_benchmarks/benchmarks.html`).
 
 ## Development
 

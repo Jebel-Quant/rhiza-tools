@@ -21,7 +21,6 @@ rhiza_tools/
 ├── __main__.py          # Entry point (Typer app)
 ├── cli.py               # CLI command definitions
 └── commands/
-    ├── analyze_benchmarks.py   # Benchmark analysis & visualization
     └── version_matrix.py       # Python version matrix
 ```
 
@@ -38,5 +37,4 @@ core logic, making commands testable independently of the CLI layer.
 
 | Module | Entry Function |
 |--------|---------------|
-| `analyze_benchmarks` | `analyze_benchmarks_command()` |
 | `version_matrix` | `version_matrix_command()` |
