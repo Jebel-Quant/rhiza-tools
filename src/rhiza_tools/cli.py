@@ -1,8 +1,8 @@
 """CLI commands for Rhiza Tools.
 
 This module defines the main Typer application and all command-line interface
-commands for rhiza-tools. It provides the CI version matrix, benchmark
-analysis, and dependency/suppression auditing.
+commands for rhiza-tools. It provides the CI Python-version matrix and
+benchmark analysis.
 
 The CLI can be used either as a standalone tool (`rhiza-tools`) or as a
 subcommand of the rhiza CLI (`rhiza tools`). See the project README for usage
@@ -18,8 +18,6 @@ from rhiza_tools import __version__
 from rhiza_tools.console import configure as configure_console
 
 from .commands.analyze_benchmarks import analyze_benchmarks_command
-from .commands.pip_audit import pip_audit_command
-from .commands.suppression import suppression_audit_command
 from .commands.version_matrix import version_matrix_command
 
 
@@ -30,7 +28,7 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-app = typer.Typer(help="Rhiza Tools — CI, quality, and security helper CLI for the Rhiza ecosystem.")
+app = typer.Typer(help="Rhiza Tools — CI helper CLI for the Rhiza ecosystem.")
 
 # Shared option so --verbose / -v works both before and after the subcommand.
 VERBOSE_OPTION = typer.Option(False, "--verbose", "-v", help="Show verbose debug output.")
@@ -53,7 +51,7 @@ def main(
     ),
     verbose: bool = VERBOSE_OPTION,
 ) -> None:
-    """Rhiza Tools — CI, quality, and security helper CLI for the Rhiza ecosystem."""
+    """Rhiza Tools — CI helper CLI for the Rhiza ecosystem."""
     configure_console(verbose=verbose)
 
 
@@ -117,44 +115,3 @@ def analyze_benchmarks(
     """
     _apply_verbose(verbose)
     analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html, show=show)
-
-
-@app.command(
-    name="pip-audit",
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)
-def pip_audit(ctx: typer.Context, verbose: bool = VERBOSE_OPTION) -> None:
-    """Run pip-audit with a tiered vulnerability policy.
-
-    Vulnerabilities in runtime dependencies fail the command; findings in build
-    tooling (pip, setuptools, wheel, distribute) warn without failing. Any extra
-    arguments after the command are forwarded verbatim to pip-audit
-    (e.g. ``rhiza-tools pip-audit --ignore-vuln CVE-2024-1234``).
-    """
-    _apply_verbose(verbose)
-    raise typer.Exit(code=pip_audit_command(ctx.args))
-
-
-@app.command(
-    name="suppression-audit",
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)
-def suppression_audit(
-    ctx: typer.Context,
-    fail_stale_nosec_cve: bool = typer.Option(
-        False,
-        "--fail-stale-nosec-cve",
-        help="Fail when # nosec comments reference CVEs that pip-audit no longer reports.",
-    ),
-    verbose: bool = VERBOSE_OPTION,
-) -> None:
-    """Scan the codebase for inline suppressions and report a density grade.
-
-    Detects inline suppression comments (# noqa, # nosec, # type: ignore,
-    # pragma: no cover, # noinspection), and prints a per-file report, an ASCII
-    histogram, and a letter grade. With ``--fail-stale-nosec-cve`` it also
-    cross-checks CVE-tagged # nosec comments against live pip-audit findings and
-    fails on stale ones; extra arguments are forwarded to pip-audit.
-    """
-    _apply_verbose(verbose)
-    raise typer.Exit(code=suppression_audit_command(fail_stale_nosec_cve, ctx.args))

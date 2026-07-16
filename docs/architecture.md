@@ -10,34 +10,24 @@ responsibility). This page is the living reference; the ADRs are the history.
 ```
 cli.py                          Typer surface — argument parsing, --help text, option wiring
   └─ commands/<command>.py      single-file commands that never grew satellites
-  └─ commands/<command>/__init__.py  orchestration — the workflow for one command
+  └─ commands/<command>/__init__.py  orchestration — for a command that outgrew one file
        └─ <sibling>.py          an extracted responsibility (parsing, reporting, …)
 ```
 
-A command that has only one responsibility stays a single module
-(`commands/<command>.py`); one that grows past the
+Every current command is a single module — `commands/version_matrix.py` and
+`commands/analyze_benchmarks.py`. A command that outgrows the
 [500-line gate](adr/0004-structural-meta-tests.md) (`tests/test_module_size.py`)
-becomes a **subpackage** (`commands/<command>/`) whose `__init__.py` holds the
-orchestration and whose siblings own the extracted responsibilities.
-
-Dependencies point downward only: the orchestration `__init__.py` calls into its
-sibling modules; the siblings do not import the package back.
+is promoted to a **subpackage** (`commands/<command>/`) whose `__init__.py`
+holds the orchestration and whose siblings own the extracted responsibilities.
 
 ## The command-subpackage convention
 
-Inside a `commands/<command>/` subpackage the file name tells you what lives
-there: `__init__.py` is the Typer-facing command orchestration (the entry point
-invoked from `cli.py`), and each sibling owns one extracted responsibility. The
-`suppression/` command is the current example:
-
-| Module | Responsibility |
-| ------ | -------------- |
-| `suppression/__init__.py` | Command orchestration — `suppression_audit_command`, invoked from `cli.py` |
-| `suppression/parse.py` | Scan the codebase and parse inline-suppression comments |
-| `suppression/report.py` | Render the per-file report, histogram, and density grade |
-
-Commands that never outgrew a single file stay flat: `version_matrix.py`,
-`analyze_benchmarks.py`, `pip_audit.py`.
+When a command is promoted to a `commands/<command>/` subpackage, the file name
+tells you what lives there: `__init__.py` is the Typer-facing command
+orchestration (the entry point invoked from `cli.py`), and each sibling owns one
+extracted responsibility (`parse.py`, `report.py`, `io.py`, …). Dependencies
+point downward only: `__init__.py` calls into its siblings; the siblings do not
+import the package back.
 
 Extracted helpers are **re-exported** from the orchestration `__init__.py`, so
 callers and tests keep importing `commands.<command>.<helper>` even after a
@@ -61,9 +51,9 @@ re-export it from `__init__.py`.
 
 ## Tests mirror the package
 
-`tests/` mirrors this layout: per-command tests live under
-`tests/commands/<command>/` (e.g. `tests/commands/suppression/`), single-file
-command tests sit directly in `tests/commands/`, and cross-cutting suites (CLI
-wiring, structural meta-tests) stay at the `tests/` root. Test module basenames
-are kept unique across the tree because pytest runs in `prepend` import mode
-without `__init__.py` package markers.
+`tests/` mirrors this layout: single-file command tests sit directly in
+`tests/commands/` (e.g. `tests/commands/test_version_matrix_command.py`), a
+subpackage command's tests live under `tests/commands/<command>/`, and
+cross-cutting suites (CLI wiring, structural meta-tests) stay at the `tests/`
+root. Test module basenames are kept unique across the tree because pytest runs
+in `prepend` import mode without `__init__.py` package markers.

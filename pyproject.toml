@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rhiza-tools"
 version = "0.8.1"
-description = "CI, quality, and security helper CLI for the Rhiza ecosystem"
+description = "CI helper CLI for the Rhiza ecosystem"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}

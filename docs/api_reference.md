@@ -23,8 +23,6 @@ rhiza_tools/
 ├── console.py           # Console / logging configuration
 └── commands/
     ├── analyze_benchmarks.py   # Benchmark analysis & visualization
-    ├── pip_audit.py            # Tiered pip-audit vulnerability policy
-    ├── suppression/            # Inline-suppression density audit
     └── version_matrix.py       # Python version matrix
 ```
 
@@ -46,6 +44,4 @@ core logic, making commands testable independently of the CLI layer.
 | Module | Entry Function |
 |--------|---------------|
 | `analyze_benchmarks` | `analyze_benchmarks_command()` |
-| `pip_audit` | `pip_audit_command()` |
-| `suppression` | `suppression_audit_command()` |
 | `version_matrix` | `version_matrix_command()` |
