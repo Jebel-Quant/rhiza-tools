@@ -1,21 +1,16 @@
 """CLI commands for Rhiza Tools.
 
-This module defines the main Typer application and all command-line interface
-commands for rhiza-tools. It provides the CI Python-version matrix.
+This module defines the main Typer application for rhiza-tools. It currently
+registers no subcommands (only the top-level ``--version`` option).
 
 The CLI can be used either as a standalone tool (`rhiza-tools`) or as a
 subcommand of the rhiza CLI (`rhiza tools`). See the project README for usage
 examples.
 """
 
-from pathlib import Path
-from typing import Annotated
-
 import typer
 
 from rhiza_tools import __version__
-
-from .commands.version_matrix import version_matrix_command
 
 
 def version_callback(value: bool) -> None:
@@ -39,23 +34,3 @@ def main(
     ),
 ) -> None:
     """Rhiza Tools — CI helper CLI for the Rhiza ecosystem."""
-
-
-@app.command(name="version-matrix")
-def version_matrix(
-    pyproject: Annotated[
-        Path,
-        typer.Option(
-            "--pyproject",
-            help="Path to pyproject.toml file",
-        ),
-    ] = Path("pyproject.toml"),
-) -> None:
-    """Emit supported Python versions from pyproject.toml as JSON.
-
-    This command reads the ``Programming Language :: Python :: X.Y`` trove
-    classifiers from pyproject.toml and outputs a JSON array of those versions.
-    This is primarily used in GitHub Actions to compute the test matrix. Each
-    argument is documented by its ``--help`` text above.
-    """
-    version_matrix_command(pyproject_path=pyproject)

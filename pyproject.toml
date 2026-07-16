@@ -21,7 +21,6 @@ authors = [
 ]
 
 dependencies = [
-    "packaging>=24.0",   # semver ordering of Python-version classifiers (version-matrix)
     "typer>=0.16.0,<1.0",
 ]
 
@@ -66,7 +65,6 @@ error-on-warning = true
 "marimo" = "marimo"
 "mutmut" = "mutmut"
 "numpy" = "numpy"
-"packaging" = "packaging"
 "pytest" = "pytest"
 "pytest-cov" = "pytest_cov"
 "pytest-mock" = "pytest_mock"

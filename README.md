@@ -11,7 +11,7 @@ The Rhiza ecosystem's shared CI helper CLI, serving the mothership [rhiza](https
 
 **📖 New to Rhiza? See the [mothership repository](https://github.com/Jebel-Quant/rhiza) for a beginner-friendly introduction to the ecosystem.**
 
-rhiza-tools is the Rhiza ecosystem's shared **CI helper CLI** — it provides the CI Python-version matrix. It is a standalone command-line tool: the Rhiza Makefile targets and CI invoke it via `uvx`, and you can run it directly the same way.
+rhiza-tools is the Rhiza ecosystem's shared helper CLI. Its former commands have moved elsewhere in the ecosystem, so it currently exposes no subcommands. It remains a standalone command-line tool published to PyPI.
 
 ## Installation
 
@@ -31,27 +31,8 @@ pip install rhiza-tools
 
 ## Commands
 
-### `version-matrix`
-
-Emit supported Python versions from `pyproject.toml` as a JSON array, read from
-the `Programming Language :: Python :: X.Y` trove classifiers. Primarily used in
-GitHub Actions to compute the CI test matrix, so the matrix mirrors exactly what
-the project advertises.
-
-**Usage:**
-
-```bash
-# Read versions from the project's classifiers
-rhiza-tools version-matrix
-# Output: ["3.11", "3.12"]
-
-# Custom pyproject path
-rhiza-tools version-matrix --pyproject /path/to/pyproject.toml
-```
-
-**Options:**
-
-*   `--pyproject PATH` - Path to pyproject.toml (default: `pyproject.toml`).
+rhiza-tools currently exposes no subcommands; its former commands have moved
+elsewhere in the Rhiza ecosystem.
 
 ## Development
 

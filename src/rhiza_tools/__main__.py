@@ -7,13 +7,13 @@ application defined in rhiza_tools.cli.
 Example:
     Run as a module::
 
-        $ python -m rhiza_tools version-matrix
         $ python -m rhiza_tools --help
+        $ python -m rhiza_tools --version
 
     Or use the installed entry point::
 
-        $ rhiza-tools version-matrix
         $ rhiza-tools --help
+        $ rhiza-tools --version
 """
 
 from rhiza_tools.cli import app

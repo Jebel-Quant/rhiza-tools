@@ -11,8 +11,6 @@ docs_dir: docs   # always set this explicitly — base uses docs_dir: . which
 nav:
   - Home: index.md
   - Releasing: RELEASING.md
-  - Commands:
-    - version-matrix: commands/version_matrix.md
   - Architecture Decisions:
     - Overview: adr/README.md
     - 0001 bump-my-version adapter: adr/0001-bump-my-version-adapter.md
