@@ -57,8 +57,7 @@ snapshot:
 - `rhiza.mk`, `make.d/*.mk`, `requirements/*.txt`, `semgrep.yml`,
   `.cfg.toml`, `.env`, `.gitignore`, `.rhiza-version`
 - `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `assets/`, `completions/`
-- `tests/**` (the synced template test-suite), `utils/pip_audit_policy.py`,
-  `utils/suppression_audit.py`
+- `tests/**` (the synced template test-suite)
 - **Owned by you:** `.rhiza/template.yml` (and `.rhiza/template.lock`, which the
   tool regenerates).
 
