@@ -22,8 +22,6 @@ from pathlib import Path
 import typer
 from packaging.version import InvalidVersion, Version
 
-from rhiza_tools import console
-
 # Matches a ``major.minor`` Python trove classifier, e.g.
 # "Programming Language :: Python :: 3.11". The major-only classifier
 # ("... :: 3") and suffixed variants ("... :: 3 :: Only") are intentionally
@@ -126,5 +124,5 @@ def version_matrix_command(pyproject_path: Path | None = None) -> None:
         versions = get_supported_versions(pyproject_path)
         print(json.dumps(versions))
     except PyProjectError as e:
-        console.error(str(e))
+        typer.secho(str(e), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from e

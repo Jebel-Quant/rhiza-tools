@@ -20,7 +20,6 @@ rhiza_tools/
 ├── __init__.py          # Package metadata and version
 ├── __main__.py          # Entry point (Typer app)
 ├── cli.py               # CLI command definitions
-├── console.py           # Console / logging configuration
 └── commands/
     ├── analyze_benchmarks.py   # Benchmark analysis & visualization
     └── version_matrix.py       # Python version matrix
@@ -31,10 +30,6 @@ rhiza_tools/
 ### `rhiza_tools.cli`
 
 The main Typer application. Defines all CLI commands and their option parsing.
-
-### `rhiza_tools.console`
-
-Console output and logging configuration shared across commands.
 
 ### `rhiza_tools.commands`
 

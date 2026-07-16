@@ -1,6 +1,6 @@
 """Tests for CLI commands in rhiza_tools.cli.py."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from typer.testing import CliRunner
 
@@ -46,14 +46,6 @@ classifiers = ["Programming Language :: Python :: 3.11"]
 class TestCLI:
     """Tests for uncovered branches in cli.py."""
 
-    def test_apply_verbose_true(self):
-        """cli.py:62 – configure_console called with verbose=True."""
-        from rhiza_tools.cli import _apply_verbose
-
-        with patch("rhiza_tools.cli.configure_console") as mock_configure:
-            _apply_verbose(True)
-            mock_configure.assert_called_once_with(verbose=True)
-
     def test_analyze_benchmarks_cli(self, monkeypatch):
         """cli.py:459-460 – analyze-benchmarks command invokes analyze_benchmarks_command."""
         mock_cmd = MagicMock()
@@ -61,10 +53,3 @@ class TestCLI:
         result = runner.invoke(app, ["analyze-benchmarks"])
         assert result.exit_code == 0
         mock_cmd.assert_called_once()
-
-    def test_analyze_benchmarks_cli_verbose(self, monkeypatch):
-        """cli.py:459 – _apply_verbose is triggered for analyze-benchmarks --verbose."""
-        mock_cmd = MagicMock()
-        monkeypatch.setattr("rhiza_tools.cli.analyze_benchmarks_command", mock_cmd)
-        result = runner.invoke(app, ["analyze-benchmarks", "--verbose"])
-        assert result.exit_code == 0
