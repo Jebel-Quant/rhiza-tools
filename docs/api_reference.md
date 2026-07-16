@@ -20,8 +20,7 @@ rhiza_tools/
 ├── __init__.py          # Package metadata and version
 ├── __main__.py          # Entry point (Typer app)
 ├── cli.py               # CLI command definitions
-└── commands/
-    └── version_matrix.py       # Python version matrix
+└── commands/                   # (no commands currently defined)
 ```
 
 ## Key Modules
@@ -32,9 +31,4 @@ The main Typer application. Defines all CLI commands and their option parsing.
 
 ### `rhiza_tools.commands`
 
-Each command module exposes a single `*_command()` function that contains the
-core logic, making commands testable independently of the CLI layer.
-
-| Module | Entry Function |
-|--------|---------------|
-| `version_matrix` | `version_matrix_command()` |
+Command implementations live here. No commands are currently defined.

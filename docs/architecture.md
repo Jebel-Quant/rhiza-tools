@@ -14,8 +14,8 @@ cli.py                          Typer surface — argument parsing, --help text,
        └─ <sibling>.py          an extracted responsibility (parsing, reporting, …)
 ```
 
-The only current command is a single module — `commands/version_matrix.py`.
-A command that outgrows the
+There are no command modules at present. A new command starts as a single
+module (`commands/<command>.py`); one that outgrows the
 [500-line gate](adr/0004-structural-meta-tests.md) (`tests/test_module_size.py`)
 is promoted to a **subpackage** (`commands/<command>/`) whose `__init__.py`
 holds the orchestration and whose siblings own the extracted responsibilities.
@@ -52,8 +52,8 @@ re-export it from `__init__.py`.
 ## Tests mirror the package
 
 `tests/` mirrors this layout: single-file command tests sit directly in
-`tests/commands/` (e.g. `tests/commands/test_version_matrix_command.py`), a
-subpackage command's tests live under `tests/commands/<command>/`, and
+`tests/commands/`, a subpackage command's tests live under
+`tests/commands/<command>/`, and
 cross-cutting suites (CLI wiring, structural meta-tests) stay at the `tests/`
 root. Test module basenames are kept unique across the tree because pytest runs
 in `prepend` import mode without `__init__.py` package markers.

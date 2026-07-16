@@ -70,7 +70,5 @@ nav:
   - Architecture:
     - Overview: architecture.md
     - Decision Records: adr/README.md
-  - Commands:
-    - version-matrix: commands/version_matrix.md
   - API Reference: api_reference.md
 

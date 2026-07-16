@@ -964,7 +964,6 @@ name = "rhiza-tools"
 version = "0.8.1"
 source = { editable = "." }
 dependencies = [
-    { name = "packaging" },
     { name = "typer" },
 ]
 
@@ -987,10 +986,7 @@ test = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "packaging", specifier = ">=24.0" },
-    { name = "typer", specifier = ">=0.16.0,<1.0" },
-]
+requires-dist = [{ name = "typer", specifier = ">=0.16.0,<1.0" }]
 
 [package.metadata.requires-dev]
 dev = [
