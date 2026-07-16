@@ -5,13 +5,13 @@ Guidance for Claude Code (and human contributors) working in this repository.
 ## What is this repo?
 
 `rhiza-tools` is the shared **CI helper CLI** for Rhiza-managed projects. It
-provides the CI Python-version matrix and benchmark analysis — invoked via
-`uvx` from the Rhiza Makefile targets and reusable CI workflows. Its own
-development infrastructure is synced from Rhiza.
+provides the CI Python-version matrix — invoked via `uvx` from the Rhiza
+Makefile targets and reusable CI workflows. Its own development infrastructure
+is synced from Rhiza.
 
 > Commands that once lived here have been removed as their concerns moved
-> elsewhere: release/versioning (`bump`, `release`, `rollback`, `update-readme`)
-> and the `pip-audit` / `suppression-audit` quality gates.
+> elsewhere: release/versioning (`bump`, `release`, `rollback`, `update-readme`),
+> the `pip-audit` / `suppression-audit` quality gates, and `analyze-benchmarks`.
 
 ## Rhiza-managed files — do NOT edit directly
 

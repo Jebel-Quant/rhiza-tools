@@ -13,7 +13,6 @@ nav:
   - Releasing: RELEASING.md
   - Commands:
     - version-matrix: commands/version_matrix.md
-    - analyze-benchmarks: commands/analyze_benchmarks.md
   - Architecture Decisions:
     - Overview: adr/README.md
     - 0001 bump-my-version adapter: adr/0001-bump-my-version-adapter.md

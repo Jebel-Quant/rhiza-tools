@@ -36,20 +36,3 @@ classifiers = ["Programming Language :: Python :: 3.11"]
     result = runner.invoke(app, ["version-matrix", "--pyproject", str(pyproject)])
     assert result.exit_code == 0
     mock_version_matrix.assert_called_once_with(pyproject_path=pyproject)
-
-
-# ---------------------------------------------------------------------------
-# Branch coverage relocated from the former test_coverage_100.py
-# ---------------------------------------------------------------------------
-
-
-class TestCLI:
-    """Tests for uncovered branches in cli.py."""
-
-    def test_analyze_benchmarks_cli(self, monkeypatch):
-        """cli.py:459-460 – analyze-benchmarks command invokes analyze_benchmarks_command."""
-        mock_cmd = MagicMock()
-        monkeypatch.setattr("rhiza_tools.cli.analyze_benchmarks_command", mock_cmd)
-        result = runner.invoke(app, ["analyze-benchmarks"])
-        assert result.exit_code == 0
-        mock_cmd.assert_called_once()
