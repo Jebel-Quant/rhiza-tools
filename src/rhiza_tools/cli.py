@@ -1,8 +1,7 @@
 """CLI commands for Rhiza Tools.
 
 This module defines the main Typer application and all command-line interface
-commands for rhiza-tools. It provides the CI Python-version matrix and
-benchmark analysis.
+commands for rhiza-tools. It provides the CI Python-version matrix.
 
 The CLI can be used either as a standalone tool (`rhiza-tools`) or as a
 subcommand of the rhiza CLI (`rhiza tools`). See the project README for usage
@@ -16,7 +15,6 @@ import typer
 
 from rhiza_tools import __version__
 
-from .commands.analyze_benchmarks import analyze_benchmarks_command
 from .commands.version_matrix import version_matrix_command
 
 
@@ -61,41 +59,3 @@ def version_matrix(
     argument is documented by its ``--help`` text above.
     """
     version_matrix_command(pyproject_path=pyproject)
-
-
-@app.command(name="analyze-benchmarks")
-def analyze_benchmarks(
-    benchmarks_json: Annotated[
-        Path,
-        typer.Option(
-            "--benchmarks-json",
-            help="Path to benchmarks.json file",
-        ),
-    ] = Path("_benchmarks/benchmarks.json"),
-    output_html: Annotated[
-        Path,
-        typer.Option(
-            "--output-html",
-            help="Path to save HTML visualization",
-        ),
-    ] = Path("_benchmarks/benchmarks.html"),
-    show: Annotated[
-        bool,
-        typer.Option(
-            "--show/--no-show",
-            help="Open the interactive chart in a browser after saving (default: no-show)",
-        ),
-    ] = False,
-) -> None:
-    """Analyze pytest-benchmark results and visualize them.
-
-    This command reads a benchmarks.json file produced by pytest-benchmark,
-    prints a table with benchmark name, mean milliseconds, and operations per
-    second, and generates an interactive Plotly bar chart of mean runtimes.
-
-    Note: This command requires pandas and plotly. Install with:
-    uv pip install -e '.[dev]' or pip install 'rhiza-tools[dev]'
-
-    Each argument is documented by its ``--help`` text above.
-    """
-    analyze_benchmarks_command(benchmarks_json=benchmarks_json, output_html=output_html, show=show)

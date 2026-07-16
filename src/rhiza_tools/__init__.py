@@ -1,12 +1,11 @@
 """Rhiza Tools — CI helper CLI for the Rhiza ecosystem.
 
 Rhiza Tools is the shared helper CLI for Rhiza-managed projects. It provides the
-CI Python-version matrix and benchmark analysis.
+CI Python-version matrix.
 
 ## Key features
 
 - **Version Matrix**: Emit the supported Python versions for the CI test matrix.
-- **Benchmark Analysis**: Summarize and visualize pytest-benchmark results.
 - **Standalone CLI**: Run directly via `uvx rhiza-tools` — invoked by the Rhiza
   Makefile targets and CI.
 
